@@ -7,9 +7,9 @@ this file limited to Claude-specific notes that do not belong in general project
 
 ## Claude Notes
 
-- This is a new repository. Do not assume a frontend, backend, database, deployment target, or CI
-  stack until the project files define one.
-- Prefer small, explicit changes and keep copied scaffolding generic unless a project decision has
-  been made.
-- If project docs such as `docs/SPEC.md`, `docs/ARCHITECTURE.md`, or `docs/BACKLOG.md` are added
-  later, read only the relevant files for the task instead of preloading everything.
+- Start non-trivial tasks by reading `BACKLOG.md`, then only the relevant spec docs.
+- Keep `BACKLOG.md` current as task status, blockers, scope, or acceptance criteria change.
+- Treat `docs/SPEC.md`, `docs/VISUAL_CONTRACT.md`, and `docs/ARCHITECTURE.md` as implementation
+  inputs, not after-the-fact documentation.
+- Do not scaffold or implement the Power BI visual until the host contract and acceptance criteria
+  are clear enough to verify.

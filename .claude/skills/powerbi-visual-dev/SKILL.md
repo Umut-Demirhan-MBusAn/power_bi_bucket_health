@@ -9,10 +9,14 @@ Use this runbook for custom visual work in this repo.
 
 ## Start
 
-1. Read [docs/POWERBI_VISUAL_TOOLING.md](../../../docs/POWERBI_VISUAL_TOOLING.md).
-2. Confirm `pbiviz --version`.
-3. If no visual is scaffolded yet, clarify the visual name, data roles, visual behavior, and expected
+1. Read [BACKLOG.md](../../../BACKLOG.md).
+2. Read [docs/SPEC.md](../../../docs/SPEC.md), [docs/VISUAL_CONTRACT.md](../../../docs/VISUAL_CONTRACT.md),
+   and [docs/ARCHITECTURE.md](../../../docs/ARCHITECTURE.md) only as needed for the task.
+3. Read [docs/POWERBI_VISUAL_TOOLING.md](../../../docs/POWERBI_VISUAL_TOOLING.md).
+4. Confirm `pbiviz --version`.
+5. If no visual is scaffolded yet, clarify the visual name, data roles, visual behavior, and expected
    interactions before running `pbiviz new`.
+6. Update `BACKLOG.md` when status, deliverables, or blockers change.
 
 ## Design Order
 
