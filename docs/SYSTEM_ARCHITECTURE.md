@@ -42,7 +42,7 @@ Data Adapter
 Domain Model
   - MachineBucketModel[]
   - ComponentRecord[]
-  - Derived counts, inferred lip shrouds, alarm summary
+  - Derived counts, wing side assignment, alarm summary
   |
   v
 State Services
@@ -84,7 +84,7 @@ src/
     status.ts
     alarms.ts
     sorting.ts
-    inferredComponents.ts
+    wingSideAssignment.ts
 
   geometry/
     bucketGeometry.ts
@@ -130,7 +130,7 @@ src/
 4. `normalizeStatus` maps source status values into canonical status keys:
    `ok`, `nodata`, `lockout`, `lockoutnd`, `prox`, `move`.
 5. `deriveMachines` groups component rows by machine key.
-6. `inferredComponents` derives lip shrouds as `teeth - 1`.
+6. `wingSideAssignment` derives left/right wing placement from component order and formatting settings.
 7. `alarms` calculates machine-level alarm counts and dominant alarm type.
 8. The alarm transition tracker compares previous and current component status by stable component
    key.
@@ -206,7 +206,7 @@ Use a deterministic SVG geometry engine based on the handoff constants.
 Inputs:
 
 - teeth count, clamped 4-20
-- wing count per side, clamped 0-4
+- derived wing count per side, clamped 0-4
 - ordered component statuses
 - card size/view mode
 
@@ -265,8 +265,8 @@ Rationale:
 
 - The handoff graphics are generated SVG.
 - SVG supports crisp scaling, component hit targets, gradients, filters, and tooltips.
-- Worst-case geometry is moderate: approximately 20 machines and fewer than 1,000 rendered GET
-  shapes including inferred lip shrouds.
+- Worst-case geometry is moderate: approximately 20 machines and fewer than 1,000 supplied GET
+  component rows.
 - SVG is simpler to test and maintain than WebGL for this front-on technical illustration.
 
 D3 may be used for DOM joins and path updates, but the geometry math should remain framework-agnostic
@@ -301,12 +301,18 @@ Audio suppression applies to states 1-5.
 
 ## Test Architecture
 
+Pre-scaffold validation:
+
+- CSV schema validation using `scripts/validate-mock-data.ps1`.
+- Representative fixture data in `test/fixtures/bucket_health_components.csv`.
+- Parser acceptance criteria documented in [docs/DATA_SCHEMA.md](DATA_SCHEMA.md).
+
 Unit tests:
 
 - status normalization and precedence
 - role validation
 - component row parsing
-- machine grouping and inferred lip shrouds
+- machine grouping, lip shroud count validation, and wing side assignment
 - alarm transition detection
 - fleet sort order
 - grid column selection

@@ -48,7 +48,8 @@ when the number of machines and the number/order of components changes by machin
   - Component shapes must look integrated into the bucket, not pasted onto a static image.
 - Support configurable component ordering:
   - Teeth and lip shrouds default left-to-right incremental.
-  - Wing shrouds default odd numbers on one side and even numbers on the other side, with the `side` data field (left/right) taking precedence if bound, and side direction configurable as a fallback.
+  - Wing shrouds are assigned to left/right sides by visual settings from component order: odd/even
+    side assignment or sequential order split, with either side direction available.
 - Show each component's status using color and alarm animation.
 - Show tooltip data for each component, including component name, tag ID, status, last seen, and any
   additional user-provided fields.
@@ -167,7 +168,7 @@ Known logical entities:
 - GET component
 - GET component category: tooth, lip shroud, wing shroud
 - Component order/index
-- Component side for wing shrouds
+- Component order for wing shrouds; side is derived by visual settings
 - Component status
 - Last seen timestamp
 - Tooltip metadata fields
@@ -224,10 +225,9 @@ Known logical entities:
 
 ### Data Shape
 
-- What are the real source column names for machine, component, category, order, side, status, and
+- What are the real source column names for machine, component, category, order, status, and
   lastSeen?
-- Will report authors supply lip shroud rows when explicit lip statuses are needed, or should lip
-  statuses always be inferred/defaulted?
+- Confirm lip shroud rows are always supplied and equal to `teeth - 1`.
 - Are missing component rows valid, or should the visual generate placeholders?
 - What is the unique key for a machine?
 - What is the unique key for a component?
@@ -253,7 +253,8 @@ Known logical entities:
 
 - Should tooth/lip order be based on numeric order field, physical left-to-right order, or tag ID?
 - How should custom order changes be provided: data field, formatting setting, or calculated sort?
-- For wing shrouds, which default is correct: odd right/even left, or odd left/even right?
+- For wing shrouds, which default is correct: odd left/even right, odd right/even left, first half
+  left/second half right, or first half right/second half left?
 - Within each wing side, does order run top-to-bottom, bottom-to-top, front-to-back, or back-to-front?
 - Can a machine have asymmetric wing shroud counts?
 

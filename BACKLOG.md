@@ -29,8 +29,9 @@ scope changes, work starts, work completes, or a blocker appears.
 | PBH-012 | Not Started | Implement edge states | Codex | No-fields, loading, invalid-config, no-data, and error states match `States.dc.html` and suppress audio. | Can start after scaffold. |
 | PBH-013 | Not Started | Implement alarm audio and transition controller | Codex | WebAudio alert arms on user gesture, plays 880/660 Hz pattern on fresh alarm transitions, dismisses on visual click, auto-stops at 120s, and respects reduced motion. | Requires Power BI Desktop/service verification. |
 | PBH-014 | Not Started | Implement formatting pane settings | Codex | Layout, bucket, ordering, status mapping/colors, alarm, and motion settings parse into typed settings with defaults. | Depends on scaffold. |
-| PBH-015 | Not Started | Add test and validation suite | Codex | Parser, status precedence, inferred components, alarm transitions, grid columns, geometry min/max, and edge-state logic have tests; `pbiviz lint` and `pbiviz package` pass. | Ongoing during implementation. |
+| PBH-015 | In Progress | Add test and validation suite | Codex | Parser, status precedence, component counts, wing side assignment, alarm transitions, grid columns, geometry min/max, and edge-state logic have tests; `pbiviz lint` and `pbiviz package` pass. | Pre-scaffold fixture validation started; full unit suite depends on PBH-007. |
 | PBH-016 | Done | Graphify repo setup | Codex | Codex Graphify instructions and hooks are configured; generated `graphify-out/` output is ignored. | Completed 2026-06-21. |
+| PBH-017 | Done | Define data schema and mock CSV fixture | Codex | `docs/DATA_SCHEMA.md` defines source CSV columns and parser rules; a representative mock CSV exists and validates with the repo test command. | Completed 2026-06-21; supports PBH-008 parser implementation. |
 
 ## Milestones
 
@@ -67,6 +68,7 @@ Deliverables:
 - [ ] Minimal rendering path implemented.
 - [ ] Formatting model skeleton implemented.
 - [ ] `pbiviz lint` and `pbiviz package` pass.
+- [ ] Mock data fixture validates against documented schema.
 
 ### M3 - Design Handoff Parity
 
@@ -85,7 +87,7 @@ Deliverables:
 The detailed question list is in [docs/SPEC.md](docs/SPEC.md). Highest-priority decisions:
 
 - Confirm real source column names and exact status source values.
-- Confirm whether lip shroud statuses are inferred/defaulted or supplied explicitly when needed.
+- Confirm final business column names for supplied lip shroud rows and wing order values.
 - Confirm whether the approved front-on SVG handoff fully satisfies "masterclass" visual quality.
 - Confirm audio behavior in the target Power BI Desktop/service environment.
 - Confirm whether Power BI selection/cross-filter/drill behavior is required.
@@ -100,3 +102,4 @@ The detailed question list is in [docs/SPEC.md](docs/SPEC.md). Highest-priority 
 | 2026-06-20 | Added adaptive high-fidelity 3D-style bucket geometry requirement driven by GET counts. |
 | 2026-06-21 | Integrated Claude Design handoff into host contract, system architecture, spec, and implementation backlog. |
 | 2026-06-21 | Configured Graphify for Codex and ignored generated graph output. |
+| 2026-06-21 | Added pre-scaffold testing setup, source data schema, mock CSV fixture, and fixture validator. |

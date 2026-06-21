@@ -23,7 +23,7 @@ src/
   settings.ts               # Formatting model and settings
 
   data/                     # DataView parsing, validation, and normalization
-  domain/                   # Domain logic (status, alarms, sorting, inferred components)
+  domain/                   # Domain logic (status, alarms, sorting, wing side assignment)
   geometry/                 # Adaptive bucket and GET component shape generation
   layout/                   # Responsive machine-card grid and card sizing
   rendering/                # SVG/HTML rendering (fleet, machine card, states, tooltips)
@@ -73,6 +73,7 @@ src/
 
 ## Testing Strategy
 
+- Pre-scaffold schema validation for CSV fixtures, documented in [TESTING.md](TESTING.md).
 - Data parser unit tests.
 - Layout calculation tests for 1, 2, many, and overflow machine counts.
 - Geometry tests for minimum/maximum teeth, lip shrouds, and wing shrouds.
@@ -89,8 +90,7 @@ src/
 - Avoid full recompute when data/settings/viewport are unchanged.
 - Define high-cardinality limits in `VISUAL_CONTRACT.md`.
 - Measure representative render/update timings before release.
-- Test worst-case expected data: 20 machines, about 560 supplied GET component rows, and up to 380
-  inferred lip shrouds.
+- Test worst-case expected data: 20 machines and about 940 supplied GET component rows.
 
 ## Open Architecture Questions
 

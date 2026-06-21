@@ -17,12 +17,17 @@ Design source: [design_handoff_bucket_health](design_handoff_bucket_health/READM
 
 One row represents one GET component status for one machine.
 
+The concrete source CSV schema and fixture columns are defined in [DATA_SCHEMA.md](DATA_SCHEMA.md).
+Power BI field wells may be bound from differently named business columns later, but the initial
+fixture uses stable, snake_case source names so parser behavior can be tested before the visual is
+scaffolded.
+
 Counts are derived from component rows:
 
 - Teeth = count of `category = tooth` rows for the machine, clamped to 4-20.
-- Lip shrouds = `teeth - 1`, inferred by the visual. Lip rows are not required unless later needed
-  for explicit lip-level status.
-- Wing shrouds = count of `category = wingShroud` rows, up to 4 per side.
+- Lip shrouds = count of `category = lipShroud` rows for the machine; count must equal `teeth - 1`.
+- Wing shrouds = count of `category = wingShroud` rows, up to 8 total. Left/right side is derived
+  from `order` using a visual formatting setting, not from a source data column.
 
 ## Data Roles
 
@@ -32,8 +37,7 @@ Counts are derived from component rows:
 | machineType | Grouping | No | Functional type of machine (e.g., "Hydraulic Excavator"). | Displayed in machine card header above the machine name. |
 | component | Grouping | Yes | Stable unique GET component key within a machine. | Used for status, tooltip, selection, and alarm transition detection. |
 | category | Grouping | Yes | GET component category. | Values: `tooth`, `lipShroud`, `wingShroud`. |
-| order | Measure or Grouping | Yes | Integer physical order. | Tooth/lip left-to-right; wing per-side order. |
-| side | Grouping | Wing only | Side for wing shrouds. | Values: `left`, `right`. Required for wing rows. |
+| order | Measure or Grouping | Yes | Integer physical order. | Tooth/lip left-to-right; wing side is assigned from this order by visual settings. |
 | status | Grouping or Measure | Yes | Current component status. | Maps to the status model below. |
 | lastSeen | Measure datetime | No | Last component update timestamp. | Tooltip display; timezone/format remains business decision. |
 | tooltipFields | Measure, multiple | No | Additional report-author-selected tooltip fields. | Appended to component tooltip. |
@@ -84,7 +88,7 @@ interface ComponentRecord {
   componentKey: string;
   category: "tooth" | "lipShroud" | "wingShroud";
   order: number;
-  side?: "left" | "right";
+  derivedWingSide?: "left" | "right";
   status: BucketStatusKey;
   lastSeen?: Date | string;
   tooltipFields: Array<{ label: string; value: unknown }>;
@@ -120,8 +124,7 @@ interface MachineBucketModel {
 | bucket | showMachineHeader | Boolean | true | Show machine label/header. |
 | bucket | minComponentSize | Numeric | TBD | Minimum rendered GET component size before card overflow. |
 | ordering | toothLipDirection | Enumeration | LeftToRight | Tooth and lip shroud order direction. |
-| ordering | wingOddSide | Enumeration | Right | Optional fallback if side is derived from odd/even (takes precedence only if `side` data role is not bound). |
-| ordering | wingWithinSideDirection | Enumeration | TBD | Top-to-bottom, bottom-to-top, or source order. |
+| ordering | wingSideAssignment | Enumeration | OddLeftEvenRight | Assign wing shroud side from `order`: odd-left/even-right, odd-right/even-left, first-half-left/second-half-right, or first-half-right/second-half-left. |
 | statusMapping | ok | Text | OK | Source value mapped to OK. |
 | statusMapping | noData | Text | No data (1h) | Source value mapped to no-data. |
 | statusMapping | lockout | Text | Lockout | Source value mapped to lockout. |
@@ -169,10 +172,10 @@ whether AppSource certification is required.
 
 - Maximum machines: 20.
 - Teeth per machine: 4 to 20.
-- Lip shrouds per machine: inferred as `teeth - 1`.
-- Wing shrouds per machine: 0 to 8 total, up to 4 per side.
-- Maximum GET component records: roughly 20 machines * (20 teeth + 8 wing shrouds) = 560 supplied
-  component rows, plus 380 inferred lip shrouds internally.
+- Lip shrouds per machine: supplied rows equal to `teeth - 1`.
+- Wing shrouds per machine: 0 to 8 total, assigned to sides by visual settings.
+- Maximum GET component records: roughly 20 machines * (20 teeth + 19 lip shrouds + 8 wing
+  shrouds) = 940 supplied component rows.
 - Reduction strategy: reject/guide above supported limits unless the business approves a top-N mode.
 - Aggregation/paging strategy: none initially; visual needs all current component rows at once.
 
@@ -218,7 +221,7 @@ Body corners:
 Geometry rules:
 
 - Teeth are tapered wedges distributed along the cutting edge.
-- Lip shrouds are rectangular plates between teeth and are inferred from teeth count.
+- Lip shrouds are rectangular plates between teeth and are supplied as component rows.
 - Wing shrouds are quads along side edges with fixed 56-unit pitch.
 - Hitch bracket is centered on the top edge and scaled by top width.
 - Spill guard bars run across the top edge.

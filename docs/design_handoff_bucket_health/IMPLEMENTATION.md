@@ -24,16 +24,16 @@ source of truth for geometry, the data contract, the status model, and runtime b
 | `machine` | Grouping | yes | Unique machine key. One machine = one card. |
 | `component` | Grouping | yes | Unique component key within a machine. |
 | `category` | Grouping | yes | One of `tooth` \| `lipShroud` \| `wingShroud`. |
-| `order` | Measure/Grouping | yes | Integer index. Tooth/lip left→right; wing per-side order. |
-| `side` | Grouping | wing only | `left` \| `right` for wing shrouds. |
+| `order` | Measure/Grouping | yes | Integer index. Tooth/lip left→right; wing side assignment is derived from this order by visual settings. |
 | `status` | Grouping/Measure | yes | Maps to the status model below. |
 | `lastSeen` | Measure (datetime) | no | Shown in tooltip. |
 | `tooltipFields` | Measure (multiple) | no | Extra user fields appended to the tooltip. |
 
 **One row = one GET component status.** Counts are derived from the data, not settings:
 - Teeth = count of `category = tooth` rows for the machine (clamp 4–20).
-- Lip shrouds = `teeth − 1` (inferred; do not require lip rows unless the author binds them).
-- Wing shrouds = count of `category = wingShroud` rows, ≤ 4 per side.
+- Lip shrouds = count of `category = lipShroud` rows; count must equal `teeth - 1`.
+- Wing shrouds = count of `category = wingShroud` rows, ≤ 8 total. Left/right side is assigned by
+  visual settings from `order`; side is not supplied by the data.
 
 ---
 
@@ -144,7 +144,8 @@ No machine cards render in any of these; audio is suppressed:
 
 - Layout: min card size, columns (auto/fixed), max machines behavior.
 - Status: color overrides per status, status-string → model mapping.
-- Ordering: tooth/lip order source; wing odd/even side assignment + within-side direction.
+- Ordering: tooth/lip order source; wing side assignment from order: odd/even or first-half/second-half,
+  with either left/right direction.
 - Alarm: enable audio, restart-after-dismiss behavior, alarm priority.
 - Motion: respect reduced-motion (default on).
 
