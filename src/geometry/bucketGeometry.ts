@@ -27,7 +27,7 @@ export const bucketGeometryConstants = {
     TOP_WIDTH_RATIO: 0.84
 } as const;
 
-const statusColors: Record<BucketStatusKey, string> = {
+export const bucketStatusColors: Record<BucketStatusKey, string> = {
     ok: "#34D399",
     nodata: "#F4C04E",
     lockout: "#5BA8F5",
@@ -264,7 +264,7 @@ function addAlarmRing(alarmRings: AlarmRingGeometry[], component: ComponentRecor
         status,
         center,
         radius: round(radius),
-        color: statusColors[status]
+        color: bucketStatusColors[status]
     });
 }
 

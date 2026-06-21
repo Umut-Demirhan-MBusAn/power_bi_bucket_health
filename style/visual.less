@@ -41,8 +41,16 @@
     gap: 14px;
 }
 
+.bucket-health__grid--single {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: calc(100% - 56px);
+}
+
 .bucket-health-card {
-    min-height: 132px;
+    display: flex;
+    min-height: 300px;
+    flex-direction: column;
+    gap: 14px;
     padding: 16px;
     border: 1px solid #222d39;
     border-radius: 8px;
@@ -60,6 +68,17 @@
     }
 }
 
+.bucket-health__grid--single .bucket-health-card {
+    min-height: 560px;
+}
+
+.bucket-health-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
 .bucket-health-card--alarm {
     border-color: #ff4d4d;
     box-shadow: 0 0 0 1px rgba(255, 77, 77, 0.25);
@@ -67,7 +86,7 @@
 
 .bucket-health-card__status {
     display: inline-block;
-    margin-top: 18px;
+    flex: 0 0 auto;
     padding: 4px 8px;
     border-radius: 4px;
     background: #13241c;
@@ -81,6 +100,75 @@
 .bucket-health-card__status--alarm {
     background: #2a1212;
     color: #ff9a9a;
+}
+
+.bucket-health-svg {
+    display: block;
+    width: 100%;
+    min-height: 210px;
+    flex: 1 1 auto;
+}
+
+.bucket-health__grid--single .bucket-health-svg {
+    min-height: 440px;
+}
+
+.bucket-health-svg__body,
+.bucket-health-svg__cavity,
+.bucket-health-svg__beam {
+    vector-effect: non-scaling-stroke;
+}
+
+.bucket-health-svg__shadow {
+    filter: blur(1px);
+}
+
+.bucket-health-svg__spill-bar {
+    opacity: 0.76;
+}
+
+.bucket-health-svg__component {
+    vector-effect: non-scaling-stroke;
+}
+
+.bucket-health-svg__tooth,
+.bucket-health-svg__lip,
+.bucket-health-svg__wing {
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.28));
+}
+
+.bucket-health-svg__alarm-ring {
+    fill: none;
+    opacity: 0.78;
+    vector-effect: non-scaling-stroke;
+}
+
+.bucket-health-svg__center-alarm--hidden {
+    display: none;
+}
+
+.bucket-health-svg__alarm-halo {
+    opacity: 0.75;
+}
+
+.bucket-health-svg__alarm-mark {
+    fill: #fff;
+    font-size: 32px;
+    font-weight: 800;
+}
+
+.bucket-health-svg__alarm-label {
+    fill: #ffd1d1;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.bucket-health-svg__watermark {
+    fill: rgba(234, 240, 247, 0.1);
+    font-size: 54px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
 }
 
 .bucket-health-state {

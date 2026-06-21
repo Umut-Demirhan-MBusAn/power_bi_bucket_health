@@ -5,6 +5,7 @@ import { FormattingSettingsService } from "powerbi-visuals-utils-formattingmodel
 import "./../style/visual.less";
 import { parseDataView } from "./data/parseDataView";
 import { BucketHealthDataModel, MachineBucketModel } from "./data/types";
+import { renderBucketSvg } from "./rendering/renderBucketSvg";
 import { VisualFormattingSettingsModel } from "./settings";
 
 import IVisual = powerbi.extensibility.visual.IVisual;
@@ -77,7 +78,7 @@ export class Visual implements IVisual {
         container.appendChild(header);
 
         const grid = document.createElement("div");
-        grid.className = "bucket-health__grid";
+        grid.className = model.machines.length === 1 ? "bucket-health__grid bucket-health__grid--single" : "bucket-health__grid";
 
         model.machines.forEach((machine) => grid.appendChild(this.createMachineCard(machine)));
         container.appendChild(grid);
@@ -119,6 +120,11 @@ export class Visual implements IVisual {
         const card = document.createElement("article");
         card.className = machine.hasAlarm ? "bucket-health-card bucket-health-card--alarm" : "bucket-health-card";
 
+        const cardHeader = document.createElement("div");
+        cardHeader.className = "bucket-health-card__header";
+
+        const headerText = document.createElement("div");
+
         const title = document.createElement("h2");
         title.textContent = machine.name;
 
@@ -136,7 +142,9 @@ export class Visual implements IVisual {
             ? `${machine.alarmCount} alarm${machine.alarmCount === 1 ? "" : "s"}`
             : "OK";
 
-        card.append(title, meta, status);
+        headerText.append(title, meta);
+        cardHeader.append(headerText, status);
+        card.append(cardHeader, renderBucketSvg(machine));
         return card;
     }
 }
