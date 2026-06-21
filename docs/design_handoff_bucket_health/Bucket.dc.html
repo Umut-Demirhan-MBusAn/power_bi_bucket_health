@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  @keyframes bh-flash{0%,49%{opacity:1}50%,100%{opacity:.28}}
+  @keyframes bh-ring{0%{opacity:.8;transform:scale(.5)}100%{opacity:0;transform:scale(1.5)}}
+  @keyframes bh-halo{0%{opacity:.45;transform:scale(.55)}100%{opacity:0;transform:scale(1.7)}}
+  [data-alarm="prox"] .bh-comp,[data-alarm="move"] .bh-comp{animation:bh-flash .6s steps(1,end) infinite}
+  .bh-ring{transform-box:fill-box;transform-origin:center;animation:bh-ring 1.15s ease-out infinite}
+  .bh-halo{transform-box:fill-box;transform-origin:center;animation:bh-halo 1.3s ease-out infinite}
+  .bh-warn{animation:bh-flash .66s steps(1,end) infinite}
+  @media (prefers-reduced-motion: reduce){
+    [data-alarm="prox"] .bh-comp,[data-alarm="move"] .bh-comp{animation:none;opacity:1}
+    .bh-ring{animation:none;opacity:.55}
+    .bh-halo{animation:none;opacity:.3}
+    .bh-warn{animation:none;opacity:1}
+  }
+</style>
+</helmet>
+<div style="min-height:100vh;box-sizing:border-box;padding:44px 48px 64px;background:#080b0f;font-family:Inter,sans-serif;display:flex;justify-content:center;align-items:flex-start">
+  <div onClick="{{ onDismiss }}" style="width:max-content;min-width:460px;background:radial-gradient(140% 110% at 50% -8%, #1d2733 0%, #131b23 52%, #0b1015 100%);border:1px solid #222d39;border-radius:18px;padding:20px 24px 18px">
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:30px;margin-bottom:10px">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-family:'Barlow Semi Condensed',sans-serif;font-weight:700;font-size:24px;color:#F2F6FB;letter-spacing:.01em">EX-204</div>
+          <span style="font-size:11px;font-weight:600;color:#cdd8e4;background:#1d2630;border:1px solid #2f3b48;padding:3px 9px;border-radius:20px">Hydraulic Excavator</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <sc-if value="{{ hasAlarm }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;align-items:center;gap:8px;background:#221310;border:1px solid #4a2317;padding:7px 13px;border-radius:10px;white-space:nowrap">
+            <span style="width:9px;height:9px;border-radius:50%;background:#FF5A5A"></span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#f6cba6;font-weight:600;letter-spacing:.04em">{{ alarmText }}</span>
+          </div>
+        </sc-if>
+        <button onClick="{{ onToggleAudio }}" style="display:inline-flex;align-items:center;gap:7px;border:1px solid #2f3b48;border-radius:10px;padding:7px 12px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;letter-spacing:.04em;background:{{ audioBg }};color:{{ audioFg }}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4Z"></path><path d="M17 8a5 5 0 0 1 0 8"></path></svg>
+          {{ audioLabel }}
+        </button>
+      </div>
+    </div>
+
+    <svg viewBox="{{ vb }}" style="width:{{ dispW }}px;height:{{ dispH }}px;display:block;margin:0 auto">
+      <defs>
+        <linearGradient id="bodyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#39434e"></stop><stop offset="0.55" stop-color="#262e38"></stop><stop offset="1" stop-color="#1a212a"></stop></linearGradient>
+        <radialGradient id="cavG" cx="0.5" cy="0.24" r="0.95"><stop offset="0" stop-color="#0b1016"></stop><stop offset="0.6" stop-color="#10171f"></stop><stop offset="1" stop-color="#1b232c"></stop></radialGradient>
+        <linearGradient id="beamG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b6671"></stop><stop offset="0.5" stop-color="#3a424c"></stop><stop offset="1" stop-color="#252c34"></stop></linearGradient>
+        <linearGradient id="steelG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5d6873"></stop><stop offset="0.5" stop-color="#404a55"></stop><stop offset="1" stop-color="#2a3240"></stop></linearGradient>
+        <linearGradient id="pinG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#94a1af"></stop><stop offset="0.5" stop-color="#5a6571"></stop><stop offset="1" stop-color="#333c46"></stop></linearGradient>
+        <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity="0.55"></feDropShadow></filter>
+      </defs>
+
+      <ellipse cx="{{ shadow.cx }}" cy="{{ shadow.cy }}" rx="{{ shadow.rx }}" ry="16" fill="#000" opacity="0.35" filter="url(#soft)"></ellipse>
+
+      <path d="{{ body.shell }}" fill="url(#bodyG)" stroke="#465465" stroke-width="2" stroke-linejoin="round"></path>
+
+      <!-- top hitch bracket -->
+      <g transform="{{ bracketTf }}">
+        <path d="M 296 94 Q 312 52 338 40 Q 360 31 382 40 Q 404 51 410 82 Q 424 94 440 94 Q 456 94 470 82 Q 476 51 498 40 Q 520 31 542 40 Q 568 52 584 94 Z" fill="url(#steelG)" stroke="#161d25" stroke-width="1.6" stroke-linejoin="round"></path>
+        <rect x="320" y="49" width="240" height="26" rx="13" fill="url(#pinG)" stroke="#161d25" stroke-width="1.2"></rect>
+        <rect x="348" y="44" width="22" height="36" rx="6" fill="url(#pinG)" stroke="#161d25" stroke-width="1"></rect>
+        <rect x="510" y="44" width="22" height="36" rx="6" fill="url(#pinG)" stroke="#161d25" stroke-width="1"></rect>
+        <rect x="328" y="54" width="224" height="5" rx="2.5" fill="#cdd8e4" opacity="0.5"></rect>
+      </g>
+
+      <path d="{{ body.cavity }}" fill="url(#cavG)" filter="url(#soft)" stroke="#2c3744" stroke-width="1.5"></path>
+      <text x="{{ shadow.cx }}" y="{{ labelY }}" text-anchor="middle" font-family="'Barlow Semi Condensed',sans-serif" font-weight="700" font-size="14" letter-spacing="3" fill="#465261" opacity="0.5">EX-204</text>
+
+      <sc-for list="{{ guard }}" as="g" hint-placeholder-count="16"><rect x="{{ g.x }}" y="{{ g.y }}" width="{{ g.w }}" height="{{ g.h }}" rx="1.5" fill="#2b3540" stroke="#465465" stroke-width="0.8"></rect></sc-for>
+
+      <path d="{{ beam.path }}" fill="url(#beamG)" stroke="#465465" stroke-width="1.5" stroke-linejoin="round"></path>
+
+      <sc-for list="{{ wings }}" as="w" hint-placeholder-count="8">
+        <g data-alarm="{{ w.alarm }}" onMouseEnter="{{ w.onEnter }}" onMouseLeave="{{ w.onLeave }}">
+          <polygon class="bh-comp" points="{{ w.face }}" fill="{{ w.color }}" stroke="{{ w.stroke }}" stroke-width="1.5" stroke-linejoin="round"></polygon>
+        </g>
+      </sc-for>
+
+      <sc-for list="{{ lips }}" as="l" hint-placeholder-count="9">
+        <g data-alarm="{{ l.alarm }}" onMouseEnter="{{ l.onEnter }}" onMouseLeave="{{ l.onLeave }}">
+          <rect class="bh-comp" x="{{ l.x }}" y="{{ l.y }}" width="{{ l.w }}" height="{{ l.h }}" rx="3" fill="{{ l.color }}" stroke="{{ l.stroke }}" stroke-width="1.5"></rect>
+        </g>
+      </sc-for>
+
+      <sc-for list="{{ teeth }}" as="t" hint-placeholder-count="10">
+        <g data-alarm="{{ t.alarm }}" onMouseEnter="{{ t.onEnter }}" onMouseLeave="{{ t.onLeave }}">
+          <path class="bh-comp" d="{{ t.path }}" fill="{{ t.color }}" stroke="{{ t.stroke }}" stroke-width="1.5" stroke-linejoin="round"></path>
+        </g>
+      </sc-for>
+
+      <sc-for list="{{ rings }}" as="a" hint-placeholder-count="2"><circle class="bh-ring" cx="{{ a.cx }}" cy="{{ a.cy }}" r="{{ a.r }}" fill="none" stroke="{{ a.color }}" stroke-width="2.6"></circle></sc-for>
+
+      <!-- center alarm graphic -->
+      <sc-if value="{{ hasAlarm }}" hint-placeholder-val="{{ false }}">
+        <g transform="translate({{ alarm.cx }} {{ alarm.cy }})">
+          <circle class="bh-halo" r="54" fill="#FF4D4D" opacity="0.16"></circle>
+          <g class="bh-warn">
+            <path d="M 0 -34 L 38 30 L -38 30 Z" fill="#2a0e0e" stroke="#FF4D4D" stroke-width="3.5" stroke-linejoin="round"></path>
+            <rect x="-4" y="-16" width="8" height="26" rx="4" fill="#FF6A6A"></rect>
+            <circle cx="0" cy="20" r="4.2" fill="#FF6A6A"></circle>
+          </g>
+          <text x="0" y="58" text-anchor="middle" font-family="'Barlow Semi Condensed',sans-serif" font-weight="700" font-size="18" letter-spacing="3" fill="#FF6A6A">{{ alarm.label }}</text>
+        </g>
+      </sc-if>
+
+      <sc-if value="{{ tooltip }}" hint-placeholder-val="{{ false }}">
+        <rect x="{{ tooltip.tx }}" y="{{ tooltip.ty }}" width="214" height="104" rx="8" fill="#0d1520" stroke="#2a3a4a" stroke-width="1.2"></rect>
+        <line x1="{{ tooltip.tx }}" y1="{{ tooltip.ty }}" x2="{{ tooltip.tx }}" y2="{{ tooltip.tyb }}" stroke="{{ tooltip.col }}" stroke-width="4" stroke-linecap="round"></line>
+        <text x="{{ tooltip.tx2 }}" y="{{ tooltip.ty1 }}" fill="#EAF0F7" font-family="IBM Plex Mono,monospace" font-size="12" font-weight="600">{{ tooltip.name }}</text>
+        <text x="{{ tooltip.tx2 }}" y="{{ tooltip.ty2 }}" fill="#586674" font-family="IBM Plex Mono,monospace" font-size="10.5">{{ tooltip.cat }}</text>
+        <text x="{{ tooltip.tx2 }}" y="{{ tooltip.ty3 }}" fill="{{ tooltip.col }}" font-family="IBM Plex Mono,monospace" font-size="11" font-weight="700">{{ tooltip.status }}</text>
+        <text x="{{ tooltip.tx2 }}" y="{{ tooltip.ty4 }}" fill="#586674" font-family="IBM Plex Mono,monospace" font-size="10">{{ tooltip.last }}</text>
+      </sc-if>
+    </svg>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: {&quot;width&quot;: 920, &quot;height&quot;: 600},
+  &quot;teethCount&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 10, &quot;min&quot;: 4, &quot;max&quot;: 20, &quot;step&quot;: 1},
+  &quot;wingsPerSide&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 4, &quot;min&quot;: 0, &quot;max&quot;: 4, &quot;step&quot;: 1}
+}">
+class Component extends DCLogic {
+  state = { tooltip: null, audioArmed: false, audioPlaying: false };
+
+  componentWillUnmount(){ this._stop(); if(this._ctx){ try{this._ctx.close();}catch(e){} } }
+
+  componentDidUpdate(){
+    // alarm transition: start audio when armed and an alarm appears
+    const has = this._hasAlarm();
+    if(this.state.audioArmed && has && !this._prevAlarm && !this.state.audioPlaying){ this._start(); }
+    this._prevAlarm = has;
+  }
+
+  _hasAlarm(){
+    const n = Math.max(4, Math.min(20, this.props.teethCount ?? 10));
+    const POOL_T = ["ok","ok","nodata","ok","ok","prox","ok","ok","ok","move","ok","ok","lockout","ok","ok","ok","ok","lockoutnd","ok","ok"];
+    const POOL_L = ["ok","ok","ok","move","ok","ok","ok","ok","ok","ok","ok","nodata","ok","ok","ok","ok","ok","ok","ok"];
+    const al = s => s==="prox"||s==="move";
+    for(let i=0;i<n;i++) if(al(POOL_T[i%POOL_T.length])) return true;
+    for(let i=0;i<n-1;i++) if(al(POOL_L[i%POOL_L.length])) return true;
+    return false;
+  }
+
+  _beep(){
+    if(!this._ctx) return;
+    const t=this._ctx.currentTime;
+    [880,660].forEach((freq,i)=>{
+      const o=this._ctx.createOscillator(), g=this._ctx.createGain();
+      o.type="square"; o.frequency.value=freq;
+      o.connect(g); g.connect(this._ctx.destination);
+      const s=t+i*0.26;
+      g.gain.setValueAtTime(0.0001,s);
+      g.gain.exponentialRampToValueAtTime(0.18,s+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,s+0.22);
+      o.start(s); o.stop(s+0.24);
+    });
+  }
+  _start(){
+    if(this.state.audioPlaying) return;
+    try{
+      if(!this._ctx) this._ctx=new (window.AudioContext||window.webkitAudioContext)();
+      if(this._ctx.state==="suspended") this._ctx.resume();
+    }catch(e){ return; }
+    this.setState({audioPlaying:true});
+    this._beep();
+    this._iv=setInterval(()=>this._beep(),1500);
+    this._to=setTimeout(()=>this._stop(),120000);   // auto-stop after 2 min
+  }
+  _stop(){
+    clearInterval(this._iv); clearTimeout(this._to); this._iv=this._to=null;
+    if(this.state.audioPlaying) this.setState({audioPlaying:false});
+  }
+  _toggleArm = () => {
+    if(this.state.audioArmed){ this._stop(); this.setState({audioArmed:false}); }
+    else {
+      try{ if(!this._ctx) this._ctx=new (window.AudioContext||window.webkitAudioContext)(); this._ctx.resume(); }catch(e){}
+      this.setState({audioArmed:true});
+      this._prevAlarm=false;
+      if(this._hasAlarm()) this._start();
+    }
+  };
+  _dismiss = () => { if(this.state.audioPlaying) this._stop(); };
+
+  renderVals() {
+    const BASE = { ok:"#34D399", nodata:"#F4C04E", lockout:"#5BA8F5", lockoutnd:"#3B5BD9", prox:"#FF5A5A", move:"#C42B4A" };
+    const LABELS = { ok:"OK", nodata:"No data (1h)", lockout:"Lockout", lockoutnd:"Lockout + No data", prox:"PROXIMITY ALARM", move:"MOVEMENT ALARM" };
+    const hexToRgb = h => { h=h.replace("#",""); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; };
+    const rgbToHex = r => "#"+r.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,"0")).join("");
+    const mix = (a,b,t) => { const A=hexToRgb(a),B=hexToRgb(b); return rgbToHex(A.map((v,i)=>v+(B[i]-v)*t)); };
+    const sk = s => mix(BASE[s],"#000000",0.42);
+    const f = v => (Math.round(v*10)/10);
+    const P = (...pts) => pts.map(p=>f(p[0])+","+f(p[1])).join(" ");
+    const lerp = (a,b,t) => [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t];
+    const isAlarm = s => s==="prox"||s==="move";
+
+    const n   = Math.max(4, Math.min(20, this.props.teethCount ?? 10));
+    const wps = Math.max(0, Math.min(4,  this.props.wingsPerSide ?? 4));
+
+    const POOL_T = ["ok","ok","nodata","ok","ok","prox","ok","ok","ok","move","ok","ok","lockout","ok","ok","ok","ok","lockoutnd","ok","ok"];
+    const POOL_L = ["ok","ok","ok","move","ok","ok","ok","ok","ok","ok","ok","nodata","ok","ok","ok","ok","ok","ok","ok"];
+    const POOL_W = ["ok","ok","lockoutnd","ok"];
+
+    // ===== FIXED COMPONENT SIZES (do not change with counts) =====
+    const SLOT=66, TOOTH_W=36, TOOTH_H=62, LIP_W=22, LIP_H=24;
+    const WING_HL=24, WING_IN=11, WING_OUT=14;   // wing plate half-dims
+    const MARGIN=72, K=0.62;
+
+    // ===== ADAPTIVE BUCKET DIMENSIONS =====
+    const halfBot = n*SLOT/2;            // widens with teeth
+    const halfTop = halfBot*0.84;        // top widens too (narrower than bottom)
+    const topY = 86;
+    const bucketH = 116 + wps*46;        // taller with wings
+    const botY = topY + bucketH;
+    const CX = halfBot + MARGIN;
+    const vbW = 2*CX;
+    const vbH = botY + TOOTH_H + 40;
+    const vb  = `0 0 ${f(vbW)} ${f(vbH)}`;
+
+    const TL=[CX-halfTop,topY], TR=[CX+halfTop,topY], BL=[CX-halfBot,botY], BR=[CX+halfBot,botY];
+    const iTL=[TL[0]+38,topY+26], iTR=[TR[0]-38,topY+26], iBL=[BL[0]+54,botY-14], iBR=[BR[0]-54,botY-14];
+    const body = {
+      shell:  `M ${P(TL)} L ${P(TR)} L ${P(BR)} L ${P(BL)} Z`,
+      cavity: `M ${P(iTL)} L ${P(iTR)} L ${P(iBR)} L ${P(iBL)} Z`,
+    };
+
+    // bracket: fixed-ish hitch, scaled to top width, centred on top edge
+    const sB = Math.max(0.6, Math.min(1.05, (2*halfTop)/320));
+    const bracketTf = `translate(${f(CX)} ${f(topY)}) scale(${(Math.round(sB*1000)/1000)}) translate(-440 -94)`;
+
+    // spill guard across the top edge
+    const guard=[]; const gw=TR[0]-TL[0]; const gc=Math.max(5, Math.floor(gw/26));
+    for(let i=0;i<gc;i++){ const t=i/(gc-1); const x=TL[0]+16+t*(gw-32); guard.push({x:f(x-3.5), y:f(topY-4-Math.sin(t*Math.PI)*4), w:"7", h:"20"}); }
+
+    // cutting edge beam
+    const L=[BL[0]+10,botY], R=[BR[0]-10,botY], cey=botY;
+    const beam = { path:`M ${P([L[0],cey-9])} L ${P([R[0],cey-9])} L ${P([R[0]+4,cey+11])} L ${P([L[0]-4,cey+11])} Z` };
+    const slot=(R[0]-L[0])/n;
+    const rings=[];
+    const hide = () => this.setState({ tooltip: null });
+
+    const mkTT = (name, cat, st, cx, cy) => {
+      const tx = Math.max(10, Math.min(vbW-224, cx-107));
+      const ty = Math.max(10, Math.min(vbH-114, cy-150));
+      return { tx:f(tx), ty:f(ty), tyb:f(ty+104), tx2:f(tx+14),
+        ty1:f(ty+22), ty2:f(ty+40), ty3:f(ty+58), ty4:f(ty+76),
+        name, cat, status:LABELS[st]||st, col:BASE[st]||"#34D399", last:"Last seen: 14:32:07" };
+    };
+
+    // ===== TEETH (fixed width/height) =====
+    const teeth=[]; const hw=TOOTH_W/2;
+    for(let i=0;i<n;i++){
+      const cx=L[0]+(i+0.5)*slot, top=cey-2;
+      const st=POOL_T[i%POOL_T.length]; const alarm=isAlarm(st)?st:"none";
+      const path = `M ${P([cx-hw,top])} L ${P([cx+hw,top])} `
+        + `L ${P([cx+TOOTH_W*0.22,top+TOOTH_H*0.86])} Q ${P([cx+TOOTH_W*0.14,top+TOOTH_H])} ${P([cx,top+TOOTH_H])} `
+        + `Q ${P([cx-TOOTH_W*0.14,top+TOOTH_H])} ${P([cx-TOOTH_W*0.22,top+TOOTH_H*0.86])} Z`;
+      const ttData = mkTT(`Tooth #${i+1}`, "Tooth", st, cx, top+TOOTH_H*0.5);
+      teeth.push({ path, color:BASE[st], stroke:sk(st), alarm,
+        onEnter:()=>this.setState({tooltip:ttData}), onLeave:hide });
+      if(alarm!=="none") rings.push({cx:f(cx), cy:f(top+TOOTH_H*0.5), r:f(TOOTH_W*0.78), color:BASE[st]});
+    }
+
+    // ===== LIP SHROUDS (fixed size) =====
+    const lips=[];
+    for(let i=0;i<n-1;i++){
+      const cx=L[0]+(i+1)*slot;
+      const st=POOL_L[i%POOL_L.length]; const alarm=isAlarm(st)?st:"none";
+      const ttData = mkTT(`Lip Shroud #${i+1}`, "Lip Shroud", st, cx, cey-5);
+      lips.push({ x:f(cx-LIP_W/2), y:f(cey-LIP_H/2-3), w:f(LIP_W), h:f(LIP_H),
+        color:BASE[st], stroke:sk(st), alarm,
+        onEnter:()=>this.setState({tooltip:ttData}), onLeave:hide });
+      if(alarm!=="none") rings.push({cx:f(cx), cy:f(cey-2), r:f(LIP_W*0.8), color:BASE[st]});
+    }
+
+    // ===== WING SHROUDS (fixed size, count grows with the taller side edge) =====
+    const wings=[];
+    if(wps>0){
+      const center=[CX, topY+bucketH*0.4];
+      [{a:BL,b:TL,side:"L"},{a:BR,b:TR,side:"R"}].forEach(cfg=>{
+        const ab=[cfg.b[0]-cfg.a[0],cfg.b[1]-cfg.a[1]];
+        const len=Math.hypot(ab[0],ab[1]), u=[ab[0]/len,ab[1]/len];
+        let v=[u[1],-u[0]];
+        const cm=lerp(cfg.a,cfg.b,0.4);
+        if((cm[0]-center[0])*v[0]+(cm[1]-center[1])*v[1]<0) v=[-v[0],-v[1]];
+        const pitchT = 56/len;                 // fixed spacing along the edge
+        for(let k=0;k<wps;k++){
+          let t = 0.5 + (k-(wps-1)/2)*pitchT;   // centred on the middle of the side
+          t = Math.max(0.1, Math.min(0.9, t));
+          const c=lerp(cfg.a,cfg.b,t);
+          const st=POOL_W[k%POOL_W.length]; const alarm=isAlarm(st)?st:"none";
+          const A=(s,d)=>[c[0]+u[0]*s+v[0]*d,c[1]+u[1]*s+v[1]*d];
+          const face=P(A(-WING_HL,-WING_IN),A(WING_HL,-WING_IN),A(WING_HL,WING_OUT),A(-WING_HL,WING_OUT));
+          const ttData=mkTT(`Wing Shroud ${cfg.side}#${k+1}`,"Wing Shroud",st,c[0],c[1]);
+          wings.push({face, color:BASE[st], stroke:sk(st), alarm,
+            onEnter:()=>this.setState({tooltip:ttData}), onLeave:hide});
+          if(alarm!=="none") rings.push({cx:f(c[0]),cy:f(c[1]),r:"18",color:BASE[st]});
+        }
+      });
+    }
+
+    const legend=[
+      {label:"OK",color:BASE.ok},{label:"No data (1h)",color:BASE.nodata},
+      {label:"Lockout",color:BASE.lockout},{label:"Lockout + No data",color:BASE.lockoutnd},
+      {label:"Proximity alarm",color:BASE.prox},{label:"Movement alarm",color:BASE.move},
+    ];
+
+    const alarmCount = rings.length;
+    const anyMove = [...teeth,...lips,...wings].some(c=>c.alarm==="move");
+    return { body, guard, beam, teeth, lips, wings, rings, tooltip:this.state.tooltip,
+      legend, n, nLips:n-1, wps, vb, dispW:f(vbW*K), dispH:f(vbH*K),
+      bracketTf, labelY:f(topY+bucketH*0.52), alarmCount, hasAlarm: alarmCount>0,
+      alarmText: alarmCount===1 ? "1 ACTIVE ALARM" : alarmCount+" ACTIVE ALARMS",
+      alarm:{ cx:f(CX), cy:f(topY+bucketH*0.42), label: anyMove?"MOVEMENT ALARM":"PROXIMITY ALARM" },
+      shadow:{cx:f(CX), cy:f(botY+TOOTH_H+18), rx:f(halfBot)},
+      audioArmed:this.state.audioArmed, audioPlaying:this.state.audioPlaying,
+      audioLabel: this.state.audioPlaying ? "SILENCE ALARM" : (this.state.audioArmed ? "Alerts on" : "Enable alerts"),
+      audioBg: this.state.audioPlaying ? "#FF4D4D" : (this.state.audioArmed ? "#13241c" : "#161f29"),
+      audioFg: this.state.audioPlaying ? "#fff" : (this.state.audioArmed ? "#7fd9b0" : "#9aa8b7"),
+      onToggleAudio:this._toggleArm, onDismiss:this._dismiss };
+  }
+}
+</script>
+</body>
+</html>

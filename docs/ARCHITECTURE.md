@@ -1,6 +1,9 @@
 # Architecture
 
-This file records how the visual will be implemented after the spec and host contract are clear.
+This file summarizes how the visual will be implemented. The detailed build architecture lives in
+[SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md).
+
+Design source: [design_handoff_bucket_health](design_handoff_bucket_health/README.md).
 
 ## Principles
 
@@ -9,20 +12,24 @@ This file records how the visual will be implemented after the spec and host con
 - Typed parser boundary: convert Power BI `DataView` objects into an internal model before rendering.
 - Rendering code should not depend directly on raw host objects.
 - Performance-sensitive paths should be measurable.
+- The Claude Design handoff is the visual fidelity source of truth.
 
 ## Proposed Structure
 
 ```text
 src/
   visual.ts                 # Power BI IVisual entry point
-  data/                     # DataView parsing and validation
-  rendering/                # SVG/canvas/HTML rendering
-  formatting/               # Formatting model and settings
-  interactions/             # Selection, tooltips, host services
-  layout/                   # Responsive machine-card grid and bucket geometry
+  capabilities.json         # Visual capabilities and data roles
+  settings.ts               # Formatting model and settings
+
+  data/                     # DataView parsing, validation, and normalization
+  domain/                   # Domain logic (status, alarms, sorting, inferred components)
   geometry/                 # Adaptive bucket and GET component shape generation
-  alarms/                   # Alarm transition tracking, audio, dismissal state
-  test/                     # Test helpers and fixtures
+  layout/                   # Responsive machine-card grid and card sizing
+  rendering/                # SVG/HTML rendering (fleet, machine card, states, tooltips)
+  interactions/             # Selection, tooltips, and drill navigation
+  audio/                    # Audio alarm controller and WebAudio beep generation
+  test/                     # Test helpers, fixtures, and sample data
 ```
 
 ## Data Flow
@@ -40,18 +47,17 @@ src/
 
 ## Rendering Strategy
 
-- Primary renderer: TBD. SVG is likely best for high-fidelity scalable bucket/component geometry and
-  tooltips; canvas or WebGL/Three.js should be considered only if SVG cannot meet fidelity or
-  performance requirements.
-- Libraries: TBD; D3 subpackages are likely useful for geometry/selection, but avoid large
-  all-in-one charting packages.
+- Primary renderer: SVG-first, matching the handoff prototypes. Canvas or WebGL/Three.js should be
+  considered only if SVG fails performance/fidelity tests.
+- Libraries: D3 subpackages may be used for DOM joins/path updates. Geometry math should stay pure
+  TypeScript and framework-agnostic.
 - Resize strategy: responsive layout engine chooses card grid and scaling from viewport dimensions.
   Use scroll overflow once cards would fall below configured minimum dimensions.
 - Animation strategy: CSS or renderer-managed flashing for alarm components, with reduced-motion
   fallback.
 - Geometry strategy: bucket shape is generated, not a static image. More GET components widen/extend
   the bucket edge and sides; fewer GET components shrink/rebalance the bucket while maintaining a
-  polished 3D-style appearance.
+  polished front-on schematic with depth shading appearance.
 
 ## Key Runtime Concerns
 
@@ -83,14 +89,12 @@ src/
 - Avoid full recompute when data/settings/viewport are unchanged.
 - Define high-cardinality limits in `VISUAL_CONTRACT.md`.
 - Measure representative render/update timings before release.
-- Test worst-case expected data: 20 machines and up to roughly 940 component records.
+- Test worst-case expected data: 20 machines, about 560 supplied GET component rows, and up to 380
+  inferred lip shrouds.
 
 ## Open Architecture Questions
 
-- SVG, canvas, HTML, React, or hybrid?
-- Should true 3D/WebGL be used, or should we create a pseudo-3D SVG technical illustration?
-- What bucket reference/viewpoint should geometry match?
-- What data volume must be supported?
+- Whether D3 should be used directly or whether a minimal DOM/SVG renderer is enough.
 - Is AppSource certification required?
 - How reliable is audio playback in Power BI Desktop/service without an initial user gesture?
-- Should machine-card reordering animate, happen instantly, or be disabled for accessibility?
+- Should Power BI selection/cross-filter/drill behavior be implemented in the first build?

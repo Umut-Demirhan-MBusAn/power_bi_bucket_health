@@ -17,10 +17,19 @@ scope changes, work starts, work completes, or a blocker appears.
 | --- | --- | --- | --- | --- | --- |
 | PBH-001 | Done | Spec-driven documentation baseline | Codex | Repo has spec, backlog, visual contract, architecture, decision, and research docs wired into agent guidance. | Completed 2026-06-20. |
 | PBH-002 | In Progress | Product visual specification | Codex/User | `docs/SPEC.md` defines target users, problem, core workflows, visual states, interactions, and non-goals. | First draft captured from user description; open questions remain. |
-| PBH-003 | In Progress | Power BI host contract | Codex/User | `docs/VISUAL_CONTRACT.md` defines data roles, mappings, formatting objects, privileges, and interaction requirements. | First draft assumes component-level rows; needs confirmation. |
-| PBH-004 | In Progress | Technical architecture | Codex/User | `docs/ARCHITECTURE.md` defines rendering approach, state model, data parser, testing plan, and performance strategy. | First draft updated with layout/alarm implications. |
+| PBH-003 | Review | Power BI host contract | Codex/User | `docs/VISUAL_CONTRACT.md` defines data roles, mappings, formatting objects, privileges, and interaction requirements. | Updated from Claude Design handoff; pending business column/status confirmation. |
+| PBH-004 | Review | Technical architecture | Codex/User | `docs/ARCHITECTURE.md` and `docs/SYSTEM_ARCHITECTURE.md` define rendering approach, module boundaries, state model, data parser, testing plan, and performance strategy. | System architecture drafted from handoff. |
 | PBH-005 | Not Started | Resolve visual behavior questions | User | Key open questions on data shape, layout, ordering, alarm restart, audio, and Power BI interactions are answered or deferred. | Required before scaffolding. |
-| PBH-006 | Not Started | Resolve adaptive bucket geometry direction | User/Codex | Bucket viewpoint, fidelity target, renderer approach, and GET shape rules are defined well enough to prototype. | Required before rendering implementation. |
+| PBH-006 | Done | Resolve adaptive bucket geometry direction | User/Codex | Bucket viewpoint, fidelity target, renderer approach, and GET shape rules are defined well enough to prototype. | Resolved by handoff: front-on adaptive SVG with exact geometry constants. |
+| PBH-007 | Not Started | Scaffold Power BI custom visual project | Codex | `pbiviz new` project exists with committed baseline, package scripts, lint/package commands, and no design-handoff runtime dependency. | Start after user approves visual name. |
+| PBH-008 | Not Started | Implement data contract and parser | Codex | `capabilities.json` roles match `VISUAL_CONTRACT.md`; DataView parser produces normalized machine/component models and edge states. | Depends on PBH-007. |
+| PBH-009 | Not Started | Port adaptive bucket geometry engine | Codex | Pure TypeScript geometry functions reproduce handoff constants for body, teeth, lip shrouds, wing shrouds, hitch, guard, and alarm rings. | Depends on PBH-007. |
+| PBH-010 | Not Started | Implement single-machine detail view | Codex | Detail view matches `Bucket.dc.html` layout, colors, typography, geometry, alarm graphics, audio control, and component tooltip behavior. | Depends on PBH-008/PBH-009. |
+| PBH-011 | Not Started | Implement fleet grid view | Codex | Fleet grid matches `Fleet.dc.html`, including column rules, vertical scroll, status legend, alarm-first sorting, and alarm card styling. | Depends on PBH-008/PBH-009. |
+| PBH-012 | Not Started | Implement edge states | Codex | No-fields, loading, invalid-config, no-data, and error states match `States.dc.html` and suppress audio. | Can start after scaffold. |
+| PBH-013 | Not Started | Implement alarm audio and transition controller | Codex | WebAudio alert arms on user gesture, plays 880/660 Hz pattern on fresh alarm transitions, dismisses on visual click, auto-stops at 120s, and respects reduced motion. | Requires Power BI Desktop/service verification. |
+| PBH-014 | Not Started | Implement formatting pane settings | Codex | Layout, bucket, ordering, status mapping/colors, alarm, and motion settings parse into typed settings with defaults. | Depends on scaffold. |
+| PBH-015 | Not Started | Add test and validation suite | Codex | Parser, status precedence, inferred components, alarm transitions, grid columns, geometry min/max, and edge-state logic have tests; `pbiviz lint` and `pbiviz package` pass. | Ongoing during implementation. |
 
 ## Milestones
 
@@ -41,10 +50,10 @@ Goal: define what the custom visual must do before implementation starts.
 
 Deliverables:
 
-- [ ] Product spec completed.
-- [ ] Visual contract completed.
-- [ ] Architecture draft completed.
-- [ ] Open questions resolved or explicitly deferred.
+- [ ] Product spec completed (blocked on PBH-005).
+- [x] Visual contract drafted from design handoff.
+- [x] System architecture drafted from design handoff.
+- [ ] Open questions resolved or explicitly deferred (blocked on PBH-005).
 
 ### M2 - Scaffold And Prototype
 
@@ -58,15 +67,26 @@ Deliverables:
 - [ ] Formatting model skeleton implemented.
 - [ ] `pbiviz lint` and `pbiviz package` pass.
 
+### M3 - Design Handoff Parity
+
+Goal: implement the approved Claude Design handoff faithfully.
+
+Deliverables:
+
+- [ ] Single-machine detail matches `Bucket.dc.html`.
+- [ ] Fleet grid matches `Fleet.dc.html`.
+- [ ] Edge states match `States.dc.html`.
+- [ ] Alarm/audio behavior matches `IMPLEMENTATION.md`.
+- [ ] Screenshots captured for parity review.
+
 ## Open Questions
 
 The detailed question list is in [docs/SPEC.md](docs/SPEC.md). Highest-priority decisions:
 
-- Confirm data grain: one row per component status, one row per machine snapshot, or another shape.
-- Confirm data roles and whether component counts are inferred or supplied.
-- Confirm exact bucket geometry and component ordering rules.
-- Confirm adaptive 3D-style bucket viewpoint, fidelity target, and GET geometry rules.
-- Confirm alarm priority, audio restart, and dismissal behavior.
+- Confirm real source column names and exact status source values.
+- Confirm whether lip shroud statuses are inferred/defaulted or supplied explicitly when needed.
+- Confirm whether the approved front-on SVG handoff fully satisfies "masterclass" visual quality.
+- Confirm audio behavior in the target Power BI Desktop/service environment.
 - Confirm whether Power BI selection/cross-filter/drill behavior is required.
 - Confirm whether the visual is internal-only or AppSource/certification-bound.
 
@@ -77,3 +97,4 @@ The detailed question list is in [docs/SPEC.md](docs/SPEC.md). Highest-priority 
 | 2026-06-20 | Created initial backlog for spec-driven Power BI visual development. |
 | 2026-06-20 | Drafted first machine bucket health visual spec, visual contract, and architecture notes from user requirements. |
 | 2026-06-20 | Added adaptive high-fidelity 3D-style bucket geometry requirement driven by GET counts. |
+| 2026-06-21 | Integrated Claude Design handoff into host contract, system architecture, spec, and implementation backlog. |

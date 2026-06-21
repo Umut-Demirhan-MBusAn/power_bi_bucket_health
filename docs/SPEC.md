@@ -1,13 +1,16 @@
-# Product Spec
+ Product Spec
 
 This file defines what the Power BI custom visual must do. Keep implementation details out unless
 they affect user-visible behavior.
+
+Design source: [design_handoff_bucket_health](design_handoff_bucket_health/README.md). Treat the
+handoff prototypes as the visual fidelity reference.
 
 ## Summary
 
 Build a full-page-style Power BI custom visual for monitoring mining machine bucket health. The
 visual renders one responsive machine card per machine. Each machine card shows a high-fidelity,
-3D-style adaptive bucket with dynamic GET (Ground Engaging Tools) component counts for teeth, lip
+front-on schematic with depth shading adaptive bucket with dynamic GET (Ground Engaging Tools) component counts for teeth, lip
 shrouds, and wing shrouds. The bucket shape itself expands, shrinks, and changes proportions based on
 the component layout so the visual feels purpose-built rather than static. Components are color-coded
 by status, support rich tooltips, and alarm states trigger visual prominence plus a dismissible
@@ -37,15 +40,15 @@ when the number of machines and the number/order of components changes by machin
   - Lip shrouds: always `teeth - 1`.
   - Wing shrouds: up to 8 total, up to 4 on each side.
 - Render a masterclass bucket shape:
-  - Bucket geometry must adapt to GET counts.
+  - Bucket geometry must adapt to GET counts using the front-on parametric SVG model from the design
+    handoff.
   - More teeth/lip shrouds should visually extend/widen the bucket edge.
   - More wing shrouds should extend/shape the bucket sides.
   - Fewer GET components should shrink and rebalance the bucket proportionally.
   - Component shapes must look integrated into the bucket, not pasted onto a static image.
 - Support configurable component ordering:
   - Teeth and lip shrouds default left-to-right incremental.
-  - Wing shrouds default odd numbers on one side and even numbers on the other side, with side
-    direction configurable.
+  - Wing shrouds default odd numbers on one side and even numbers on the other side, with the `side` data field (left/right) taking precedence if bound, and side direction configurable as a fallback.
 - Show each component's status using color and alarm animation.
 - Show tooltip data for each component, including component name, tag ID, status, last seen, and any
   additional user-provided fields.
@@ -112,6 +115,14 @@ when the number of machines and the number/order of components changes by machin
 - High-cardinality data: render up to supported limits and use scrolling/overflow behavior.
 - Error: show a non-crashing error state and suppress new audio alarms until valid data returns.
 
+The five non-normal states must match `States.dc.html`:
+
+- Add data to get started.
+- Loading machine data.
+- Configuration incomplete.
+- No machines to show.
+- Couldn't render the visual.
+
 ## Status Model
 
 | Status | Visual Treatment | Audio Alarm |
@@ -123,12 +134,15 @@ when the number of machines and the number/order of components changes by machin
 | Proximity Alarm | Flashing red | Yes, on transition into alarm |
 | Movement Alarm | Flashing dark red | Yes, on transition into alarm |
 
-Alarm transition rule: audio starts only when a component or machine moves from any non-alarm status
-into `Proximity Alarm` or `Movement Alarm`. Audio should not restart continuously while the same alarm
+Alarm transition rule: audio starts only when a component moves from any non-alarm status into
+`Proximity Alarm` or `Movement Alarm`. Audio should not restart continuously while the same alarm
 remains active.
 
-Dismissal rule: clicking anywhere on the visual dismisses current audio. Open question: whether a new
-alarm after dismissal should restart audio immediately.
+Dismissal rule: clicking anywhere on the visual dismisses current audio. Audio stays armed; a fresh
+alarm transition should restart audio.
+
+Audio pattern: WebAudio two-tone square-wave beep, 880 Hz then 660 Hz, approximately 0.24 seconds
+each, repeating every 1.5 seconds, with auto-stop after 120 seconds.
 
 ## Interactions
 
@@ -138,8 +152,8 @@ alarm after dismissal should restart audio immediately.
 - Sorting: machine/card order is affected by alarm priority; base ordering is TBD.
 - Drill: TBD.
 - Context menu: TBD.
-- Formatting pane: report author should be able to configure layout, minimum card size, colors, audio
-  behavior, ordering rules, and possibly alarm priority.
+- Formatting pane: report author should be able to configure layout, minimum card size, colors,
+  status-string mapping, audio behavior, ordering rules, and alarm priority.
 - Keyboard/focus: TBD.
 
 ## Data Requirements
@@ -149,6 +163,7 @@ Link the detailed host contract in [VISUAL_CONTRACT.md](VISUAL_CONTRACT.md).
 Known logical entities:
 
 - Machine
+- Machine Type (e.g., "Hydraulic Excavator")
 - GET component
 - GET component category: tooth, lip shroud, wing shroud
 - Component order/index
@@ -168,6 +183,8 @@ Known logical entities:
 - Adaptive bucket behavior: recompute bucket body/edge/side geometry from component counts and card
   dimensions.
 - Alarm responsiveness: alarm visual/audio should react on the next Power BI update cycle.
+- Fleet grid behavior: 1 machine = 1 column, 2 machines = 2 columns, 3-6 machines = 3 columns, 7-12
+  machines = 4 columns, 13-20 machines = 5 columns, with vertical scrolling when needed.
 
 ## Accessibility Requirements
 
@@ -182,6 +199,7 @@ Known logical entities:
 
 - With one machine, the machine card fills the visual while preserving bucket layout proportions.
 - With 2 to 20 machines, cards reflow responsively based on visual dimensions.
+- Fleet layout follows the handoff column rules and vertically scrolls instead of paginating.
 - Cards do not shrink below a defined minimum useful size; overflow scrollbars appear instead.
 - Teeth, lip shrouds, and wing shrouds render with dynamic counts and valid ordering.
 - Bucket body and GET geometry expand/shrink based on component counts.
@@ -190,7 +208,8 @@ Known logical entities:
 - Component statuses map to the defined colors/animations.
 - Component tooltips show required metadata and optional user-added fields.
 - Alarm transitions trigger audio for up to two minutes.
-- Clicking anywhere inside the visual dismisses current audio.
+- Clicking anywhere inside the visual dismisses current audio while keeping alerts armed.
+- A fresh alarm transition restarts audio while alerts are armed.
 - Alarming machine cards are highlighted and moved/prioritized to the top-left/front.
 - No data, invalid config, and error states do not crash the visual.
 
@@ -205,10 +224,10 @@ Known logical entities:
 
 ### Data Shape
 
-- What does one data row represent: one component status, one machine snapshot, or something else?
-- Do teeth/lip/wing component counts come from data rows, from machine metadata fields, or formatting
-  settings?
-- Is `lip shrouds = teeth - 1` always inferred by the visual, or will lip shroud rows be supplied?
+- What are the real source column names for machine, component, category, order, side, status, and
+  lastSeen?
+- Will report authors supply lip shroud rows when explicit lip statuses are needed, or should lip
+  statuses always be inferred/defaulted?
 - Are missing component rows valid, or should the visual generate placeholders?
 - What is the unique key for a machine?
 - What is the unique key for a component?
@@ -225,14 +244,9 @@ Known logical entities:
 - Should scrollbars be inside the visual or should cards paginate/virtualize?
 - What should happen if there are more than 20 machines?
 - What exact bucket shape should be drawn: schematic, realistic side/front view, or stylized diagram?
-- What visual reference should define "masterclass" bucket quality: photo-real, isometric 3D,
-  technical illustration, or polished schematic?
-- Should the bucket be drawn as SVG/HTML/CSS pseudo-3D, canvas, or true WebGL/Three.js?
-- Which physical bucket viewpoint is correct: front-on, top-front isometric, side-front isometric, or
-  operator-facing view?
+- Does the approved front-on SVG design fully satisfy "masterclass" quality, or is another visual
+  reference still required?
 - Should different machine types have different bucket proportions?
-- Should component shapes differ by category beyond position, e.g. tooth wedge, lip shroud plate,
-  wing shroud side block?
 - Do machine cards need machine name, type, current status summary, or other header metrics?
 
 ### Component Ordering
@@ -249,9 +263,6 @@ Known logical entities:
 - If a machine has both proximity and movement alarms, which alarm color/priority wins?
 - Should movement alarm outrank proximity alarm?
 - Should an acknowledged/dismissed alarm remain visually highlighted?
-- If audio is dismissed and a different component enters alarm, should audio restart?
-- If the same component clears and re-enters alarm, should audio restart?
-- What audio sound should be used: generated tone, bundled asset, or browser beep pattern?
 - Is audio allowed in Power BI service/Desktop without user gesture, or do we need a visual-level
   "enable audio" interaction/setting?
 
