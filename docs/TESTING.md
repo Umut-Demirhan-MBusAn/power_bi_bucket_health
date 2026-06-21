@@ -43,13 +43,14 @@ Current unit coverage:
 - `data/parseDataView`: table rows normalize to `ComponentRecord` and `MachineBucketModel` values.
 - `domain/components`: lip shroud rows are required and equal tooth count minus one.
 - `domain/wingSideAssignment`: wing side is derived from order and the selected visual setting.
+- `geometry/bucketGeometry`: handoff constants, min/max viewBox dimensions, fixed component sizes,
+  asymmetric wings, and alarm rings.
 
 Planned coverage:
 
 - `domain/alarms`: alarm transitions fire only on non-alarm to alarm changes.
 - `domain/sorting`: alarm-first fleet order is deterministic.
 - `layout/fleetGrid`: 1, 2, 3-6, 7-12, and 13-20 machine column rules.
-- `geometry/bucketGeometry`: min/max teeth and wing counts produce non-overlapping geometry.
 - `rendering/renderStates`: no-fields, loading, invalid-config, no-data, and error states suppress audio.
 
 Manual validation remains required for Developer Visual behavior in Power BI Desktop/service,
