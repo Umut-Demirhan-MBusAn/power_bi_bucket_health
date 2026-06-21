@@ -17,5 +17,5 @@ The project is managed through documentation first:
 - [docs/design_handoff_bucket_health](docs/design_handoff_bucket_health) contains the Claude Design
   handoff and high-fidelity prototypes.
 
-Do not scaffold or implement the visual until the relevant spec sections and backlog acceptance
-criteria are clear enough to test.
+The visual scaffold now lives at the repo root. Keep future implementation aligned with the spec,
+visual contract, backlog acceptance criteria, and validation commands.

@@ -1,0 +1,106 @@
+.bucket-health-root {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #080b0f;
+    color: #eaf0f7;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.bucket-health {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    padding: 24px;
+    overflow: auto;
+}
+
+.bucket-health__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+
+    h1 {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 700;
+    }
+
+    p {
+        margin: 0;
+        color: #9aa8b7;
+        font-size: 13px;
+    }
+}
+
+.bucket-health__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+.bucket-health-card {
+    min-height: 132px;
+    padding: 16px;
+    border: 1px solid #222d39;
+    border-radius: 8px;
+    background: radial-gradient(circle at 50% 0%, #1d2733, #0b1015 68%);
+
+    h2 {
+        margin: 0 0 8px;
+        font-size: 20px;
+    }
+
+    p {
+        margin: 0;
+        color: #9aa8b7;
+        font-size: 12px;
+    }
+}
+
+.bucket-health-card--alarm {
+    border-color: #ff4d4d;
+    box-shadow: 0 0 0 1px rgba(255, 77, 77, 0.25);
+}
+
+.bucket-health-card__status {
+    display: inline-block;
+    margin-top: 18px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #13241c;
+    color: #7fd9b0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.bucket-health-card__status--alarm {
+    background: #2a1212;
+    color: #ff9a9a;
+}
+
+.bucket-health-state {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+
+    h1 {
+        margin: 0 0 8px;
+        font-size: 24px;
+    }
+
+    p {
+        max-width: 420px;
+        margin: 0;
+        color: #9aa8b7;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+}

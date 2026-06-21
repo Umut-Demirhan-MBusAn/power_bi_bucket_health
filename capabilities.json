@@ -1,0 +1,101 @@
+{
+    "dataRoles": [
+        {
+            "displayName": "Machine",
+            "name": "machine",
+            "kind": "Grouping"
+        },
+        {
+            "displayName": "Machine type",
+            "name": "machineType",
+            "kind": "Grouping"
+        },
+        {
+            "displayName": "Component",
+            "name": "component",
+            "kind": "Grouping"
+        },
+        {
+            "displayName": "Category",
+            "name": "category",
+            "kind": "Grouping"
+        },
+        {
+            "displayName": "Order",
+            "name": "order",
+            "kind": "GroupingOrMeasure"
+        },
+        {
+            "displayName": "Status",
+            "name": "status",
+            "kind": "GroupingOrMeasure"
+        },
+        {
+            "displayName": "Last seen",
+            "name": "lastSeen",
+            "kind": "GroupingOrMeasure"
+        },
+        {
+            "displayName": "Tooltip fields",
+            "name": "tooltipFields",
+            "kind": "Measure"
+        }
+    ],
+    "objects": {},
+    "dataViewMappings": [
+        {
+            "table": {
+                "rows": {
+                    "select": [
+                        {
+                            "for": {
+                                "in": "machine"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "machineType"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "component"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "category"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "order"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "status"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "lastSeen"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "tooltipFields"
+                            }
+                        }
+                    ],
+                    "dataReductionAlgorithm": {
+                        "top": {
+                            "count": 1000
+                        }
+                    }
+                }
+            }
+        }
+    ],
+    "privileges": []
+}

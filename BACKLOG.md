@@ -21,8 +21,8 @@ scope changes, work starts, work completes, or a blocker appears.
 | PBH-004 | Review | Technical architecture | Codex/User | `docs/ARCHITECTURE.md` and `docs/SYSTEM_ARCHITECTURE.md` define rendering approach, module boundaries, state model, data parser, testing plan, and performance strategy. | System architecture drafted from handoff. |
 | PBH-005 | Not Started | Resolve visual behavior questions | User | Key open questions on data shape, layout, ordering, alarm restart, audio, and Power BI interactions are answered or deferred. | Required before scaffolding. |
 | PBH-006 | Done | Resolve adaptive bucket geometry direction | User/Codex | Bucket viewpoint, fidelity target, renderer approach, and GET shape rules are defined well enough to prototype. | Resolved by handoff: front-on adaptive SVG with exact geometry constants. |
-| PBH-007 | Not Started | Scaffold Power BI custom visual project | Codex | `pbiviz new` project exists with committed baseline, package scripts, lint/package commands, and no design-handoff runtime dependency. | Start after user approves visual name. |
-| PBH-008 | Not Started | Implement data contract and parser | Codex | `capabilities.json` roles match `VISUAL_CONTRACT.md`; DataView parser produces normalized machine/component models and edge states. | Depends on PBH-007. |
+| PBH-007 | Done | Scaffold Power BI custom visual project | Codex | `pbiviz new` project exists with committed baseline, package scripts, lint/package commands, and no design-handoff runtime dependency. | Completed 2026-06-21 using visual name `BucketHealth`. |
+| PBH-008 | Review | Implement data contract and parser | Codex | `capabilities.json` roles match `VISUAL_CONTRACT.md`; DataView parser produces normalized machine/component models and edge states. | Initial parser and summary render pass local checks; needs Power BI Desktop smoke test and unit tests. |
 | PBH-009 | Not Started | Port adaptive bucket geometry engine | Codex | Pure TypeScript geometry functions reproduce handoff constants for body, teeth, lip shrouds, wing shrouds, hitch, guard, and alarm rings. | Depends on PBH-007. |
 | PBH-010 | Not Started | Implement single-machine detail view | Codex | Detail view matches `Bucket.dc.html` layout, colors, typography, geometry, alarm graphics, audio control, and component tooltip behavior. | Depends on PBH-008/PBH-009. |
 | PBH-011 | Not Started | Implement fleet grid view | Codex | Fleet grid matches `Fleet.dc.html`, including column rules, vertical scroll, status legend, alarm-first sorting, and alarm card styling. | Depends on PBH-008/PBH-009. |
@@ -63,12 +63,12 @@ Goal: scaffold the `pbiviz` project and build the first working visual slice.
 
 Deliverables:
 
-- [ ] `pbiviz new` project created.
-- [ ] DataView parser implemented.
-- [ ] Minimal rendering path implemented.
-- [ ] Formatting model skeleton implemented.
-- [ ] `pbiviz lint` and `pbiviz package` pass.
-- [ ] Mock data fixture validates against documented schema.
+- [x] `pbiviz new` project created.
+- [x] DataView parser implemented.
+- [x] Minimal rendering path implemented.
+- [x] Formatting model skeleton implemented.
+- [x] `pbiviz lint` and `pbiviz package` pass.
+- [x] Mock data fixture validates against documented schema.
 
 ### M3 - Design Handoff Parity
 
@@ -103,3 +103,4 @@ The detailed question list is in [docs/SPEC.md](docs/SPEC.md). Highest-priority 
 | 2026-06-21 | Integrated Claude Design handoff into host contract, system architecture, spec, and implementation backlog. |
 | 2026-06-21 | Configured Graphify for Codex and ignored generated graph output. |
 | 2026-06-21 | Added pre-scaffold testing setup, source data schema, mock CSV fixture, and fixture validator. |
+| 2026-06-21 | Scaffolded `BucketHealth` Power BI visual and added initial table DataView parser. |

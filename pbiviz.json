@@ -1,0 +1,26 @@
+{
+    "visual": {
+        "name": "bucketHealth",
+        "displayName": "Bucket Health",
+        "guid": "bucketHealthD598C3A88E864DB290BEFCEF7B22DF7B",
+        "visualClassName": "Visual",
+        "version": "1.0.0.0",
+        "description": "Mining bucket GET component health visual.",
+        "supportUrl": "https://github.com/demirhanayhan/power_bi_bucket_health/issues",
+        "gitHubUrl": "https://github.com/demirhanayhan/power_bi_bucket_health"
+    },
+    "apiVersion": "5.11.0",
+    "author": {
+        "name": "Umut Demirhan",
+        "email": "emmettdemirhan@gmail.com"
+    },
+    "assets": {
+        "icon": "assets/icon.png"
+    },
+    "externalJS": null,
+    "style": "style/visual.less",
+    "capabilities": "capabilities.json",
+    "dependencies": null,
+    "stringResources": [],
+    "version": "1.0.0.0"
+}

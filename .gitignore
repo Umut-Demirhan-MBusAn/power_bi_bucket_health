@@ -6,6 +6,8 @@ dist/
 coverage/
 *.pbiviz
 graphify-out/
+.tmp/
+webpack.statistics*.html
 
 # Local environment and secrets
 .env
