@@ -13,6 +13,8 @@
     "package": "pbiviz package",
     "lint": "pbiviz lint",
     "eslint": "eslint .",
+    "build:test": "tsc -p tsconfig.test.json",
+    "test": "npm run build:test && node --test test/unit/*.test.js",
     "validate:fixtures": "pwsh -File scripts/validate-mock-data.ps1"
   },
   "dependencies": {

@@ -28,6 +28,7 @@ pwsh -File scripts/validate-mock-data.ps1 -Path path\to\data.csv
 Run Power BI visual checks:
 
 ```powershell
+npm test
 npm run lint
 npm run eslint
 npx tsc --noEmit
@@ -36,12 +37,15 @@ npm run package
 
 ## Unit Test Plan
 
-Add the narrowest useful automated tests around pure modules first:
+Current unit coverage:
 
 - `data/normalizeStatus`: source strings map to canonical keys.
-- `data/parseDataView`: table rows normalize to `ComponentRecord` values.
+- `data/parseDataView`: table rows normalize to `ComponentRecord` and `MachineBucketModel` values.
 - `domain/components`: lip shroud rows are required and equal tooth count minus one.
 - `domain/wingSideAssignment`: wing side is derived from order and the selected visual setting.
+
+Planned coverage:
+
 - `domain/alarms`: alarm transitions fire only on non-alarm to alarm changes.
 - `domain/sorting`: alarm-first fleet order is deterministic.
 - `layout/fleetGrid`: 1, 2, 3-6, 7-12, and 13-20 machine column rules.
