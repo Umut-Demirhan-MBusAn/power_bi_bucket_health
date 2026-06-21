@@ -5,6 +5,7 @@ node_modules/
 dist/
 coverage/
 *.pbiviz
+graphify-out/
 
 # Local environment and secrets
 .env
