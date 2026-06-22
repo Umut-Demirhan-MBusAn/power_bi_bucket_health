@@ -13,9 +13,7 @@ export function renderBucketSvg(machine: MachineBucketModel): SVGSVGElement {
     svg.setAttribute("role", "img");
     svg.setAttribute("aria-label", `${machine.name} bucket health`);
 
-    const title = svgElement("title");
-    title.textContent = `${machine.name} bucket health`;
-    svg.append(title, createDefs(id), createBucketGroup(geometry, id));
+    svg.append(createDefs(id), createBucketGroup(geometry, id));
 
     return svg;
 }
