@@ -11,7 +11,7 @@ export class AlarmAudio {
             this.context = new AudioContext();
             this.scheduleBeep();
             this.intervalId = setInterval(() => this.scheduleBeep(), 1500);
-            this.stopTimeout = setTimeout(() => this.stop(), 120000);
+            this.stopTimeout = setTimeout(() => this.stop(), 60000);
         } catch {
             this.playing = false;
         }

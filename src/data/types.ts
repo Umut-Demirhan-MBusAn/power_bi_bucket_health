@@ -32,6 +32,7 @@ export interface ComponentRecord {
     derivedWingSide?: WingSide;
     status: BucketStatusKey;
     lastSeen?: PrimitiveValue;
+    alarmTime?: PrimitiveValue;
     tooltipFields: TooltipField[];
     sourceOrder: number;
 }
