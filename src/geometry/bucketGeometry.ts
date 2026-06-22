@@ -24,7 +24,9 @@ export const bucketGeometryConstants = {
     TOP_Y: 86,
     BASE_BUCKET_H: 116,
     WING_BUCKET_H: 46,
-    TOP_WIDTH_RATIO: 0.84
+    TOP_WIDTH_RATIO: 0.84,
+    HITCH_ORIGIN_X: 440,
+    HITCH_ORIGIN_Y: 94
 } as const;
 
 export const bucketStatusColors: Record<BucketStatusKey, string> = {
@@ -249,7 +251,7 @@ function buildSpillGuard(topLeft: Point, topRight: Point, topY: number): RectGeo
 function buildHitchTransform(centerX: number, topY: number, halfTopWidth: number): string {
     const scale = clamp((2 * halfTopWidth) / 320, 0.6, 1.05);
 
-    return `translate(${fmt(centerX)} ${fmt(topY)}) scale(${fmt(scale, 3)}) translate(-440 -94)`;
+    return `translate(${fmt(centerX)} ${fmt(topY)}) scale(${fmt(scale, 3)}) translate(-${bucketGeometryConstants.HITCH_ORIGIN_X} -${bucketGeometryConstants.HITCH_ORIGIN_Y})`;
 }
 
 function addAlarmRing(alarmRings: AlarmRingGeometry[], component: ComponentRecord, center: Point, radius: number): void {

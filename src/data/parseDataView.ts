@@ -233,7 +233,16 @@ function deriveMachines(
         });
     });
 
-    return machines.sort((a, b) => a.sourceOrder - b.sourceOrder);
+    return machines.sort((a, b) => {
+        if (a.hasAlarm !== b.hasAlarm) return a.hasAlarm ? -1 : 1;
+        if (a.hasAlarm && b.hasAlarm) {
+            const aMove = a.dominantAlarm === "move";
+            const bMove = b.dominantAlarm === "move";
+            if (aMove !== bMove) return aMove ? -1 : 1;
+        }
+        if (a.alarmCount !== b.alarmCount) return b.alarmCount - a.alarmCount;
+        return a.sourceOrder - b.sourceOrder;
+    });
 }
 
 function sortComponents(components: ComponentRecord[]): ComponentRecord[] {

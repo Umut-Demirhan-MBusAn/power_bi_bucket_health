@@ -50,7 +50,7 @@ export interface MachineBucketModel {
     sourceOrder: number;
 }
 
-export type BucketHealthDataState = "noFields" | "invalidConfig" | "noData" | "ready" | "error";
+export type BucketHealthDataState = "noFields" | "loading" | "invalidConfig" | "noData" | "ready" | "error";
 
 export interface BucketHealthDataModel {
     state: BucketHealthDataState;

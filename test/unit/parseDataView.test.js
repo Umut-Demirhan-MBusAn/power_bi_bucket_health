@@ -125,3 +125,30 @@ test("parseDataView rejects unsupported statuses and categories", () => {
     assert.match(model.errors.join("\n"), /status 'Offline' is not supported/);
     assert.match(model.errors.join("\n"), /category 'adapter' is not supported/);
 });
+
+test("parseDataView sorts alarm machines before non-alarm machines", () => {
+    const rows = [
+        ["EX-1", "Hydraulic Excavator", "T1", "tooth", "1", "OK", "2026-06-21T11:00:00Z", "TAG-T1"],
+        ["EX-1", "Hydraulic Excavator", "T2", "tooth", "2", "OK", "2026-06-21T11:00:00Z", "TAG-T2"],
+        ["EX-1", "Hydraulic Excavator", "T3", "tooth", "3", "OK", "2026-06-21T11:00:00Z", "TAG-T3"],
+        ["EX-1", "Hydraulic Excavator", "T4", "tooth", "4", "OK", "2026-06-21T11:00:00Z", "TAG-T4"],
+        ["EX-1", "Hydraulic Excavator", "L1", "lipShroud", "1", "OK", "2026-06-21T11:00:00Z", "TAG-L1"],
+        ["EX-1", "Hydraulic Excavator", "L2", "lipShroud", "2", "OK", "2026-06-21T11:00:00Z", "TAG-L2"],
+        ["EX-1", "Hydraulic Excavator", "L3", "lipShroud", "3", "OK", "2026-06-21T11:00:00Z", "TAG-L3"],
+        ["EX-2", "Hydraulic Excavator", "T1", "tooth", "1", "Proximity Alarm", "2026-06-21T11:00:00Z", "TAG-T1"],
+        ["EX-2", "Hydraulic Excavator", "T2", "tooth", "2", "OK", "2026-06-21T11:00:00Z", "TAG-T2"],
+        ["EX-2", "Hydraulic Excavator", "T3", "tooth", "3", "OK", "2026-06-21T11:00:00Z", "TAG-T3"],
+        ["EX-2", "Hydraulic Excavator", "T4", "tooth", "4", "OK", "2026-06-21T11:00:00Z", "TAG-T4"],
+        ["EX-2", "Hydraulic Excavator", "L1", "lipShroud", "1", "OK", "2026-06-21T11:00:00Z", "TAG-L1"],
+        ["EX-2", "Hydraulic Excavator", "L2", "lipShroud", "2", "OK", "2026-06-21T11:00:00Z", "TAG-L2"],
+        ["EX-2", "Hydraulic Excavator", "L3", "lipShroud", "3", "OK", "2026-06-21T11:00:00Z", "TAG-L3"]
+    ];
+    const model = parseDataView(dataViewFromRows(rows));
+
+    assert.equal(model.state, "ready");
+    assert.equal(model.machines.length, 2);
+    assert.equal(model.machines[0].key, "EX-2");
+    assert.equal(model.machines[0].hasAlarm, true);
+    assert.equal(model.machines[1].key, "EX-1");
+    assert.equal(model.machines[1].hasAlarm, false);
+});

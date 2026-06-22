@@ -3,13 +3,18 @@
 import powerbi from "powerbi-visuals-api";
 import { FormattingSettingsService } from "powerbi-visuals-utils-formattingmodel";
 import "./../style/visual.less";
+
+import { AlarmController } from "./audio/alarmController";
 import { parseDataView } from "./data/parseDataView";
-import { BucketHealthDataModel, MachineBucketModel } from "./data/types";
-import { renderBucketSvg } from "./rendering/renderBucketSvg";
+import { BucketHealthDataModel, ComponentRecord, MachineBucketModel, WingSideAssignment } from "./data/types";
+import { defaultWingSideAssignment } from "./domain/wingSideAssignment";
+import { renderEdgeState } from "./rendering/renderEdgeStates";
+import { renderFleet } from "./rendering/renderFleet";
 import { VisualFormattingSettingsModel } from "./settings";
 
 import IVisual = powerbi.extensibility.visual.IVisual;
 import IVisualEventService = powerbi.extensibility.IVisualEventService;
+import ITooltipService = powerbi.extensibility.ITooltipService;
 import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
 import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 
@@ -17,13 +22,23 @@ export class Visual implements IVisual {
     private readonly events: IVisualEventService;
     private readonly target: HTMLElement;
     private readonly formattingSettingsService: FormattingSettingsService;
+    private readonly tooltipService: ITooltipService;
+    private readonly alarmController = new AlarmController();
     private formattingSettings = new VisualFormattingSettingsModel();
+    private componentLookup = new Map<string, ComponentRecord>();
 
     constructor(options: VisualConstructorOptions) {
         this.events = options.host.eventService;
+        this.tooltipService = options.host.tooltipService;
         this.formattingSettingsService = new FormattingSettingsService();
         this.target = options.element;
         this.target.classList.add("bucket-health-root");
+
+        this.target.addEventListener("click", () => this.alarmController.dismiss());
+        this.target.addEventListener("mouseover", (event) => this.handleTooltipShow(event));
+        this.target.addEventListener("mouseleave", () => {
+            try { this.tooltipService.hide({ isTouchEvent: false, immediately: false }); } catch { /* ignore */ }
+        });
     }
 
     public update(options: VisualUpdateOptions): void {
@@ -36,15 +51,24 @@ export class Visual implements IVisual {
                 dataView
             );
 
-            this.render(parseDataView(dataView));
+            const wingSideAssignment = (
+                this.formattingSettings.ordering.wingSideAssignment.value?.value as WingSideAssignment | undefined
+            ) ?? defaultWingSideAssignment;
+
+            const audioEnabled = this.formattingSettings.alarm.audioEnabled.value ?? true;
+
+            const model = parseDataView(dataView, wingSideAssignment);
+            this.alarmController.update(model, audioEnabled);
+            this.render(model);
             this.events.renderingFinished(options);
         } catch (error) {
-            this.render({
+            const errorModel: BucketHealthDataModel = {
                 state: "error",
                 machines: [],
                 missingRoles: [],
                 errors: [error instanceof Error ? error.message : String(error)]
-            });
+            };
+            this.render(errorModel);
             this.events.renderingFailed(options, String(error));
         }
     }
@@ -53,98 +77,78 @@ export class Visual implements IVisual {
         return this.formattingSettingsService.buildFormattingModel(this.formattingSettings);
     }
 
+    public destroy(): void {
+        this.alarmController.destroy();
+        this.target.replaceChildren();
+    }
+
     private render(model: BucketHealthDataModel): void {
         this.target.replaceChildren();
 
-        const container = document.createElement("section");
-        container.className = "bucket-health";
-
         if (model.state !== "ready") {
-            container.appendChild(this.createStateView(model));
-            this.target.appendChild(container);
+            const detail = model.state === "invalidConfig"
+                ? `Missing: ${model.missingRoles.join(", ")}`
+                : model.state === "error"
+                    ? model.errors.join(" ")
+                    : undefined;
+            this.target.appendChild(renderEdgeState(model.state, detail));
+            this.componentLookup.clear();
             return;
         }
 
-        const header = document.createElement("header");
-        header.className = "bucket-health__header";
-
-        const title = document.createElement("h1");
-        title.textContent = "Bucket Health";
-
-        const summary = document.createElement("p");
-        summary.textContent = `${model.machines.length} machine${model.machines.length === 1 ? "" : "s"} loaded`;
-
-        header.append(title, summary);
-        container.appendChild(header);
-
-        const grid = document.createElement("div");
-        grid.className = model.machines.length === 1 ? "bucket-health__grid bucket-health__grid--single" : "bucket-health__grid";
-
-        model.machines.forEach((machine) => grid.appendChild(this.createMachineCard(machine)));
-        container.appendChild(grid);
-        this.target.appendChild(container);
+        this.componentLookup = buildComponentLookup(model.machines);
+        this.target.appendChild(renderFleet(model.machines));
     }
 
-    private createStateView(model: BucketHealthDataModel): HTMLElement {
-        const state = document.createElement("div");
-        state.className = "bucket-health-state";
+    private handleTooltipShow(event: Event): void {
+        if (!this.tooltipService.enabled()) return;
 
-        const title = document.createElement("h1");
-        const message = document.createElement("p");
+        const element = (event.target as Element).closest("[data-component-key]");
+        if (!element) return;
 
-        switch (model.state) {
-            case "noFields":
-                title.textContent = "Add data to get started";
-                message.textContent = "Bind Machine, Component, Category, Order, and Status fields.";
-                break;
-            case "invalidConfig":
-                title.textContent = "Configuration incomplete";
-                message.textContent = `Missing roles: ${model.missingRoles.join(", ")}`;
-                break;
-            case "noData":
-                title.textContent = "No machines to show";
-                message.textContent = "No rows match the current filters or slicers.";
-                break;
-            case "error":
-            default:
-                title.textContent = "Couldn't render the visual";
-                message.textContent = model.errors.join(" ");
-                break;
-        }
+        const key = element.getAttribute("data-component-key");
+        const component = key ? this.componentLookup.get(key) : undefined;
+        if (!component) return;
 
-        state.append(title, message);
-        return state;
+        const mouseEvent = event as MouseEvent;
+        const containerRect = this.target.getBoundingClientRect();
+
+        try {
+            this.tooltipService.show({
+                coordinates: [
+                    mouseEvent.clientX - containerRect.left,
+                    mouseEvent.clientY - containerRect.top
+                ],
+                isTouchEvent: false,
+                dataItems: buildTooltipItems(component),
+                identities: []
+            });
+        } catch { /* ignore tooltip errors */ }
+    }
+}
+
+function buildComponentLookup(machines: MachineBucketModel[]): Map<string, ComponentRecord> {
+    const lookup = new Map<string, ComponentRecord>();
+    machines.forEach((machine) => {
+        const all = [...machine.teeth, ...machine.lipShrouds, ...machine.wingShroudsLeft, ...machine.wingShroudsRight];
+        all.forEach((component) => lookup.set(component.componentKey, component));
+    });
+    return lookup;
+}
+
+function buildTooltipItems(component: ComponentRecord): { displayName: string; value: string }[] {
+    const items: { displayName: string; value: string }[] = [
+        { displayName: "Component", value: component.componentKey },
+        { displayName: "Status", value: component.status },
+    ];
+
+    if (component.lastSeen !== null && component.lastSeen !== undefined) {
+        items.push({ displayName: "Last seen", value: String(component.lastSeen) });
     }
 
-    private createMachineCard(machine: MachineBucketModel): HTMLElement {
-        const card = document.createElement("article");
-        card.className = machine.hasAlarm ? "bucket-health-card bucket-health-card--alarm" : "bucket-health-card";
+    component.tooltipFields.forEach((field) => {
+        items.push({ displayName: field.label, value: String(field.value ?? "") });
+    });
 
-        const cardHeader = document.createElement("div");
-        cardHeader.className = "bucket-health-card__header";
-
-        const headerText = document.createElement("div");
-
-        const title = document.createElement("h2");
-        title.textContent = machine.name;
-
-        const meta = document.createElement("p");
-        meta.textContent = [
-            machine.type,
-            `${machine.teeth.length} teeth`,
-            `${machine.lipShrouds.length} lip shrouds`,
-            `${machine.wingShroudsLeft.length + machine.wingShroudsRight.length} wing shrouds`
-        ].filter(Boolean).join(" · ");
-
-        const status = document.createElement("span");
-        status.className = machine.hasAlarm ? "bucket-health-card__status bucket-health-card__status--alarm" : "bucket-health-card__status";
-        status.textContent = machine.hasAlarm
-            ? `${machine.alarmCount} alarm${machine.alarmCount === 1 ? "" : "s"}`
-            : "OK";
-
-        headerText.append(title, meta);
-        cardHeader.append(headerText, status);
-        card.append(cardHeader, renderBucketSvg(machine));
-        return card;
-    }
+    return items;
 }

@@ -44,18 +44,7 @@ function createDefs(id: string): SVGDefsElement {
         stop("100%", "#0b1016")
     );
 
-    const softShadow = svgElement("filter");
-    softShadow.setAttribute("id", `${id}-soft-shadow`);
-    softShadow.setAttribute("x", "-40%");
-    softShadow.setAttribute("y", "-40%");
-    softShadow.setAttribute("width", "180%");
-    softShadow.setAttribute("height", "180%");
-
-    const blur = svgElement("feGaussianBlur");
-    blur.setAttribute("stdDeviation", "8");
-    softShadow.appendChild(blur);
-
-    defs.append(bodyGradient, cavityGradient, softShadow);
+    defs.append(bodyGradient, cavityGradient);
     return defs;
 }
 
@@ -63,11 +52,11 @@ function createBucketGroup(geometry: BucketGeometry, machine: MachineBucketModel
     const group = svgElement("g");
     group.setAttribute("class", "bucket-health-svg__bucket");
 
-    group.append(
+    const elements: (SVGElement | undefined)[] = [
         ellipse(geometry.shadow.center, geometry.shadow.radiusX, geometry.shadow.radiusY, "#000", "bucket-health-svg__shadow"),
         path(geometry.body.shellPath, `url(#${id}-body-gradient)`, "#647283", "bucket-health-svg__body"),
         path(geometry.body.cavityPath, `url(#${id}-cavity-gradient)`, "#0f1720", "bucket-health-svg__cavity"),
-        text(geometry.centerX, geometry.topY + geometry.bucketHeight * 0.5, machine.name, "bucket-health-svg__watermark"),
+        geometry.alarmLabel ? undefined : text(geometry.centerX, geometry.topY + geometry.bucketHeight * 0.5, machine.name, "bucket-health-svg__watermark"),
         path(geometry.cuttingEdgeBeamPath, "#202a35", "#617184", "bucket-health-svg__beam"),
         createSpillGuard(geometry.spillGuardRects),
         createHitch(geometry.hitchTransform),
@@ -76,7 +65,8 @@ function createBucketGroup(geometry: BucketGeometry, machine: MachineBucketModel
         createTeeth(geometry),
         createAlarmRings(geometry),
         createCenterAlarm(geometry)
-    );
+    ];
+    group.append(...elements.filter((e): e is SVGElement => e !== undefined));
 
     return group;
 }
