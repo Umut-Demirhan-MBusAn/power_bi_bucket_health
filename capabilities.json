@@ -36,6 +36,11 @@
             "kind": "GroupingOrMeasure"
         },
         {
+            "displayName": "Alarm time",
+            "name": "alarmTime",
+            "kind": "GroupingOrMeasure"
+        },
+        {
             "displayName": "Tooltip fields",
             "name": "tooltipFields",
             "kind": "Measure"
@@ -80,6 +85,11 @@
                         {
                             "for": {
                                 "in": "lastSeen"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "alarmTime"
                             }
                         },
                         {

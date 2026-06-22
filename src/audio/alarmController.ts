@@ -1,36 +1,64 @@
-import { BucketHealthDataModel, BucketStatusKey, ComponentRecord, MachineBucketModel } from "../data/types";
+import { BucketHealthDataModel, ComponentRecord, MachineBucketModel } from "../data/types";
 import { isAlarmStatus } from "../data/normalizeStatus";
 import { AlarmAudio } from "./alarmAudio";
 
+const ALARM_ID_SEPARATOR = "|#|";
+
+export interface AlarmSink {
+    start(): void;
+    dismiss(): void;
+    destroy(): void;
+}
+
+export function buildAlarmId(machineKey: string, componentKey: string, alarmTime: ComponentRecord["alarmTime"]): string {
+    const time = alarmTime === null || alarmTime === undefined ? "" : String(alarmTime);
+    return machineKey + ALARM_ID_SEPARATOR + componentKey + ALARM_ID_SEPARATOR + time;
+}
+
+export function collectAlarmIds(machines: MachineBucketModel[]): Set<string> {
+    const ids = new Set<string>();
+    machines.forEach((machine) => {
+        const all = [...machine.teeth, ...machine.lipShrouds, ...machine.wingShroudsLeft, ...machine.wingShroudsRight];
+        all.forEach((component) => {
+            if (isAlarmStatus(component.status)) {
+                ids.add(buildAlarmId(machine.key, component.componentKey, component.alarmTime));
+            }
+        });
+    });
+    return ids;
+}
+
 export class AlarmController {
-    private readonly audio = new AlarmAudio();
-    private previousStatuses = new Map<string, BucketStatusKey>();
-    private initialized = false;
+    private readonly fired = new Set<string>();
+    private seeded = false;
+
+    constructor(private readonly audio: AlarmSink = new AlarmAudio()) {}
 
     update(model: BucketHealthDataModel, audioEnabled: boolean): void {
         if (model.state !== "ready") {
-            this.previousStatuses.clear();
-            this.initialized = false;
             return;
         }
 
-        const allComponents = collectComponents(model.machines);
+        const current = collectAlarmIds(model.machines);
 
-        if (this.initialized && audioEnabled) {
-            const hasFreshAlarm = allComponents.some((component) => {
-                const prev = this.previousStatuses.get(component.componentKey);
-                return isAlarmStatus(component.status) && (prev === undefined || !isAlarmStatus(prev));
-            });
-
-            if (hasFreshAlarm) {
-                this.audio.start();
-            }
+        // First render seeds the cache so pre-existing alarms do not blast audio on open.
+        if (!this.seeded) {
+            current.forEach((id) => this.fired.add(id));
+            this.seeded = true;
+            return;
         }
 
-        allComponents.forEach((component) => {
-            this.previousStatuses.set(component.componentKey, component.status);
+        let hasNew = false;
+        current.forEach((id) => {
+            if (!this.fired.has(id)) {
+                hasNew = true;
+                this.fired.add(id);
+            }
         });
-        this.initialized = true;
+
+        if (hasNew && audioEnabled) {
+            this.audio.start();
+        }
     }
 
     dismiss(): void {
@@ -40,12 +68,4 @@ export class AlarmController {
     destroy(): void {
         this.audio.destroy();
     }
-}
-
-function collectComponents(machines: MachineBucketModel[]): ComponentRecord[] {
-    const result: ComponentRecord[] = [];
-    machines.forEach((machine) => {
-        result.push(...machine.teeth, ...machine.lipShrouds, ...machine.wingShroudsLeft, ...machine.wingShroudsRight);
-    });
-    return result;
 }

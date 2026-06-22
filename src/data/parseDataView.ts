@@ -26,6 +26,7 @@ interface RoleIndexes {
     order: number;
     status: number;
     lastSeen?: number;
+    alarmTime?: number;
     tooltipFields: number[];
 }
 
@@ -92,6 +93,7 @@ export function parseDataView(
                 order,
                 status,
                 lastSeen: optionalValue(row, indexes.lastSeen),
+                alarmTime: optionalValue(row, indexes.alarmTime),
                 tooltipFields: getTooltipFields(row, table.columns, indexes.tooltipFields),
                 sourceOrder: rowIndex
             });
@@ -157,6 +159,7 @@ function getRoleIndexes(columns: DataViewMetadataColumn[]): RoleIndexes | undefi
         order,
         status,
         lastSeen: findRoleIndex(columns, "lastSeen"),
+        alarmTime: findRoleIndex(columns, "alarmTime"),
         tooltipFields: findRoleIndexes(columns, "tooltipFields")
     };
 }

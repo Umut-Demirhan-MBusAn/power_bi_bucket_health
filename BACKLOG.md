@@ -131,3 +131,6 @@ The detailed question list is in [docs/SPEC.md](docs/SPEC.md). Highest-priority 
 | 2026-06-22 | Replaced host/native tooltips with a single custom styled component tooltip. |
 | 2026-06-22 | Fixed cross-machine component-key collision that showed wrong (OK) status in tooltips. |
 | 2026-06-22 | Tooltip formats Last seen as full local date and time. |
+| 2026-06-23 | Added alarmTime data role; audio dedups by machine+component+alarmTime id and never re-fires (incl. after dismiss); audio shortened to 1 minute. |
+| 2026-06-23 | Strengthened alarm visuals: big flashing ALARM! chip, flashing component glow, removed alarm ring circles. |
+| 2026-06-23 | Removed prefers-reduced-motion auto-disable so OS setting no longer suppresses alarm flashing (explicit reducedMotion toggle still applies). |

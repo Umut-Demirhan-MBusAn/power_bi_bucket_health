@@ -49,9 +49,7 @@ export function renderMachineCard(machine: MachineBucketModel): HTMLElement {
     statusBadge.className = machine.hasAlarm
         ? "bucket-health-card__status bucket-health-card__status--alarm"
         : "bucket-health-card__status";
-    statusBadge.textContent = machine.hasAlarm
-        ? `${machine.alarmCount} alarm${machine.alarmCount === 1 ? "" : "s"}`
-        : "OK";
+    statusBadge.textContent = machine.hasAlarm ? "ALARM!" : "OK";
 
     headerText.append(title, meta);
     cardHeader.append(headerText, statusBadge);

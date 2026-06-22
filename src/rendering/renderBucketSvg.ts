@@ -60,7 +60,6 @@ function createBucketGroup(geometry: BucketGeometry, id: string): SVGGElement {
         createWingShrouds(geometry),
         createLipShrouds(geometry),
         createTeeth(geometry),
-        createAlarmRings(geometry),
         createCenterAlarm(geometry)
     ];
     group.append(...elements.filter((e): e is SVGElement => e !== undefined));
@@ -136,21 +135,6 @@ function createWingShrouds(geometry: BucketGeometry): SVGGElement {
         element.setAttribute("stroke-linejoin", "round");
         element.setAttribute("data-side", wing.side);
         setComponentData(element, wing.componentKey, wing.status);
-        group.appendChild(element);
-    });
-
-    return group;
-}
-
-function createAlarmRings(geometry: BucketGeometry): SVGGElement {
-    const group = svgElement("g");
-    group.setAttribute("class", "bucket-health-svg__alarm-rings");
-
-    geometry.alarmRings.forEach((ring) => {
-        const element = circle(ring.center, ring.radius, "none", ring.color, "bucket-health-svg__alarm-ring");
-        element.setAttribute("stroke-width", "3");
-        element.setAttribute("data-component-key", ring.componentKey);
-        element.setAttribute("data-status", ring.status);
         group.appendChild(element);
     });
 
