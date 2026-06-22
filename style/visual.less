@@ -48,10 +48,12 @@
 
 .bucket-health-card {
     display: flex;
-    min-height: 300px;
+    box-sizing: border-box;
+    height: 340px;
     flex-direction: column;
     gap: 14px;
     padding: 16px;
+    overflow: hidden;
     border: 1px solid #222d39;
     border-radius: 8px;
     background: radial-gradient(circle at 50% 0%, #1d2733, #0b1015 68%);
@@ -69,7 +71,7 @@
 }
 
 .bucket-health__grid--single .bucket-health-card {
-    min-height: 560px;
+    height: 100%;
 }
 
 .bucket-health-card__header {
@@ -105,12 +107,9 @@
 .bucket-health-svg {
     display: block;
     width: 100%;
-    min-height: 210px;
+    height: 100%;
+    min-height: 0;
     flex: 1 1 auto;
-}
-
-.bucket-health__grid--single .bucket-health-svg {
-    min-height: 440px;
 }
 
 .bucket-health-svg__body,
