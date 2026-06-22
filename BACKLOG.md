@@ -30,7 +30,7 @@ scope changes, work starts, work completes, or a blocker appears.
 | PBH-013 | Not Started | Implement alarm audio and transition controller | Codex | WebAudio alert arms on user gesture, plays 880/660 Hz pattern on fresh alarm transitions, dismisses on visual click, auto-stops at 120s, and respects reduced motion. | Requires Power BI Desktop/service verification. |
 | PBH-014 | Not Started | Implement formatting pane settings | Codex | Layout, bucket, ordering, status mapping/colors, alarm, and motion settings parse into typed settings with defaults. | Depends on scaffold. |
 | PBH-015 | In Progress | Add test and validation suite | Codex | Parser, status precedence, component counts, wing side assignment, alarm transitions, grid columns, geometry min/max, and edge-state logic have tests; `pbiviz lint` and `pbiviz package` pass. | Parser/status/wing-side/geometry unit tests added; remaining suite follows layout/alarm work. |
-| PBH-016 | Done | Graphify repo setup | Codex | Codex Graphify instructions and hooks are configured; generated `graphify-out/` output is ignored. | Completed 2026-06-21. |
+| PBH-016 | Done | Graphify repo setup | Codex | Codex/Claude Graphify instructions and hooks are configured; generated `graphify-out/` output is ignored. | Completed 2026-06-21; refreshed 2026-06-22 with shared Graphify hook guidance. |
 | PBH-017 | Done | Define data schema and mock CSV fixture | Codex | `docs/DATA_SCHEMA.md` defines source CSV columns and parser rules; a representative mock CSV exists and validates with the repo test command. | Completed 2026-06-21; supports PBH-008 parser implementation. |
 
 ## Milestones
@@ -106,3 +106,4 @@ The detailed question list is in [docs/SPEC.md](docs/SPEC.md). Highest-priority 
 | 2026-06-21 | Scaffolded `BucketHealth` Power BI visual and added initial table DataView parser. |
 | 2026-06-21 | Added no-dependency Node unit tests for status normalization, parser behavior, and wing side assignment. |
 | 2026-06-21 | Added pure adaptive bucket geometry engine and min/max/alarm geometry unit tests. |
+| 2026-06-22 | Refreshed shared agent workflow and Graphify hook guidance for Codex/Claude. |
