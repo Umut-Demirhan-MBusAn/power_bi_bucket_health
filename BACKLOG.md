@@ -127,3 +127,7 @@ The detailed question list is in [docs/SPEC.md](docs/SPEC.md). Highest-priority 
 | 2026-06-22 | Alarm components and rings flash; reduced-motion + prefers-reduced-motion disable animation. |
 | 2026-06-22 | Center alarm shows animated icon only; alarm types + component names listed in top-left banner. |
 | 2026-06-22 | Tooltips show human-readable status labels instead of canonical keys. |
+| 2026-06-22 | Uniform card height; bucket scales to fit, width tracks tooth count. |
+| 2026-06-22 | Replaced host/native tooltips with a single custom styled component tooltip. |
+| 2026-06-22 | Fixed cross-machine component-key collision that showed wrong (OK) status in tooltips. |
+| 2026-06-22 | Tooltip formats Last seen as full local date and time. |
