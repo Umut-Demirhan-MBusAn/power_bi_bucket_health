@@ -121,3 +121,9 @@ The detailed question list is in [docs/SPEC.md](docs/SPEC.md). Highest-priority 
 | 2026-06-22 | Added wingSideAssignment setting to formatting pane. |
 | 2026-06-22 | Wired Power BI tooltip service for component hover. |
 | 2026-06-22 | `pbiviz lint` and `pbiviz package` pass with all new modules. |
+| 2026-06-22 | Removed fleet title/summary and bucket name watermark; cards size proportional to tooth count. |
+| 2026-06-22 | Added statusMeta (single source for status colors, labels, severity). |
+| 2026-06-22 | Machine card frames colored by worst component status; alarm frames flash. |
+| 2026-06-22 | Alarm components and rings flash; reduced-motion + prefers-reduced-motion disable animation. |
+| 2026-06-22 | Center alarm shows animated icon only; alarm types + component names listed in top-left banner. |
+| 2026-06-22 | Tooltips show human-readable status labels instead of canonical keys. |

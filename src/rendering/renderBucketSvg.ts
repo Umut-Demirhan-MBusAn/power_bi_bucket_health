@@ -179,13 +179,11 @@ function createCenterAlarm(geometry: BucketGeometry): SVGGElement {
     triangle.setAttribute("stroke-width", "2");
 
     const mark = text(center.x, center.y + 20, "!", "bucket-health-svg__alarm-mark");
-    const label = text(center.x, center.y + 56, geometry.alarmLabel, "bucket-health-svg__alarm-label");
 
     group.append(
         circle(center, 52, "rgba(255,77,77,0.14)", "#ff4d4d", "bucket-health-svg__alarm-halo"),
         triangle,
-        mark,
-        label
+        mark
     );
 
     return group;

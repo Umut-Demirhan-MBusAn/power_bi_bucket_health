@@ -1,5 +1,6 @@
 import { BucketStatusKey, ComponentRecord, MachineBucketModel } from "../data/types";
 import { isAlarmStatus } from "../data/normalizeStatus";
+import { statusColors } from "../domain/statusMeta";
 import {
     AlarmRingGeometry,
     BucketGeometry,
@@ -29,14 +30,7 @@ export const bucketGeometryConstants = {
     HITCH_ORIGIN_Y: 94
 } as const;
 
-export const bucketStatusColors: Record<BucketStatusKey, string> = {
-    ok: "#34D399",
-    nodata: "#F4C04E",
-    lockout: "#5BA8F5",
-    lockoutnd: "#3B5BD9",
-    prox: "#FF5A5A",
-    move: "#C42B4A"
-};
+export const bucketStatusColors = statusColors;
 
 export function buildBucketGeometry(machine: MachineBucketModel): BucketGeometry {
     const teeth = sortComponents(machine.teeth);

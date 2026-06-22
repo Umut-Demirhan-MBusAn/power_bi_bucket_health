@@ -8,6 +8,7 @@ import { AlarmController } from "./audio/alarmController";
 import { parseDataView } from "./data/parseDataView";
 import { BucketHealthDataModel, ComponentRecord, MachineBucketModel, WingSideAssignment } from "./data/types";
 import { defaultWingSideAssignment } from "./domain/wingSideAssignment";
+import { statusLabels } from "./domain/statusMeta";
 import { renderEdgeState } from "./rendering/renderEdgeStates";
 import { renderFleet } from "./rendering/renderFleet";
 import { VisualFormattingSettingsModel } from "./settings";
@@ -56,6 +57,9 @@ export class Visual implements IVisual {
             ) ?? defaultWingSideAssignment;
 
             const audioEnabled = this.formattingSettings.alarm.audioEnabled.value ?? true;
+
+            const reducedMotion = this.formattingSettings.alarm.reducedMotion.value ?? false;
+            this.target.classList.toggle("bucket-health-root--reduced-motion", reducedMotion);
 
             const model = parseDataView(dataView, wingSideAssignment);
             this.alarmController.update(model, audioEnabled);
@@ -139,7 +143,7 @@ function buildComponentLookup(machines: MachineBucketModel[]): Map<string, Compo
 function buildTooltipItems(component: ComponentRecord): { displayName: string; value: string }[] {
     const items: { displayName: string; value: string }[] = [
         { displayName: "Component", value: component.componentKey },
-        { displayName: "Status", value: component.status },
+        { displayName: "Status", value: statusLabels[component.status] ?? String(component.status) },
     ];
 
     if (component.lastSeen !== null && component.lastSeen !== undefined) {
