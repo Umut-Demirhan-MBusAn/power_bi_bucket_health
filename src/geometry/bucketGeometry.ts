@@ -1,8 +1,7 @@
-import { BucketStatusKey, ComponentRecord, MachineBucketModel } from "../data/types";
+import { ComponentRecord, MachineBucketModel } from "../data/types";
 import { isAlarmStatus } from "../data/normalizeStatus";
 import { statusColors } from "../domain/statusMeta";
 import {
-    AlarmRingGeometry,
     BucketGeometry,
     LipShroudGeometry,
     Point,
@@ -64,14 +63,15 @@ export function buildBucketGeometry(machine: MachineBucketModel): BucketGeometry
     const cuttingEdgeRight = point(bottomRight.x - 10, bottomY);
     const slot = (cuttingEdgeRight.x - cuttingEdgeLeft.x) / toothCount;
 
-    const alarmRings: AlarmRingGeometry[] = [];
-    const toothGeometry = buildTeeth(teeth, cuttingEdgeLeft, slot, bottomY, alarmRings);
-    const lipGeometry = buildLipShrouds(lipShrouds, cuttingEdgeLeft, slot, bottomY, alarmRings);
+    const toothGeometry = buildTeeth(teeth, cuttingEdgeLeft, slot, bottomY);
+    const lipGeometry = buildLipShrouds(lipShrouds, cuttingEdgeLeft, slot, bottomY);
     const wingGeometry = [
-        ...buildWingShrouds(wingShroudsLeft, "left", bottomLeft, topLeft, centerX, topY, bucketHeight, alarmRings),
-        ...buildWingShrouds(wingShroudsRight, "right", bottomRight, topRight, centerX, topY, bucketHeight, alarmRings)
+        ...buildWingShrouds(wingShroudsLeft, "left", bottomLeft, topLeft, centerX, topY, bucketHeight),
+        ...buildWingShrouds(wingShroudsRight, "right", bottomRight, topRight, centerX, topY, bucketHeight)
     ];
-    const anyMovementAlarm = alarmRings.some((ring) => ring.status === "move");
+    const alarmComponents = [...teeth, ...lipShrouds, ...wingShroudsLeft, ...wingShroudsRight]
+        .filter((component) => isAlarmStatus(component.status));
+    const anyMovementAlarm = alarmComponents.some((component) => component.status === "move");
 
     return {
         viewBox: `0 0 ${fmt(viewBoxWidth)} ${fmt(viewBoxHeight)}`,
@@ -97,9 +97,8 @@ export function buildBucketGeometry(machine: MachineBucketModel): BucketGeometry
         teeth: toothGeometry,
         lipShrouds: lipGeometry,
         wingShrouds: wingGeometry,
-        alarmRings,
         alarmCenter: point(centerX, topY + bucketHeight * 0.42),
-        alarmLabel: alarmRings.length > 0 ? (anyMovementAlarm ? "MOVEMENT ALARM" : "PROXIMITY ALARM") : undefined,
+        alarmLabel: alarmComponents.length > 0 ? (anyMovementAlarm ? "MOVEMENT ALARM" : "PROXIMITY ALARM") : undefined,
         shadow: {
             center: point(centerX, bottomY + c.TOOTH_H + 18),
             radiusX: halfBottomWidth,
@@ -112,8 +111,7 @@ function buildTeeth(
     teeth: ComponentRecord[],
     cuttingEdgeLeft: Point,
     slot: number,
-    bottomY: number,
-    alarmRings: AlarmRingGeometry[]
+    bottomY: number
 ): ToothGeometry[] {
     const c = bucketGeometryConstants;
     const halfWidth = c.TOOTH_W / 2;
@@ -126,8 +124,6 @@ function buildTeeth(
             `L ${points(point(center.x + c.TOOTH_W * 0.22, top + c.TOOTH_H * 0.86))} ` +
             `Q ${points(point(center.x + c.TOOTH_W * 0.14, top + c.TOOTH_H))} ${points(point(center.x, top + c.TOOTH_H))} ` +
             `Q ${points(point(center.x - c.TOOTH_W * 0.14, top + c.TOOTH_H))} ${points(point(center.x - c.TOOTH_W * 0.22, top + c.TOOTH_H * 0.86))} Z`;
-
-        addAlarmRing(alarmRings, component, center, c.TOOTH_W * 0.78);
 
         return {
             componentKey: component.componentKey,
@@ -144,8 +140,7 @@ function buildLipShrouds(
     lipShrouds: ComponentRecord[],
     cuttingEdgeLeft: Point,
     slot: number,
-    bottomY: number,
-    alarmRings: AlarmRingGeometry[]
+    bottomY: number
 ): LipShroudGeometry[] {
     const c = bucketGeometryConstants;
 
@@ -157,8 +152,6 @@ function buildLipShrouds(
             width: c.LIP_W,
             height: c.LIP_H
         };
-
-        addAlarmRing(alarmRings, component, center, c.LIP_W * 0.8);
 
         return {
             componentKey: component.componentKey,
@@ -177,8 +170,7 @@ function buildWingShrouds(
     top: Point,
     centerX: number,
     topY: number,
-    bucketHeight: number,
-    alarmRings: AlarmRingGeometry[]
+    bucketHeight: number
 ): WingShroudGeometry[] {
     if (wingShrouds.length === 0) {
         return [];
@@ -207,8 +199,6 @@ function buildWingShrouds(
             wingPoint(wingCenter, u, v, c.WING_HL, c.WING_OUT),
             wingPoint(wingCenter, u, v, -c.WING_HL, c.WING_OUT)
         ];
-
-        addAlarmRing(alarmRings, component, wingCenter, 18);
 
         return {
             componentKey: component.componentKey,
@@ -246,22 +236,6 @@ function buildHitchTransform(centerX: number, topY: number, halfTopWidth: number
     const scale = clamp((2 * halfTopWidth) / 320, 0.6, 1.05);
 
     return `translate(${fmt(centerX)} ${fmt(topY)}) scale(${fmt(scale, 3)}) translate(-${bucketGeometryConstants.HITCH_ORIGIN_X} -${bucketGeometryConstants.HITCH_ORIGIN_Y})`;
-}
-
-function addAlarmRing(alarmRings: AlarmRingGeometry[], component: ComponentRecord, center: Point, radius: number): void {
-    if (!isAlarmStatus(component.status)) {
-        return;
-    }
-
-    const status = component.status as Extract<BucketStatusKey, "prox" | "move">;
-
-    alarmRings.push({
-        componentKey: component.componentKey,
-        status,
-        center,
-        radius: round(radius),
-        color: bucketStatusColors[status]
-    });
 }
 
 function wingPoint(center: Point, u: Point, v: Point, along: number, outward: number): Point {
