@@ -115,8 +115,8 @@ test("buildBucketGeometry supports asymmetric wing counts using max side height"
     assert.equal(geometry.wingShrouds.filter((wing) => wing.side === "right").length, 1);
 });
 
-test("buildBucketGeometry emits alarm rings and dominant alarm label", () => {
-    const geometry = buildBucketGeometry(machine({
+test("buildBucketGeometry derives the dominant alarm label", () => {
+    const movement = buildBucketGeometry(machine({
         teeth: 10,
         leftWings: 1,
         rightWings: 1,
@@ -124,9 +124,11 @@ test("buildBucketGeometry emits alarm rings and dominant alarm label", () => {
         lipStatus: { 3: "move" },
         leftWingStatus: { 1: "prox" }
     }));
+    assert.equal(movement.alarmLabel, "MOVEMENT ALARM");
 
-    assert.equal(geometry.alarmRings.length, 3);
-    assert.equal(geometry.alarmLabel, "MOVEMENT ALARM");
-    assert.deepEqual(geometry.alarmRings.map((ring) => ring.status), ["prox", "move", "prox"]);
-    assert.deepEqual(geometry.alarmRings.map((ring) => ring.color), ["#FF5A5A", "#C42B4A", "#FF5A5A"]);
+    const proximity = buildBucketGeometry(machine({ teeth: 10, toothStatus: { 5: "prox" } }));
+    assert.equal(proximity.alarmLabel, "PROXIMITY ALARM");
+
+    const healthy = buildBucketGeometry(machine({ teeth: 10 }));
+    assert.equal(healthy.alarmLabel, undefined);
 });

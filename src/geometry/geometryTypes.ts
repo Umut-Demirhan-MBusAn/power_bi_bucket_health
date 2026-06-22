@@ -48,14 +48,6 @@ export interface WingShroudGeometry {
     center: Point;
 }
 
-export interface AlarmRingGeometry {
-    componentKey: string;
-    status: Extract<BucketStatusKey, "prox" | "move">;
-    center: Point;
-    radius: number;
-    color: string;
-}
-
 export interface BucketGeometry {
     viewBox: string;
     viewBoxWidth: number;
@@ -73,7 +65,6 @@ export interface BucketGeometry {
     teeth: ToothGeometry[];
     lipShrouds: LipShroudGeometry[];
     wingShrouds: WingShroudGeometry[];
-    alarmRings: AlarmRingGeometry[];
     alarmCenter: Point;
     alarmLabel?: "PROXIMITY ALARM" | "MOVEMENT ALARM";
     shadow: {
