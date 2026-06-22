@@ -1,5 +1,6 @@
 import { BucketStatusKey, ComponentRecord, MachineBucketModel } from "../data/types";
 import { isAlarmStatus } from "../data/normalizeStatus";
+import { statusColors } from "../domain/statusMeta";
 import {
     AlarmRingGeometry,
     BucketGeometry,
@@ -24,17 +25,12 @@ export const bucketGeometryConstants = {
     TOP_Y: 86,
     BASE_BUCKET_H: 116,
     WING_BUCKET_H: 46,
-    TOP_WIDTH_RATIO: 0.84
+    TOP_WIDTH_RATIO: 0.84,
+    HITCH_ORIGIN_X: 440,
+    HITCH_ORIGIN_Y: 94
 } as const;
 
-export const bucketStatusColors: Record<BucketStatusKey, string> = {
-    ok: "#34D399",
-    nodata: "#F4C04E",
-    lockout: "#5BA8F5",
-    lockoutnd: "#3B5BD9",
-    prox: "#FF5A5A",
-    move: "#C42B4A"
-};
+export const bucketStatusColors = statusColors;
 
 export function buildBucketGeometry(machine: MachineBucketModel): BucketGeometry {
     const teeth = sortComponents(machine.teeth);
@@ -249,7 +245,7 @@ function buildSpillGuard(topLeft: Point, topRight: Point, topY: number): RectGeo
 function buildHitchTransform(centerX: number, topY: number, halfTopWidth: number): string {
     const scale = clamp((2 * halfTopWidth) / 320, 0.6, 1.05);
 
-    return `translate(${fmt(centerX)} ${fmt(topY)}) scale(${fmt(scale, 3)}) translate(-440 -94)`;
+    return `translate(${fmt(centerX)} ${fmt(topY)}) scale(${fmt(scale, 3)}) translate(-${bucketGeometryConstants.HITCH_ORIGIN_X} -${bucketGeometryConstants.HITCH_ORIGIN_Y})`;
 }
 
 function addAlarmRing(alarmRings: AlarmRingGeometry[], component: ComponentRecord, center: Point, radius: number): void {
