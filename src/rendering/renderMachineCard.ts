@@ -8,6 +8,11 @@ export function renderMachineCard(machine: MachineBucketModel): HTMLElement {
         : "bucket-health-card";
     card.setAttribute("data-machine-key", machine.key);
 
+    // Natural width mirrors the SVG viewBox: toothCount × 66 + 144 (SLOT × n + 2×MARGIN).
+    // flex-grow uses the same ratio so cards in the same row scale together.
+    const naturalWidth = machine.teeth.length * 66 + 144;
+    card.style.flex = `${naturalWidth} 0 ${Math.round(naturalWidth * 0.5)}px`;
+
     const cardHeader = document.createElement("div");
     cardHeader.className = "bucket-health-card__header";
 

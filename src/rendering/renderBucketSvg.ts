@@ -15,7 +15,7 @@ export function renderBucketSvg(machine: MachineBucketModel): SVGSVGElement {
 
     const title = svgElement("title");
     title.textContent = `${machine.name} bucket health`;
-    svg.append(title, createDefs(id), createBucketGroup(geometry, machine, id));
+    svg.append(title, createDefs(id), createBucketGroup(geometry, id));
 
     return svg;
 }
@@ -48,7 +48,7 @@ function createDefs(id: string): SVGDefsElement {
     return defs;
 }
 
-function createBucketGroup(geometry: BucketGeometry, machine: MachineBucketModel, id: string): SVGGElement {
+function createBucketGroup(geometry: BucketGeometry, id: string): SVGGElement {
     const group = svgElement("g");
     group.setAttribute("class", "bucket-health-svg__bucket");
 
@@ -56,7 +56,6 @@ function createBucketGroup(geometry: BucketGeometry, machine: MachineBucketModel
         ellipse(geometry.shadow.center, geometry.shadow.radiusX, geometry.shadow.radiusY, "#000", "bucket-health-svg__shadow"),
         path(geometry.body.shellPath, `url(#${id}-body-gradient)`, "#647283", "bucket-health-svg__body"),
         path(geometry.body.cavityPath, `url(#${id}-cavity-gradient)`, "#0f1720", "bucket-health-svg__cavity"),
-        geometry.alarmLabel ? undefined : text(geometry.centerX, geometry.topY + geometry.bucketHeight * 0.5, machine.name, "bucket-health-svg__watermark"),
         path(geometry.cuttingEdgeBeamPath, "#202a35", "#617184", "bucket-health-svg__beam"),
         createSpillGuard(geometry.spillGuardRects),
         createHitch(geometry.hitchTransform),
