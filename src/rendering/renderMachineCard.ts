@@ -1,4 +1,5 @@
 import { MachineBucketModel } from "../data/types";
+import { buildBucketGeometry } from "../geometry/bucketGeometry";
 import { renderBucketSvg } from "./renderBucketSvg";
 import { statusColors, statusLabels, worstStatus } from "../domain/statusMeta";
 import { isAlarmStatus } from "../data/normalizeStatus";
@@ -21,10 +22,12 @@ export function renderMachineCard(machine: MachineBucketModel): HTMLElement {
     const worst = worstStatus(all.map(c => c.status));
     card.style.borderColor = statusColors[worst];
 
-    // Natural width mirrors the SVG viewBox: toothCount × 66 + 144 (SLOT × n + 2×MARGIN).
-    // flex-grow uses the same ratio so cards in the same row scale together.
-    const naturalWidth = machine.teeth.length * 66 + 144;
-    card.style.flex = `${naturalWidth} 0 ${Math.round(naturalWidth * 0.5)}px`;
+    // Card height is uniform across the fleet; width tracks the bucket's aspect ratio so the
+    // bucket fills that fixed height without distortion. More teeth → wider viewBox → wider card.
+    const geometry = buildBucketGeometry(machine);
+    const aspect = geometry.viewBoxWidth / geometry.viewBoxHeight;
+    const targetWidth = Math.round(aspect * 220);
+    card.style.flex = `${targetWidth} 1 ${targetWidth}px`;
 
     const cardHeader = document.createElement("div");
     cardHeader.className = "bucket-health-card__header";
