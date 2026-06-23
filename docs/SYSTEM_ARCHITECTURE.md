@@ -46,14 +46,14 @@ Domain Model
   |
   v
 State Services
-  - Alarm transition tracker
+  - Alarm identity tracker
   - Audio alarm controller
   - Last-good-frame cache
   - Reduced-motion policy
   |
   v
 Layout + Geometry
-  - Fleet grid planner
+  - Fleet flex-wrap layout
   - Machine card sizing
   - Adaptive bucket geometry generator
   |
@@ -132,10 +132,10 @@ src/
 5. `deriveMachines` groups component rows by machine key.
 6. `wingSideAssignment` derives left/right wing placement from component order and formatting settings.
 7. `alarms` calculates machine-level alarm counts and dominant alarm type.
-8. The alarm transition tracker compares previous and current component status by stable component
-   key.
+8. The alarm identity tracker builds an alarm id (machine + component + alarm time) for each active
+   alarm and fires audio only for ids it has not seen before.
 9. Layout and geometry receive the domain model, viewport, and settings.
-10. Renderer updates SVG/HTML and host tooltip/selection event handlers.
+10. Renderer updates SVG/HTML, a custom HTML tooltip overlay, and selection event handlers.
 
 ## Data Model
 
@@ -179,14 +179,12 @@ Rendered when two or more machines are present.
 
 Rules:
 
-- 2 machines use 2 columns.
-- 3-6 machines use 3 columns.
-- 7-12 machines use 4 columns.
-- 13-20 machines use 5 columns.
+- Cards have a uniform fixed height and wrap (flex-wrap); there is no fixed column-count rule.
+- Each card's width tracks its bucket aspect ratio, so machines with more teeth render wider.
 - Vertical scrolling is used when cards exceed available height.
-- Alarm machines sort to front using `hasAlarm * 1000 + alarmCount`, ties by source order.
-- Fleet cards do not show audio controls.
-- Per-component tooltips are not required in fleet overview for the first build.
+- Alarm machines sort to the front (movement before proximity, then by alarm count, then source order).
+- Fleet cards do not show audio controls; audio is armed by clicking anywhere in the visual.
+- Per-component tooltips are available via a custom themed HTML overlay (not the host tooltip service).
 
 ### Single-Machine Detail View
 
@@ -195,9 +193,10 @@ Rendered when one machine is present or when fleet card navigation targets one m
 Rules:
 
 - Card fills the visual while preserving bucket aspect ratio.
-- Audio control is visible.
-- Component hover tooltips are available.
-- Alarm rings and center alarm graphic are visible when active.
+- Component hover tooltips are available via a custom themed HTML overlay.
+- When active, alarm components flash with a colored glow, the card frame flashes, the status chip
+  shows a flashing "ALARM!", an animated center warning icon appears, and a top-left banner lists the
+  alarm type and component names (joined with " - "). There are no alarm ring circles.
 
 ## Adaptive Bucket Geometry
 
@@ -221,8 +220,7 @@ Outputs:
 - tooth paths
 - lip shroud rectangles
 - wing shroud polygons
-- alarm ring positions
-- center alarm graphic position
+- center alarm position and dominant alarm label
 
 Geometry invariants:
 
@@ -234,28 +232,28 @@ Geometry invariants:
 
 ## Alarm And Audio Architecture
 
-### Alarm Transition Tracker
+### Alarm Identity Tracker
 
 Responsibilities:
 
-- Track previous canonical status per stable component key.
-- Detect transition from non-alarm to `prox` or `move`.
-- Ignore repeated updates where the same component remains in alarm.
-- Reset only when a component clears and later re-enters alarm.
+- Build a stable alarm id per alarm from machine key + component key + alarm time.
+- Cache every alarm id that has fired; the same id never fires audio twice, including after dismissal.
+- Seed the cache on the first render so pre-existing alarms do not fire on open.
+- Treat a new alarm time as a new id, which fires while audio is armed.
 
 ### Audio Alarm Controller
 
 Responsibilities:
 
-- Require explicit user gesture to arm audio.
+- Require an explicit user-gesture click to arm and resume audio.
 - Use WebAudio square-wave two-tone pattern: 880 Hz then 660 Hz, approximately 0.24 seconds each,
   repeating every 1.5 seconds.
-- Stop after 120 seconds.
+- Stop after 60 seconds.
 - Stop on click anywhere inside the visual.
 - Keep audio armed after dismissal.
-- Restart for a fresh alarm transition while armed.
-- Suppress audio in loading/error states and when reduced-motion preference is active.
-  *(Note: The handoff README.md specifies suppressing audio entirely under reduced motion, whereas IMPLEMENTATION.md only mentions visual changes like freezing flash to solid. We follow the README.md and suppress audio entirely under reduced motion for safety and accessibility).*
+- Fire only for a new alarm id while armed (see Alarm Identity Tracker).
+- Suppress audio in loading/error states.
+  *(Reduced motion: the OS prefers-reduced-motion setting is intentionally not honored for alarm flashing, so a system setting cannot silence a safety alarm. An explicit in-visual reducedMotion toggle disables the visual flashing animations only; audio is governed by the audio-enabled setting.)*
 
 ## Rendering Strategy
 
@@ -313,9 +311,9 @@ Unit tests:
 - role validation
 - component row parsing
 - machine grouping, lip shroud count validation, and wing side assignment
-- alarm transition detection
-- fleet sort order
-- grid column selection
+- alarm-id dedup (seed on first render, no re-fire of the same id)
+- fleet sort order (alarm-first)
+- machine card width from bucket aspect ratio
 - bucket geometry at min/max teeth and wings
 - edge-state decision logic
 
@@ -334,8 +332,8 @@ Integration/manual tests:
 4. Port bucket geometry engine from design handoff.
 5. Render edge states.
 6. Render single-machine detail.
-7. Render fleet grid.
-8. Add alarm transition/audio controller.
+7. Render fleet (flex-wrap layout).
+8. Add alarm-id dedup/audio controller.
 9. Add tooltip/selection behavior.
 10. Add tests and packaging gate.
 

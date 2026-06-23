@@ -44,14 +44,17 @@ Current unit coverage:
 - `domain/components`: lip shroud rows are required and equal tooth count minus one.
 - `domain/wingSideAssignment`: wing side is derived from order and the selected visual setting.
 - `geometry/bucketGeometry`: handoff constants, min/max viewBox dimensions, fixed component sizes,
-  asymmetric wings, and alarm rings.
+  asymmetric wings, and the dominant alarm label.
+- `domain/statusMeta`: machine status (alarm / no-data / ok) derives the frame color.
+- `audio/alarmController`: alarm-id dedup seeds on first render and never re-fires the same id.
+- `audio/alarmAudio`: gesture arm/resume and two-tone scheduling using an injected audio context.
 
 Planned coverage:
 
-- `domain/alarms`: alarm transitions fire only on non-alarm to alarm changes.
-- `domain/sorting`: alarm-first fleet order is deterministic.
-- `layout/fleetGrid`: 1, 2, 3-6, 7-12, and 13-20 machine column rules.
 - `rendering/renderStates`: no-fields, loading, invalid-config, no-data, and error states suppress audio.
+- Fleet layout: flex-wrap with uniform card height and width proportional to bucket aspect ratio
+  (no fixed column rule; driven by inline styles/CSS and verified via the geometry aspect-ratio tests
+  and manual Developer Visual checks).
 
 Manual validation remains required for Developer Visual behavior in Power BI Desktop/service,
 especially audio arming, alarm dismissal, resize behavior, and tooltip wiring.
