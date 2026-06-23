@@ -13,8 +13,8 @@ visual renders one responsive machine card per machine. Each machine card shows 
 front-on schematic with depth shading adaptive bucket with dynamic GET (Ground Engaging Tools) component counts for teeth, lip
 shrouds, and wing shrouds. The bucket shape itself expands, shrinks, and changes proportions based on
 the component layout so the visual feels purpose-built rather than static. Components are color-coded
-by status, support rich tooltips, and alarm states trigger visual prominence plus a dismissible
-two-minute audio alarm when status changed to alarming statuses from any other statuses.
+by status, support rich custom tooltips, and alarm states trigger visual prominence plus a dismissible
+one-minute audio alarm when a component newly transitions into an alarming status.
 
 ## Problem
 
@@ -33,8 +33,10 @@ when the number of machines and the number/order of components changes by machin
 
 - Render between 1 and 20 machines in one visual.
 - Make one machine fill most/all available visual space when only one machine is present.
-- Dynamically arrange multiple machine cards side by side or top to bottom based on visual dimensions.
-- Show scrollbars once cards would otherwise become too small to be useful.
+- Arrange machine cards as uniform fixed-height cards that flex-wrap to fill the available width;
+  each card's width tracks its bucket aspect ratio (more teeth produces a wider card). There is no
+  fixed column-count rule.
+- Show scrollbars once the wrapped cards overflow the available space.
 - Render bucket/GET components by category:
   - Teeth: dynamic count from 4 to 20.
   - Lip shrouds: always `teeth - 1`.
@@ -79,18 +81,20 @@ when the number of machines and the number/order of components changes by machin
 
 - Starting context: report contains 2 to 20 machines.
 - User action: report consumer views or resizes the visual.
-- Expected visual response: machine cards dynamically reflow based on available width/height. More
-  machines produce smaller cards until the configured minimum card size is reached, then scrolling is
-  used. Each card keeps its adaptive bucket proportions even when scaled down.
-- Success criteria: layout remains legible, cards do not overlap, and resizing does not break the
-  bucket/component geometry.
+- Expected visual response: machine cards keep a uniform fixed height and flex-wrap to fill the
+  available width; each card is as wide as its bucket aspect ratio requires (more teeth = wider).
+  When the wrapped cards exceed the available space, scrolling is used. Each card keeps its adaptive
+  bucket proportions.
+- Success criteria: layout remains legible, cards do not overlap, and resizing reflows the wrapped
+  cards without breaking the bucket/component geometry.
 
 ### Inspect A Component
 
 - Starting context: visual shows a machine bucket with component statuses.
 - User action: report consumer hovers over a tooth, lip shroud, or wing shroud.
-- Expected visual response: tooltip displays component name, tag ID, status, last seen, and any
-  additional fields bound by the report author.
+- Expected visual response: a custom themed tooltip displays the component label, a human-readable
+  status, the machine, the full local Last seen date and time, and any additional fields bound by the
+  report author.
 - Success criteria: tooltip content is correct for the hovered component and does not obscure
   critical alarm visibility more than necessary.
 
@@ -99,9 +103,11 @@ when the number of machines and the number/order of components changes by machin
 - Starting context: one or more components transition from a non-alarm status to an alarm status.
 - User action: report consumer sees/hears the alarm and clicks anywhere inside the visual to dismiss
   audio.
-- Expected visual response: affected component flashes red/dark red, affected machine card is
-  highlighted and moved to the top-left/front of the visual ordering, and audio plays for up to two
-  minutes unless dismissed.
+- Expected visual response: the affected component flashes red/dark red with a flashing glow, the
+  affected machine card frame flashes, a large flashing "ALARM!" chip and an animated center warning
+  icon appear, a top-left banner lists the alarm type(s) and the affected component names (joined with
+  " - "), the card is moved to the top-left/front of the visual ordering, and audio plays for up to
+  one minute unless dismissed. There are no alarm ring circles.
 - Success criteria: alarm is obvious, audio stops on dismissal, visual highlighting remains while the
   alarm status remains active, and the machine returns to normal ordering only when alarm priority no
   longer applies.
@@ -135,21 +141,36 @@ The five non-normal states must match `States.dc.html`:
 | Proximity Alarm | Flashing red | Yes, on transition into alarm |
 | Movement Alarm | Flashing dark red | Yes, on transition into alarm |
 
-Alarm transition rule: audio starts only when a component moves from any non-alarm status into
-`Proximity Alarm` or `Movement Alarm`. Audio should not restart continuously while the same alarm
-remains active.
+### Machine Frame Status
 
-Dismissal rule: clicking anywhere on the visual dismisses current audio. Audio stays armed; a fresh
-alarm transition should restart audio.
+Each machine card frame and badge reflect the worst status across its components:
+
+- ALARM! (red frame): any component is in an alarm status.
+- NO DATA (yellow frame): no alarm present, and every component is either no-data or
+  lockout + no-data.
+- OK (green frame): otherwise.
+
+Alarm id rule: each alarm has a stable id formed from machine + component + alarm time (the
+`alarmTime` data role). Audio fires once per distinct alarm id and never re-fires for that same id,
+including after the audio has been dismissed. The first render after the visual loads seeds the known
+alarm ids without firing audio, so pre-existing alarms do not beep on load.
+
+Dismissal rule: clicking anywhere on the visual dismisses current audio. Dismissing does not re-arm
+the already-heard alarm id; only a genuinely new alarm id (a new machine/component alarm, or the same
+component alarming again at a new alarm time) plays audio.
+
+Audio gesture rule: browser autoplay policies require a user gesture, so audio is armed/resumed by a
+user click inside the visual before it can play.
 
 Audio pattern: WebAudio two-tone square-wave beep, 880 Hz then 660 Hz, approximately 0.24 seconds
-each, repeating every 1.5 seconds, with auto-stop after 120 seconds.
+each, repeating every 1.5 seconds, with auto-stop after 60 seconds (one minute).
 
 ## Interactions
 
 - Selection/cross-filter: TBD.
 - Highlighting: alarm machine cards are highlighted and prioritized visually.
-- Tooltips: component-level Power BI/tooltips with component metadata and user-added fields.
+- Tooltips: component-level custom themed HTML tooltips (not the Power BI host tooltip service) with
+  component metadata and user-added fields.
 - Sorting: machine/card order is affected by alarm priority; base ordering is TBD.
 - Drill: TBD.
 - Context menu: TBD.
@@ -184,34 +205,40 @@ Known logical entities:
 - Adaptive bucket behavior: recompute bucket body/edge/side geometry from component counts and card
   dimensions.
 - Alarm responsiveness: alarm visual/audio should react on the next Power BI update cycle.
-- Fleet grid behavior: 1 machine = 1 column, 2 machines = 2 columns, 3-6 machines = 3 columns, 7-12
-  machines = 4 columns, 13-20 machines = 5 columns, with vertical scrolling when needed.
+- Fleet layout behavior: uniform fixed-height cards flex-wrap to fill the available width, each card
+  as wide as its bucket aspect ratio requires; scrolling appears when the wrapped cards overflow.
+  There is no fixed column-count rule.
 
 ## Accessibility Requirements
 
 - Status cannot rely on color alone; alarm animation, labels/tooltips, or icons must provide a
   secondary signal.
 - Audio alarm must be dismissible.
-- Reduced motion behavior is required for flashing alarms.
+- An explicit in-visual reduced-motion toggle is provided to soften flashing alarms. The OS
+  `prefers-reduced-motion` setting is intentionally not honored for safety-alarm flashing, so an
+  operating-system setting cannot silently suppress an active alarm.
 - Keyboard/focus behavior is TBD.
 - Screen reader strategy is TBD.
 
 ## Acceptance Criteria
 
 - With one machine, the machine card fills the visual while preserving bucket layout proportions.
-- With 2 to 20 machines, cards reflow responsively based on visual dimensions.
-- Fleet layout follows the handoff column rules and vertically scrolls instead of paginating.
-- Cards do not shrink below a defined minimum useful size; overflow scrollbars appear instead.
+- With 2 to 20 machines, uniform fixed-height cards flex-wrap to fill the available width.
+- Each card's width tracks its bucket aspect ratio (more teeth = wider); there is no fixed
+  column-count rule, and wrapped cards scroll instead of paginating when they overflow.
 - Teeth, lip shrouds, and wing shrouds render with dynamic counts and valid ordering.
 - Bucket body and GET geometry expand/shrink based on component counts.
 - Component shapes are integrated into the bucket shape and remain visually polished at supported
   card sizes.
 - Component statuses map to the defined colors/animations.
-- Component tooltips show required metadata and optional user-added fields.
-- Alarm transitions trigger audio for up to two minutes.
-- Clicking anywhere inside the visual dismisses current audio while keeping alerts armed.
-- A fresh alarm transition restarts audio while alerts are armed.
-- Alarming machine cards are highlighted and moved/prioritized to the top-left/front.
+- Component custom tooltips show required metadata and optional user-added fields.
+- A new alarm id triggers audio for up to one minute.
+- Clicking anywhere inside the visual dismisses current audio; the dismissed alarm id does not
+  re-fire.
+- A genuinely new alarm id (new component alarm, or the same component at a new alarm time) plays
+  audio; an already-heard id never re-fires.
+- Alarming machine cards are highlighted (flashing frame, ALARM! chip, center icon, top-left banner)
+  and moved/prioritized to the top-left/front; there are no alarm ring circles.
 - No data, invalid config, and error states do not crash the visual.
 
 ## Open Questions

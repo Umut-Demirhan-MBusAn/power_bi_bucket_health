@@ -2,7 +2,8 @@ import { MachineBucketModel } from "../data/types";
 import { buildBucketGeometry } from "../geometry/bucketGeometry";
 import { renderBucketSvg } from "./renderBucketSvg";
 import { machineStatusKey, statusColors, statusLabels } from "../domain/statusMeta";
-import { isAlarmStatus } from "../data/normalizeStatus";
+
+const BUCKET_TARGET_HEIGHT = 220; // paired with .bucket-health-card height in style/visual.less
 
 export function renderMachineCard(machine: MachineBucketModel): HTMLElement {
     const card = document.createElement("article");
@@ -27,7 +28,7 @@ export function renderMachineCard(machine: MachineBucketModel): HTMLElement {
     // bucket fills that fixed height without distortion. More teeth → wider viewBox → wider card.
     const geometry = buildBucketGeometry(machine);
     const aspect = geometry.viewBoxWidth / geometry.viewBoxHeight;
-    const targetWidth = Math.round(aspect * 220);
+    const targetWidth = Math.round(aspect * BUCKET_TARGET_HEIGHT);
     card.style.flex = `${targetWidth} 1 ${targetWidth}px`;
 
     const cardHeader = document.createElement("div");
@@ -62,9 +63,7 @@ export function renderMachineCard(machine: MachineBucketModel): HTMLElement {
     cardHeader.append(headerText, statusBadge);
     card.append(cardHeader);
 
-    const hasAlarm = machine.hasAlarm || all.some(c => isAlarmStatus(c.status));
-
-    if (hasAlarm) {
+    if (machine.hasAlarm) {
         const componentLabel = (c: typeof all[number]): string => {
             const prefix =
                 c.category === "tooth"
@@ -102,6 +101,6 @@ export function renderMachineCard(machine: MachineBucketModel): HTMLElement {
         card.append(alarmBanner);
     }
 
-    card.append(renderBucketSvg(machine));
+    card.append(renderBucketSvg(machine, geometry));
     return card;
 }
