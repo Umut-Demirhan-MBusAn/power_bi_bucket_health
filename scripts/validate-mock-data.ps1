@@ -23,7 +23,8 @@ $expectedColumns = @(
     "component_order",
     "status",
     "last_seen_utc",
-    "tag_id"
+    "tag_id",
+    "alarm_time"
 )
 
 $allColumns = @($rows[0].PSObject.Properties.Name)
