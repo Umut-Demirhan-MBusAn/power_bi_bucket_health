@@ -135,7 +135,14 @@ export function renderEdgeState(
 // ---- helpers ----------------------------------------------------------------
 
 function svgEl(svgString: string): Element {
-    return new DOMParser().parseFromString(svgString, "image/svg+xml").documentElement;
+    const root = new DOMParser().parseFromString(svgString, "image/svg+xml").documentElement;
+    // The SVG strings here are static developer constants, so a parse error is not expected.
+    // Guard defensively anyway: a malformed string yields a <parsererror> root, which we
+    // replace with an empty span so the edge state still renders its title and guidance.
+    if (root.nodeName === "parsererror" || root.getElementsByTagName("parsererror").length > 0) {
+        return document.createElement("span");
+    }
+    return root;
 }
 
 // ---- list builders ----------------------------------------------------------

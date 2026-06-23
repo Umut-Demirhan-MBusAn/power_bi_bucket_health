@@ -9,7 +9,7 @@ A Power BI custom visual for real-time monitoring of mining excavator bucket GET
 ## Features
 
 - **Adaptive bucket geometry** — teeth, lip shrouds, and wing shrouds rendered from your actual component counts (4–20 teeth, 0–4 wings per side)
-- **Status colour coding** — OK (green), No Data (amber), Lockout (blue), Proximity Alarm (red), Movement Alarm (dark red)
+- **Status colour coding** — OK (green), No Data (amber), Lockout (blue), Lockout + No Data (dark blue), Proximity Alarm (red), Movement Alarm (dark red)
 - **Fleet grid** — up to 20 machines in a responsive flex grid; alarm machines sort to the front with a pulsing red border
 - **Audio alert** — opt-in two-tone beep triggered on fresh alarm transitions, with auto-stop at 60 s
 - **Rich tooltips** — component name, status, machine, last-seen time, and any extra tooltip columns from your data
@@ -49,7 +49,7 @@ Each row must represent **one component on one machine**. Bind these roles in th
 | **Component** | ✓ | Component key (unique per machine) | `T1`, `L3`, `W2R` |
 | **Category** | ✓ | Component type | `tooth`, `lipShroud`, `wingShroud` |
 | **Order** | ✓ | Integer position (left→right for teeth/lips; see Wing side assignment for wings) | `1`, `2`, … |
-| **Status** | ✓ | Health status string | `OK`, `No Data`, `Proximity Alarm`, `Movement Alarm`, `Lockout` |
+| **Status** | ✓ | Health status string | `OK`, `No Data`, `Lockout`, `Lockout + No Data`, `Proximity Alarm`, `Movement Alarm` |
 | Machine Type | — | Human-readable machine label | `Hydraulic Excavator` |
 | Last Seen | — | Timestamp of last data receipt | `2026-06-22T08:14:00Z` |
 | Alarm Time | — | Timestamp when the alarm was raised (used for audio deduplication) | ISO 8601 string |

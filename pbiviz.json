@@ -6,13 +6,13 @@
         "visualClassName": "Visual",
         "version": "1.0.0.0",
         "description": "Mining bucket GET component health visual.",
-        "supportUrl": "https://github.com/demirhanayhan/power_bi_bucket_health/issues",
-        "gitHubUrl": "https://github.com/demirhanayhan/power_bi_bucket_health"
+        "supportUrl": "https://github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health/issues",
+        "gitHubUrl": "https://github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health"
     },
     "apiVersion": "5.11.0",
     "author": {
         "name": "Umut Demirhan",
-        "email": "emmettdemirhan@gmail.com"
+        "email": "demirhan.info@gmail.com"
     },
     "assets": {
         "icon": "assets/icon.png"
