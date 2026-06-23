@@ -29,8 +29,9 @@ export const bucketGeometryConstants = {
 } as const;
 
 export function buildBucketGeometry(machine: MachineBucketModel): BucketGeometry {
-    const teeth = sortComponents(machine.teeth);
-    const lipShrouds = sortComponents(machine.lipShrouds);
+    // Teeth and lip shrouds keep the parser's display order (left-to-right or right-to-left).
+    const teeth = machine.teeth;
+    const lipShrouds = machine.lipShrouds;
     const wingShroudsLeft = sortComponents(machine.wingShroudsLeft);
     const wingShroudsRight = sortComponents(machine.wingShroudsRight);
 
@@ -188,7 +189,8 @@ function buildWingShrouds(
     const pitchT = c.WING_PITCH / edgeLength;
 
     return wingShrouds.map((component, index) => {
-        const t = clamp(0.5 + (index - (wingShrouds.length - 1) / 2) * pitchT, 0.1, 0.9);
+        // Lowest order at the top, increasing downward (top-to-bottom for both sides).
+        const t = clamp(0.5 + ((wingShrouds.length - 1) / 2 - index) * pitchT, 0.1, 0.9);
         const wingCenter = lerp(bottom, top, t);
         const polygon = [
             wingPoint(wingCenter, u, v, -c.WING_HL, -c.WING_IN),

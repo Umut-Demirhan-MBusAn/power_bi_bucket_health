@@ -18,6 +18,49 @@ export const statusLabels: Record<BucketStatusKey, string> = {
     move: "Movement Alarm"
 };
 
+// Host-provided theme. `isHighContrast` mirrors the Power BI high-contrast mode; the
+// foreground/background/foregroundSelected colors come from the host color palette.
+export interface VisualTheme {
+    isHighContrast: boolean;
+    foreground: string;
+    background: string;
+    foregroundSelected: string;
+}
+
+// Resolves the fill/stroke/strokeWidth for a single bucket component.
+// In high-contrast mode the host colors take over and alarm components (prox/move) use the
+// selected-foreground accent with a heavier stroke. In normal mode the status palette drives
+// the fill and the stroke is a darkened variant of the same color.
+export function resolveComponentColors(
+    status: BucketStatusKey,
+    theme: VisualTheme
+): { fill: string; stroke: string; strokeWidth: number } {
+    if (theme.isHighContrast) {
+        const isAlarm = status === "prox" || status === "move";
+        return {
+            fill: theme.background,
+            stroke: isAlarm ? theme.foregroundSelected : theme.foreground,
+            strokeWidth: isAlarm ? 3 : 2
+        };
+    }
+
+    return {
+        fill: statusColors[status],
+        stroke: darkenHex(statusColors[status], 0.42),
+        strokeWidth: 1.5
+    };
+}
+
+// Self-contained hex darkener (mixes the color toward black by `amount`).
+function darkenHex(hex: string, amount: number): string {
+    const value = hex.replace("#", "");
+    const red = Math.round(parseInt(value.slice(0, 2), 16) * (1 - amount));
+    const green = Math.round(parseInt(value.slice(2, 4), 16) * (1 - amount));
+    const blue = Math.round(parseInt(value.slice(4, 6), 16) * (1 - amount));
+    const toHex = (channel: number): string => channel.toString(16).padStart(2, "0");
+    return `#${toHex(red)}${toHex(green)}${toHex(blue)}`;
+}
+
 // Reduces a machine's component statuses to the single status that drives its frame color:
 // - any alarm component -> alarm (movement outranks proximity)
 // - else if every component is "no data" or "lockout + no data" -> nodata

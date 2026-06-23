@@ -36,7 +36,18 @@ class OrderingCard extends FormattingSettingsCard {
         ]
     });
 
-    slices = [this.wingSideAssignment];
+    componentOrder = new formattingSettings.ItemDropdown({
+        name: "componentOrder",
+        displayName: "Teeth & lip order",
+        description: "Lay teeth and lip shrouds out left-to-right or right-to-left.",
+        value: { value: "leftToRight", displayName: "Left to right" },
+        items: [
+            { value: "leftToRight", displayName: "Left to right" },
+            { value: "rightToLeft", displayName: "Right to left" }
+        ]
+    });
+
+    slices = [this.wingSideAssignment, this.componentOrder];
 }
 
 class AlarmCard extends FormattingSettingsCard {

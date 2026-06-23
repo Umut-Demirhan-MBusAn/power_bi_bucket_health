@@ -115,6 +115,18 @@ test("buildBucketGeometry supports asymmetric wing counts using max side height"
     assert.equal(geometry.wingShrouds.filter((wing) => wing.side === "right").length, 1);
 });
 
+test("buildBucketGeometry orders wing shrouds top-to-bottom by order on each side", () => {
+    const geometry = buildBucketGeometry(machine({ teeth: 10, leftWings: 3, rightWings: 3 }));
+
+    ["left", "right"].forEach((side) => {
+        const wings = geometry.wingShrouds.filter((wing) => wing.side === side);
+        assert.deepEqual(wings.map((wing) => wing.order), [1, 2, 3]);
+        // order 1 sits at the top (smallest y), increasing downward
+        assert.ok(wings[0].center.y < wings[1].center.y, `${side} 1 above 2`);
+        assert.ok(wings[1].center.y < wings[2].center.y, `${side} 2 above 3`);
+    });
+});
+
 test("buildBucketGeometry derives the dominant alarm label", () => {
     const movement = buildBucketGeometry(machine({
         teeth: 10,
