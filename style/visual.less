@@ -253,10 +253,47 @@
     animation: bh-center-pulse 0.85s ease-in-out infinite;
 }
 
-.bucket-health-root--reduced-motion *,
-.bucket-health-root--reduced-motion *::before,
-.bucket-health-root--reduced-motion *::after {
-    animation: none !important;
+/* Reduced motion: keep alarms fully visible but solid (no flashing).
+   - "always" (flash-always): flashes regardless of the system setting.
+   - "auto" (no class): flashes, but the OS prefers-reduced-motion setting makes it solid.
+   - "never" (flash-never): always solid. */
+.bh-alarm-solid() {
+    .bucket-health-card--alarm {
+        animation: none;
+        box-shadow: 0 0 0 2px rgba(255, 60, 60, 0.95);
+    }
+
+    .bucket-health-card__status--alarm {
+        animation: none;
+        background: #ff2424;
+        color: #ffffff;
+    }
+
+    .bucket-health-svg__component[data-status="prox"] {
+        animation: none;
+        opacity: 1;
+        filter: drop-shadow(0 0 5px #ff5a5a);
+    }
+
+    .bucket-health-svg__component[data-status="move"] {
+        animation: none;
+        opacity: 1;
+        filter: drop-shadow(0 0 5px #c42b4a);
+    }
+
+    .bucket-health-svg__center-alarm {
+        animation: none;
+    }
+}
+
+.bucket-health-root--flash-never {
+    .bh-alarm-solid();
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bucket-health-root:not(.bucket-health-root--flash-always) {
+        .bh-alarm-solid();
+    }
 }
 
 /* ---- custom component tooltip ---- */
