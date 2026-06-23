@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#131a22"/>
+      <stop offset="100%" stop-color="#0b1015"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2d3a47"/>
+      <stop offset="100%" stop-color="#1a212a"/>
+    </linearGradient>
+    <radialGradient id="cavity" cx="50%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#0d1720"/>
+      <stop offset="100%" stop-color="#1a252f"/>
+    </radialGradient>
+    <radialGradient id="topcenter" cx="50%" cy="0%" r="80%">
+      <stop offset="0%" stop-color="#1c2a38" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#0b1015" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="300" height="300" rx="36" fill="url(#bg)"/>
+  <rect width="300" height="300" rx="36" fill="url(#topcenter)" opacity="0.8"/>
+
+  <!-- Bucket body (trapezoid): top 85-215 at y=88, bottom 48-252 at y=200 -->
+  <polygon points="85,88 215,88 252,200 48,200" fill="url(#body)"/>
+  <polygon points="85,88 215,88 252,200 48,200" fill="none" stroke="#3d4f64" stroke-width="1.5" stroke-linejoin="round"/>
+
+  <!-- Interior cavity -->
+  <polygon points="103,96 197,96 228,190 72,190" fill="url(#cavity)"/>
+
+  <!-- Spill guard bar -->
+  <rect x="85" y="79" width="130" height="10" rx="3" fill="#3d4f64"/>
+  <rect x="85" y="79" width="130" height="5" rx="3" fill="#52677e" opacity="0.7"/>
+
+  <!-- Hitch bracket -->
+  <rect x="126" y="62" width="48" height="20" rx="9" fill="#1e2c3a" stroke="#3d4f64" stroke-width="1.5"/>
+  <rect x="134" y="54" width="14" height="18" rx="4" fill="#26374a" stroke="#3d4f64" stroke-width="1.5"/>
+  <rect x="152" y="54" width="14" height="18" rx="4" fill="#26374a" stroke="#3d4f64" stroke-width="1.5"/>
+  <!-- Pivot pin -->
+  <circle cx="150" cy="72" r="6.5" fill="#3d5068" stroke="#5d7890" stroke-width="1.5"/>
+  <circle cx="150" cy="72" r="3" fill="#7898b4"/>
+
+  <!-- Teeth (5, tapered): TW=24, pitch=38, start x=62 -->
+  <!-- T1 - OK green -->
+  <polygon points="62,200 86,200 82,242 66,242" fill="#34D399"/>
+  <polygon points="62,200 86,200 86,209 62,209" fill="#5ef8bb" opacity="0.35"/>
+  <!-- T2 - OK green -->
+  <polygon points="100,200 124,200 120,242 104,242" fill="#34D399"/>
+  <polygon points="100,200 124,200 124,209 100,209" fill="#5ef8bb" opacity="0.35"/>
+  <!-- T3 - ALARM red (center tooth, most visible) -->
+  <polygon points="138,200 162,200 158,242 142,242" fill="#FF5A5A" filter="url(#glow)"/>
+  <polygon points="138,200 162,200 162,209 138,209" fill="#ff9090" opacity="0.4"/>
+  <!-- T4 - OK green -->
+  <polygon points="176,200 200,200 196,242 180,242" fill="#34D399"/>
+  <polygon points="176,200 200,200 200,209 176,209" fill="#5ef8bb" opacity="0.35"/>
+  <!-- T5 - No data amber -->
+  <polygon points="214,200 238,200 234,242 218,242" fill="#F4C04E"/>
+  <polygon points="214,200 238,200 238,209 214,209" fill="#f8d880" opacity="0.35"/>
+
+  <!-- Lip shrouds between teeth (green, slightly darker) -->
+  <rect x="88"  y="200" width="10" height="19" rx="1" fill="#29b880" opacity="0.95"/>
+  <rect x="126" y="200" width="10" height="19" rx="1" fill="#29b880" opacity="0.95"/>
+  <rect x="164" y="200" width="10" height="19" rx="1" fill="#29b880" opacity="0.95"/>
+  <rect x="202" y="200" width="10" height="19" rx="1" fill="#29b880" opacity="0.95"/>
+
+  <!-- Wing shrouds: 2 per side, perpendicular to the slope -->
+  <!-- Left slope (85,88)→(48,200): normal direction (-0.950, -0.314) -->
+  <!-- Wing 1 at y≈128, slope x≈72 -->
+  <polygon points="69,120 74,136 61,132 56,116" fill="#29b880" opacity="0.95"/>
+  <!-- Wing 2 at y≈165, slope x≈60 -->
+  <polygon points="57,157 62,173 49,169 44,153" fill="#29b880" opacity="0.95"/>
+  <!-- Right slope (215,88)→(252,200): normal direction (0.950, -0.314) -->
+  <!-- Wing 1 at y≈128, slope x≈228 -->
+  <polygon points="231,120 226,136 239,132 244,116" fill="#29b880" opacity="0.95"/>
+  <!-- Wing 2 at y≈165, slope x≈240 -->
+  <polygon points="243,157 238,173 251,169 256,153" fill="#29b880" opacity="0.95"/>
+</svg>

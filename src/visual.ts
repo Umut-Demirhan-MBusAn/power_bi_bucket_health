@@ -123,12 +123,9 @@ export class Visual implements IVisual {
         this.tooltip = null;
 
         if (model.state !== "ready") {
-            const detail = model.state === "invalidConfig"
-                ? `Missing: ${model.missingRoles.join(", ")}`
-                : model.state === "error"
-                    ? model.errors.join(" ")
-                    : undefined;
-            this.target.appendChild(renderEdgeState(model.state, detail));
+            const detail = model.state === "error" ? model.errors.join(" ") : undefined;
+            const missingRoles = model.state === "invalidConfig" ? model.missingRoles : undefined;
+            this.target.appendChild(renderEdgeState(model.state, detail, missingRoles));
             this.componentLookup.clear();
             return;
         }

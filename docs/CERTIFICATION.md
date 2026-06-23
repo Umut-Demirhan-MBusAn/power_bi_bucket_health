@@ -55,7 +55,7 @@ complete, professional visual. Status and risk:
 | Selection / cross-filtering | ✅ Done (PR #11) | medium-high | yes — verify in Desktop |
 | Keyboard navigation + focus | ✅ Done (PR #11) | medium | yes — verify in Desktop |
 | High-contrast mode | ✅ Done (PR #11) | medium | yes — verify in Desktop |
-| Landing page (no-data guidance) | ◐ Partial | low | yes |
+| Landing page (no-data guidance) | ✅ Done (2026-06-24) | low | yes |
 | Report-page tooltips (official API) | ◐ N/A by choice | — | — |
 
 Notes:
@@ -141,9 +141,11 @@ pbiviz package                  # must build the .pbiviz cleanly
 npm test                        # unit tests
 ```
 
-## Suggested order of remaining engineering work
-1. **High contrast** + finalize **landing page** (low risk).
-2. **Context menu** (small, expected by the guidelines).
-3. **Selection / cross-filtering** (largest — needs DataView identities; reconcile with click-to-dismiss-audio).
-4. **Keyboard navigation** + focus indicators + ARIA.
-5. Smoke-test all of the above in the Power BI Developer Visual, build the sample `.pbix`, then submit.
+## Remaining engineering work
+
+All recommended quality features (high contrast, context menu, selection / cross-filtering, keyboard
+navigation + focus + ARIA) and the landing page were completed in PR #11 and PR #13 — see the status
+table above and `BACKLOG.md` (PBH-018). The only remaining engineering step before submission is:
+
+1. **Smoke-test** all features in the Power BI Developer Visual (audio gesture, selection, keyboard,
+   high contrast, context menu), confirm the sample `.pbix` renders, then submit on Partner Center.
