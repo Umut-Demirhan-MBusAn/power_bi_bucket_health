@@ -46,7 +46,40 @@
             "kind": "Measure"
         }
     ],
-    "objects": {},
+    "objects": {
+        "layout": {
+            "properties": {
+                "minCardWidth": {
+                    "type": {
+                        "numeric": true
+                    }
+                }
+            }
+        },
+        "ordering": {
+            "properties": {
+                "wingSideAssignment": {
+                    "type": {
+                        "enumeration": []
+                    }
+                }
+            }
+        },
+        "alarm": {
+            "properties": {
+                "audioEnabled": {
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "alarmMotion": {
+                    "type": {
+                        "enumeration": []
+                    }
+                }
+            }
+        }
+    },
     "dataViewMappings": [
         {
             "table": {
