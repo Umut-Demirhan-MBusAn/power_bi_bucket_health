@@ -63,7 +63,9 @@ export function renderMachineCard(machine: MachineBucketModel, theme: VisualThem
     const statusBadge = document.createElement("span");
     statusBadge.className = machine.hasAlarm
         ? "bucket-health-card__status bucket-health-card__status--alarm"
-        : "bucket-health-card__status";
+        : statusKey === "nodata"
+            ? "bucket-health-card__status bucket-health-card__status--nodata"
+            : "bucket-health-card__status";
     statusBadge.textContent = machine.hasAlarm
         ? "ALARM!"
         : statusKey === "nodata" ? "NO DATA" : "OK";
