@@ -38,12 +38,15 @@ src/
 2. Host options and `DataView` are parsed into an internal typed model.
 3. Formatting settings are parsed from metadata.
 4. Renderer receives viewport, model, settings, and interaction callbacks.
-5. Layout engine computes machine card positions from viewport, machine count, card minimums, and
-   alarm priority.
-6. Geometry engine computes adaptive bucket body, cutting edge, side plates, teeth, lip shrouds, and
-   wing shroud shapes from GET counts and card dimensions.
-7. Alarm state compares previous and current component statuses by stable component key.
-8. Renderer updates DOM/SVG/canvas and cleans obsolete state.
+5. Layout uses uniform fixed-height, flex-wrapped cards; each card's width tracks its bucket aspect
+   ratio (more teeth = wider), and there is no fixed column-count rule. Wrapped cards scroll on
+   overflow.
+6. Geometry engine computes the adaptive bucket body, cutting edge, side plates, teeth, lip shrouds,
+   and wing shroud shapes for each card once from its GET counts, and the resulting geometry is passed
+   to the SVG renderer.
+7. The alarm-id dedup controller compares previous and current alarms by stable alarm id
+   (machine + component + alarmTime) so each alarm fires audio at most once.
+8. Renderer updates DOM/SVG and cleans obsolete state.
 
 ## Rendering Strategy
 
@@ -51,17 +54,23 @@ src/
   considered only if SVG fails performance/fidelity tests.
 - Libraries: D3 subpackages may be used for DOM joins/path updates. Geometry math should stay pure
   TypeScript and framework-agnostic.
-- Resize strategy: responsive layout engine chooses card grid and scaling from viewport dimensions.
-  Use scroll overflow once cards would fall below configured minimum dimensions.
-- Animation strategy: CSS or renderer-managed flashing for alarm components, with reduced-motion
-  fallback.
+- Resize strategy: uniform fixed-height cards flex-wrap to fill the available width, each card sized
+  to its bucket aspect ratio (more teeth = wider). Scroll overflow appears once the wrapped cards
+  exceed the available space; there is no fixed column-count rule.
+- Animation strategy: CSS or renderer-managed flashing for alarm components. The OS
+  `prefers-reduced-motion` setting is intentionally not honored for alarm flashing (safety); only the
+  explicit in-visual reducedMotion toggle softens it.
+- Tooltip strategy: a custom themed HTML tooltip element is rendered by the visual itself rather than
+  calling the Power BI host tooltip service.
 - Geometry strategy: bucket shape is generated, not a static image. More GET components widen/extend
   the bucket edge and sides; fewer GET components shrink/rebalance the bucket while maintaining a
   polished front-on schematic with depth shading appearance.
 
 ## Key Runtime Concerns
 
-- Alarm audio requires transition detection: non-alarm to `Proximity Alarm` or `Movement Alarm`.
+- Alarm audio is gated by an alarm-id dedup controller: each alarm id (machine + component +
+  alarmTime) fires audio at most once and never re-fires, including after dismissal. The first render
+  seeds known ids without firing, and the audio context is armed/resumed by a user click.
 - Audio dismissal is visual-session state and should not hide visual alarm indicators.
 - Alarm machine priority changes card ordering, so layout must be stable enough to avoid confusing
   reorder churn.

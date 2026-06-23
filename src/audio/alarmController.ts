@@ -1,18 +1,18 @@
 import { BucketHealthDataModel, ComponentRecord, MachineBucketModel } from "../data/types";
 import { isAlarmStatus } from "../data/normalizeStatus";
+import { COMPOSITE_KEY_SEPARATOR } from "../data/keys";
 import { AlarmAudio } from "./alarmAudio";
-
-const ALARM_ID_SEPARATOR = "|#|";
 
 export interface AlarmSink {
     start(): void;
+    arm(): void;
     dismiss(): void;
     destroy(): void;
 }
 
 export function buildAlarmId(machineKey: string, componentKey: string, alarmTime: ComponentRecord["alarmTime"]): string {
     const time = alarmTime === null || alarmTime === undefined ? "" : String(alarmTime);
-    return machineKey + ALARM_ID_SEPARATOR + componentKey + ALARM_ID_SEPARATOR + time;
+    return machineKey + COMPOSITE_KEY_SEPARATOR + componentKey + COMPOSITE_KEY_SEPARATOR + time;
 }
 
 export function collectAlarmIds(machines: MachineBucketModel[]): Set<string> {
@@ -59,6 +59,10 @@ export class AlarmController {
         if (hasNew && audioEnabled) {
             this.audio.start();
         }
+    }
+
+    arm(): void {
+        this.audio.arm();
     }
 
     dismiss(): void {

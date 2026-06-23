@@ -39,7 +39,8 @@ Counts are derived from component rows:
 | category | Grouping | Yes | GET component category. | Values: `tooth`, `lipShroud`, `wingShroud`. |
 | order | Measure or Grouping | Yes | Integer physical order. | Tooth/lip left-to-right; wing side is assigned from this order by visual settings. |
 | status | Grouping or Measure | Yes | Current component status. | Maps to the status model below. |
-| lastSeen | Measure datetime | No | Last component update timestamp. | Tooltip display; timezone/format remains business decision. |
+| lastSeen | Grouping or Measure | No | Last component update timestamp. | Tooltip display as full local date and time. |
+| alarmTime | Grouping or Measure | No | Time the component entered its current alarm. | Forms the alarm id (machine + component + alarmTime) used to dedup audio so the same alarm never re-fires. |
 | tooltipFields | Measure, multiple | No | Additional report-author-selected tooltip fields. | Appended to component tooltip. |
 
 ## Status Model
@@ -149,7 +150,10 @@ interface MachineBucketModel {
 - Selection: TBD. Potentially select machine or component and cross-filter other visuals.
 - Cross-filter: TBD.
 - Highlight: alarm highlight is visual-owned; Power BI cross-highlight support is TBD.
-- Tooltip: component-level tooltip shows required and optional metadata fields.
+- Tooltip: the visual renders its own custom themed HTML tooltip rather than calling the Power BI
+  host tooltip service. It shows the component label, a human-readable status, the machine, the full
+  local Last seen date and time, and the bound tooltip fields. The official tooltip API and report
+  page tooltips are not used.
 - Sorting: alarm priority overrides base order in fleet view. Ties keep source order.
 - Drill/navigation: fleet card click should navigate/drill into a single-machine detail view. Exact
   Power BI implementation is TBD.
@@ -164,6 +168,10 @@ interface MachineBucketModel {
 | WebAccess | No | No external calls planned. |
 | LocalStorage | No | Alarm dismissal is session-only. |
 | ExportContent | No | No export behavior planned. |
+
+Audio uses the in-browser WebAudio API, so no host privilege is declared. Because browser autoplay
+policies block sound without a user gesture, the audio context is armed/resumed on a user click
+inside the visual before any alarm can play.
 
 Open question: confirm whether audio playback is acceptable in the target Power BI environment and
 whether AppSource certification is required.

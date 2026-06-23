@@ -5,6 +5,7 @@ import { FormattingSettingsService } from "powerbi-visuals-utils-formattingmodel
 import "./../style/visual.less";
 
 import { AlarmController } from "./audio/alarmController";
+import { COMPOSITE_KEY_SEPARATOR } from "./data/keys";
 import { parseDataView } from "./data/parseDataView";
 import { BucketHealthDataModel, ComponentRecord, MachineBucketModel, WingSideAssignment } from "./data/types";
 import { defaultWingSideAssignment } from "./domain/wingSideAssignment";
@@ -18,10 +19,6 @@ import IVisualEventService = powerbi.extensibility.IVisualEventService;
 import PrimitiveValue = powerbi.PrimitiveValue;
 import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
 import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
-
-// Lookup keys combine machine + component because component keys are only unique within a machine.
-// The delimiter is an unlikely literal so the composite key stays unambiguous for real-world IDs.
-const KEY_SEPARATOR = "||::||";
 
 export class Visual implements IVisual {
     private readonly events: IVisualEventService;
@@ -38,7 +35,7 @@ export class Visual implements IVisual {
         this.target = options.element;
         this.target.classList.add("bucket-health-root");
 
-        this.target.addEventListener("click", () => this.alarmController.dismiss());
+        this.target.addEventListener("click", () => { this.alarmController.arm(); this.alarmController.dismiss(); });
         this.target.addEventListener("mousemove", (event) => this.handlePointerMove(event));
         this.target.addEventListener("mouseleave", () => this.hideTooltip());
     }
@@ -120,7 +117,7 @@ export class Visual implements IVisual {
 
         const componentKey = componentEl.getAttribute("data-component-key") ?? "";
         const machineKey = machineEl.getAttribute("data-machine-key") ?? "";
-        const record = this.componentLookup.get(machineKey + KEY_SEPARATOR + componentKey);
+        const record = this.componentLookup.get(machineKey + COMPOSITE_KEY_SEPARATOR + componentKey);
 
         if (!record) {
             this.hideTooltip();
@@ -176,7 +173,7 @@ function buildComponentLookup(machines: MachineBucketModel[]): Map<string, Compo
     const lookup = new Map<string, ComponentRecord>();
     machines.forEach((machine) => {
         const all = [...machine.teeth, ...machine.lipShrouds, ...machine.wingShroudsLeft, ...machine.wingShroudsRight];
-        all.forEach((component) => lookup.set(machine.key + KEY_SEPARATOR + component.componentKey, component));
+        all.forEach((component) => lookup.set(machine.key + COMPOSITE_KEY_SEPARATOR + component.componentKey, component));
     });
     return lookup;
 }

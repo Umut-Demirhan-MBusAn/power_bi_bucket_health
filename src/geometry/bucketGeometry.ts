@@ -1,6 +1,5 @@
 import { ComponentRecord, MachineBucketModel } from "../data/types";
 import { isAlarmStatus } from "../data/normalizeStatus";
-import { statusColors } from "../domain/statusMeta";
 import {
     BucketGeometry,
     LipShroudGeometry,
@@ -28,8 +27,6 @@ export const bucketGeometryConstants = {
     HITCH_ORIGIN_X: 440,
     HITCH_ORIGIN_Y: 94
 } as const;
-
-export const bucketStatusColors = statusColors;
 
 export function buildBucketGeometry(machine: MachineBucketModel): BucketGeometry {
     const teeth = sortComponents(machine.teeth);

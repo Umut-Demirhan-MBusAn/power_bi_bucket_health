@@ -16,7 +16,7 @@ function model(machines) {
 }
 
 function fakeAudio() {
-    return { starts: 0, dismisses: 0, start() { this.starts++; }, dismiss() { this.dismisses++; }, destroy() {} };
+    return { starts: 0, dismisses: 0, start() { this.starts++; }, dismiss() { this.dismisses++; }, destroy() {}, arm() {} };
 }
 
 test("buildAlarmId combines machine, component, and time", () => {

@@ -1,11 +1,10 @@
 import { BucketStatusKey, MachineBucketModel } from "../data/types";
-import { bucketStatusColors, buildBucketGeometry } from "../geometry/bucketGeometry";
+import { statusColors } from "../domain/statusMeta";
 import { BucketGeometry, Point, RectGeometry } from "../geometry/geometryTypes";
 
 const svgNamespace = "http://www.w3.org/2000/svg";
 
-export function renderBucketSvg(machine: MachineBucketModel): SVGSVGElement {
-    const geometry = buildBucketGeometry(machine);
+export function renderBucketSvg(machine: MachineBucketModel, geometry: BucketGeometry): SVGSVGElement {
     const id = sanitizeId(machine.key);
     const svg = svgElement("svg");
     svg.setAttribute("class", "bucket-health-svg");
@@ -246,11 +245,11 @@ function setComponentData(element: SVGElement, componentKey: string, status: Buc
 }
 
 function fill(status: BucketStatusKey): string {
-    return bucketStatusColors[status];
+    return statusColors[status];
 }
 
 function stroke(status: BucketStatusKey): string {
-    return mixWithBlack(bucketStatusColors[status], 0.42);
+    return mixWithBlack(statusColors[status], 0.42);
 }
 
 function mixWithBlack(hex: string, amount: number): string {
