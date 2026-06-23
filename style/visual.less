@@ -131,6 +131,32 @@
     vector-effect: non-scaling-stroke;
 }
 
+/* Host-toggled dimming for components that fall outside the active selection. */
+.bucket-health-svg__component--dimmed {
+    opacity: 0.4;
+}
+
+/* Clearly visible keyboard focus ring for individual components. The bright stroke gives an
+   in-SVG indicator, and the CSS outline is a fallback for hosts that honor it. */
+.bucket-health-svg__component:focus,
+.bucket-health-svg__component:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+    stroke: #ffffff;
+    stroke-width: 3;
+    filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 8px #4aa8ff);
+}
+
+/* Ensure the focus indicator stays visible under forced-colors / high-contrast modes. */
+@media (forced-colors: active) {
+    .bucket-health-svg__component:focus,
+    .bucket-health-svg__component:focus-visible {
+        outline: 3px solid Highlight;
+        outline-offset: 2px;
+        stroke: Highlight;
+    }
+}
+
 .bucket-health-svg__tooth,
 .bucket-health-svg__lip,
 .bucket-health-svg__wing {

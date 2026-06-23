@@ -1,10 +1,10 @@
 import { BucketStatusKey, MachineBucketModel } from "../data/types";
-import { statusColors } from "../domain/statusMeta";
+import { resolveComponentColors, statusLabels, VisualTheme } from "../domain/statusMeta";
 import { BucketGeometry, Point, RectGeometry } from "../geometry/geometryTypes";
 
 const svgNamespace = "http://www.w3.org/2000/svg";
 
-export function renderBucketSvg(machine: MachineBucketModel, geometry: BucketGeometry): SVGSVGElement {
+export function renderBucketSvg(machine: MachineBucketModel, geometry: BucketGeometry, theme: VisualTheme): SVGSVGElement {
     const id = sanitizeId(machine.key);
     const svg = svgElement("svg");
     svg.setAttribute("class", "bucket-health-svg");
@@ -12,7 +12,7 @@ export function renderBucketSvg(machine: MachineBucketModel, geometry: BucketGeo
     svg.setAttribute("role", "img");
     svg.setAttribute("aria-label", `${machine.name} bucket health`);
 
-    svg.append(createDefs(id), createBucketGroup(geometry, id));
+    svg.append(createDefs(id), createBucketGroup(geometry, id, theme));
 
     return svg;
 }
@@ -45,20 +45,31 @@ function createDefs(id: string): SVGDefsElement {
     return defs;
 }
 
-function createBucketGroup(geometry: BucketGeometry, id: string): SVGGElement {
+function createBucketGroup(geometry: BucketGeometry, id: string, theme: VisualTheme): SVGGElement {
     const group = svgElement("g");
     group.setAttribute("class", "bucket-health-svg__bucket");
 
+    const hc = theme.isHighContrast;
+    // In high contrast, the decorative shell loses its gradients/tints and becomes a legible
+    // background fill with a strong foreground outline. Normal mode keeps the existing look.
+    const bodyFill = hc ? theme.background : `url(#${id}-body-gradient)`;
+    const bodyStroke = hc ? theme.foreground : "#647283";
+    const cavityFill = hc ? theme.background : `url(#${id}-cavity-gradient)`;
+    const cavityStroke = hc ? theme.foreground : "#0f1720";
+    const beamFill = hc ? theme.background : "#202a35";
+    const beamStroke = hc ? theme.foreground : "#617184";
+    const decoStrokeWidth = hc ? 2 : 1.5;
+
     const elements: (SVGElement | undefined)[] = [
         ellipse(geometry.shadow.center, geometry.shadow.radiusX, geometry.shadow.radiusY, "#000", "bucket-health-svg__shadow"),
-        path(geometry.body.shellPath, `url(#${id}-body-gradient)`, "#647283", "bucket-health-svg__body"),
-        path(geometry.body.cavityPath, `url(#${id}-cavity-gradient)`, "#0f1720", "bucket-health-svg__cavity"),
-        path(geometry.cuttingEdgeBeamPath, "#202a35", "#617184", "bucket-health-svg__beam"),
-        createSpillGuard(geometry.spillGuardRects),
-        createHitch(geometry.hitchTransform),
-        createWingShrouds(geometry),
-        createLipShrouds(geometry),
-        createTeeth(geometry),
+        path(geometry.body.shellPath, bodyFill, bodyStroke, "bucket-health-svg__body", decoStrokeWidth),
+        path(geometry.body.cavityPath, cavityFill, cavityStroke, "bucket-health-svg__cavity", decoStrokeWidth),
+        path(geometry.cuttingEdgeBeamPath, beamFill, beamStroke, "bucket-health-svg__beam", decoStrokeWidth),
+        createSpillGuard(geometry.spillGuardRects, theme),
+        createHitch(geometry.hitchTransform, theme),
+        createWingShrouds(geometry, theme),
+        createLipShrouds(geometry, theme),
+        createTeeth(geometry, theme),
         createCenterAlarm(geometry)
     ];
     group.append(...elements.filter((e): e is SVGElement => e !== undefined));
@@ -66,74 +77,92 @@ function createBucketGroup(geometry: BucketGeometry, id: string): SVGGElement {
     return group;
 }
 
-function createSpillGuard(rects: RectGeometry[]): SVGGElement {
+function createSpillGuard(rects: RectGeometry[], theme: VisualTheme): SVGGElement {
     const group = svgElement("g");
     group.setAttribute("class", "bucket-health-svg__spill-guard");
 
+    const hc = theme.isHighContrast;
+    const fillColor = hc ? theme.background : "#596878";
+    const strokeColor = hc ? theme.foreground : "#778697";
+    const strokeWidth = hc ? 2 : 1.5;
+
     rects.forEach((rectGeometry) => {
-        const item = rect(rectGeometry, "#596878", "#778697", "bucket-health-svg__spill-bar");
+        const item = rect(rectGeometry, fillColor, strokeColor, "bucket-health-svg__spill-bar", 0, strokeWidth);
         group.appendChild(item);
     });
 
     return group;
 }
 
-function createHitch(transform: string): SVGGElement {
+function createHitch(transform: string, theme: VisualTheme): SVGGElement {
     const group = svgElement("g");
     group.setAttribute("class", "bucket-health-svg__hitch");
     group.setAttribute("transform", transform);
 
+    const hc = theme.isHighContrast;
+    const baseFill = hc ? theme.background : undefined;
+    const lugFill = hc ? theme.background : undefined;
+    const pinFill = hc ? theme.background : undefined;
+    const outline = hc ? theme.foreground : undefined;
+    const sw = hc ? 2 : 1.5;
+
     group.append(
-        rect({ x: 385, y: 74, width: 110, height: 38 }, "#2c3642", "#6d7d8f", "bucket-health-svg__hitch-base", 8),
-        rect({ x: 404, y: 36, width: 24, height: 52 }, "#384453", "#7c8da0", "bucket-health-svg__hitch-lug", 7),
-        rect({ x: 452, y: 36, width: 24, height: 52 }, "#384453", "#7c8da0", "bucket-health-svg__hitch-lug", 7),
-        circle({ x: 416, y: 62 }, 8, "#111820", "#91a1b3", "bucket-health-svg__hitch-pin"),
-        circle({ x: 464, y: 62 }, 8, "#111820", "#91a1b3", "bucket-health-svg__hitch-pin")
+        rect({ x: 385, y: 74, width: 110, height: 38 }, baseFill ?? "#2c3642", outline ?? "#6d7d8f", "bucket-health-svg__hitch-base", 8, sw),
+        rect({ x: 404, y: 36, width: 24, height: 52 }, lugFill ?? "#384453", outline ?? "#7c8da0", "bucket-health-svg__hitch-lug", 7, sw),
+        rect({ x: 452, y: 36, width: 24, height: 52 }, lugFill ?? "#384453", outline ?? "#7c8da0", "bucket-health-svg__hitch-lug", 7, sw),
+        circle({ x: 416, y: 62 }, 8, pinFill ?? "#111820", outline ?? "#91a1b3", "bucket-health-svg__hitch-pin"),
+        circle({ x: 464, y: 62 }, 8, pinFill ?? "#111820", outline ?? "#91a1b3", "bucket-health-svg__hitch-pin")
     );
 
     return group;
 }
 
-function createTeeth(geometry: BucketGeometry): SVGGElement {
+function createTeeth(geometry: BucketGeometry, theme: VisualTheme): SVGGElement {
     const group = svgElement("g");
     group.setAttribute("class", "bucket-health-svg__teeth");
 
     geometry.teeth.forEach((tooth) => {
-        const element = path(tooth.path, fill(tooth.status), stroke(tooth.status), "bucket-health-svg__component bucket-health-svg__tooth");
+        const colors = resolveComponentColors(tooth.status, theme);
+        const element = path(tooth.path, colors.fill, colors.stroke, "bucket-health-svg__component bucket-health-svg__tooth", colors.strokeWidth);
         setComponentData(element, tooth.componentKey, tooth.status);
+        applyComponentA11y(element, "Tooth", tooth.order, tooth.status);
         group.appendChild(element);
     });
 
     return group;
 }
 
-function createLipShrouds(geometry: BucketGeometry): SVGGElement {
+function createLipShrouds(geometry: BucketGeometry, theme: VisualTheme): SVGGElement {
     const group = svgElement("g");
     group.setAttribute("class", "bucket-health-svg__lips");
 
     geometry.lipShrouds.forEach((lip) => {
-        const element = rect(lip.rect, fill(lip.status), stroke(lip.status), "bucket-health-svg__component bucket-health-svg__lip", 3);
+        const colors = resolveComponentColors(lip.status, theme);
+        const element = rect(lip.rect, colors.fill, colors.stroke, "bucket-health-svg__component bucket-health-svg__lip", 3, colors.strokeWidth);
         setComponentData(element, lip.componentKey, lip.status);
+        applyComponentA11y(element, "Lip shroud", lip.order, lip.status);
         group.appendChild(element);
     });
 
     return group;
 }
 
-function createWingShrouds(geometry: BucketGeometry): SVGGElement {
+function createWingShrouds(geometry: BucketGeometry, theme: VisualTheme): SVGGElement {
     const group = svgElement("g");
     group.setAttribute("class", "bucket-health-svg__wings");
 
     geometry.wingShrouds.forEach((wing) => {
+        const colors = resolveComponentColors(wing.status, theme);
         const element = svgElement("polygon");
         element.setAttribute("class", "bucket-health-svg__component bucket-health-svg__wing");
         element.setAttribute("points", wing.points);
-        element.setAttribute("fill", fill(wing.status));
-        element.setAttribute("stroke", stroke(wing.status));
-        element.setAttribute("stroke-width", "1.5");
+        element.setAttribute("fill", colors.fill);
+        element.setAttribute("stroke", colors.stroke);
+        element.setAttribute("stroke-width", String(colors.strokeWidth));
         element.setAttribute("stroke-linejoin", "round");
         element.setAttribute("data-side", wing.side);
         setComponentData(element, wing.componentKey, wing.status);
+        applyComponentA11y(element, "Wing shroud", wing.order, wing.status);
         group.appendChild(element);
     });
 
@@ -170,18 +199,18 @@ function createCenterAlarm(geometry: BucketGeometry): SVGGElement {
     return group;
 }
 
-function path(d: string, fillColor: string, strokeColor: string, className: string): SVGPathElement {
+function path(d: string, fillColor: string, strokeColor: string, className: string, strokeWidth = 1.5): SVGPathElement {
     const element = svgElement("path");
     element.setAttribute("class", className);
     element.setAttribute("d", d);
     element.setAttribute("fill", fillColor);
     element.setAttribute("stroke", strokeColor);
-    element.setAttribute("stroke-width", "1.5");
+    element.setAttribute("stroke-width", String(strokeWidth));
     element.setAttribute("stroke-linejoin", "round");
     return element;
 }
 
-function rect(rectGeometry: RectGeometry, fillColor: string, strokeColor: string, className: string, radius = 0): SVGRectElement {
+function rect(rectGeometry: RectGeometry, fillColor: string, strokeColor: string, className: string, radius = 0, strokeWidth = 1.5): SVGRectElement {
     const element = svgElement("rect");
     element.setAttribute("class", className);
     element.setAttribute("x", String(rectGeometry.x));
@@ -190,7 +219,7 @@ function rect(rectGeometry: RectGeometry, fillColor: string, strokeColor: string
     element.setAttribute("height", String(rectGeometry.height));
     element.setAttribute("fill", fillColor);
     element.setAttribute("stroke", strokeColor);
-    element.setAttribute("stroke-width", "1.5");
+    element.setAttribute("stroke-width", String(strokeWidth));
 
     if (radius > 0) {
         element.setAttribute("rx", String(radius));
@@ -244,25 +273,12 @@ function setComponentData(element: SVGElement, componentKey: string, status: Buc
     element.setAttribute("data-status", status);
 }
 
-function fill(status: BucketStatusKey): string {
-    return statusColors[status];
-}
-
-function stroke(status: BucketStatusKey): string {
-    return mixWithBlack(statusColors[status], 0.42);
-}
-
-function mixWithBlack(hex: string, amount: number): string {
-    const value = hex.replace("#", "");
-    const red = Math.round(parseInt(value.slice(0, 2), 16) * (1 - amount));
-    const green = Math.round(parseInt(value.slice(2, 4), 16) * (1 - amount));
-    const blue = Math.round(parseInt(value.slice(4, 6), 16) * (1 - amount));
-
-    return `#${toHex(red)}${toHex(green)}${toHex(blue)}`;
-}
-
-function toHex(value: number): string {
-    return value.toString(16).padStart(2, "0");
+// Makes each component keyboard-focusable and screen-reader friendly. The label combines a
+// friendly component name ("Tooth 3") with the human-readable status from statusLabels.
+function applyComponentA11y(element: SVGElement, name: string, order: number, status: BucketStatusKey): void {
+    element.setAttribute("tabindex", "0");
+    element.setAttribute("role", "img");
+    element.setAttribute("aria-label", `${name} ${order}: ${statusLabels[status]}`);
 }
 
 function sanitizeId(value: string): string {

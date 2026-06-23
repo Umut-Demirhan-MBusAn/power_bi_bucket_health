@@ -1,11 +1,11 @@
 import { MachineBucketModel } from "../data/types";
 import { buildBucketGeometry } from "../geometry/bucketGeometry";
 import { renderBucketSvg } from "./renderBucketSvg";
-import { machineStatusKey, statusColors, statusLabels } from "../domain/statusMeta";
+import { machineStatusKey, statusColors, statusLabels, VisualTheme } from "../domain/statusMeta";
 
 const BUCKET_TARGET_HEIGHT = 220; // paired with .bucket-health-card height in style/visual.less
 
-export function renderMachineCard(machine: MachineBucketModel): HTMLElement {
+export function renderMachineCard(machine: MachineBucketModel, theme: VisualTheme): HTMLElement {
     const card = document.createElement("article");
     card.className = machine.hasAlarm
         ? "bucket-health-card bucket-health-card--alarm"
@@ -21,8 +21,17 @@ export function renderMachineCard(machine: MachineBucketModel): HTMLElement {
 
     // Frame color reflects the machine's overall status: alarm if any component alarms,
     // "no data" if every component is no-data/lockout+no-data, otherwise OK.
+    // In high contrast, the host foreground colors take over (selected accent when alarming).
     const statusKey = machineStatusKey(all.map(c => c.status));
-    card.style.borderColor = statusColors[statusKey];
+    card.style.borderColor = theme.isHighContrast
+        ? (machine.hasAlarm ? theme.foregroundSelected : theme.foreground)
+        : statusColors[statusKey];
+
+    // Accessible name for the whole card: machine plus its overall status.
+    const cardStatusLabel = machine.hasAlarm
+        ? statusLabels[statusKey]
+        : statusKey === "nodata" ? statusLabels["nodata"] : statusLabels["ok"];
+    card.setAttribute("aria-label", `${machine.name}: ${cardStatusLabel}`);
 
     // Card height is uniform across the fleet; width tracks the bucket's aspect ratio so the
     // bucket fills that fixed height without distortion. More teeth → wider viewBox → wider card.
@@ -101,6 +110,6 @@ export function renderMachineCard(machine: MachineBucketModel): HTMLElement {
         card.append(alarmBanner);
     }
 
-    card.append(renderBucketSvg(machine, geometry));
+    card.append(renderBucketSvg(machine, geometry, theme));
     return card;
 }
