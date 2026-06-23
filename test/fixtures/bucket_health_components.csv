@@ -1,93 +1,93 @@
-machine_key,machine_name,machine_type,component_key,component_name,component_category,component_order,status,last_seen_utc,tag_id
-EX-204,EX-204,Hydraulic Excavator,EX-204-T01,Tooth 01,tooth,1,OK,2026-06-21T11:31:00Z,TAG-EX204-T01
-EX-204,EX-204,Hydraulic Excavator,EX-204-T02,Tooth 02,tooth,2,OK,2026-06-21T11:31:00Z,TAG-EX204-T02
-EX-204,EX-204,Hydraulic Excavator,EX-204-T03,Tooth 03,tooth,3,No data (1h),2026-06-21T10:25:00Z,TAG-EX204-T03
-EX-204,EX-204,Hydraulic Excavator,EX-204-T04,Tooth 04,tooth,4,OK,2026-06-21T11:31:00Z,TAG-EX204-T04
-EX-204,EX-204,Hydraulic Excavator,EX-204-T05,Tooth 05,tooth,5,Proximity alarm,2026-06-21T11:32:00Z,TAG-EX204-T05
-EX-204,EX-204,Hydraulic Excavator,EX-204-T06,Tooth 06,tooth,6,OK,2026-06-21T11:32:00Z,TAG-EX204-T06
-EX-204,EX-204,Hydraulic Excavator,EX-204-T07,Tooth 07,tooth,7,OK,2026-06-21T11:32:00Z,TAG-EX204-T07
-EX-204,EX-204,Hydraulic Excavator,EX-204-T08,Tooth 08,tooth,8,Movement alarm,2026-06-21T11:32:00Z,TAG-EX204-T08
-EX-204,EX-204,Hydraulic Excavator,EX-204-T09,Tooth 09,tooth,9,OK,2026-06-21T11:32:00Z,TAG-EX204-T09
-EX-204,EX-204,Hydraulic Excavator,EX-204-T10,Tooth 10,tooth,10,Lockout,2026-06-21T11:29:00Z,TAG-EX204-T10
-EX-204,EX-204,Hydraulic Excavator,EX-204-L01,Lip shroud 01,lipShroud,1,OK,2026-06-21T11:31:00Z,TAG-EX204-L01
-EX-204,EX-204,Hydraulic Excavator,EX-204-L02,Lip shroud 02,lipShroud,2,OK,2026-06-21T11:31:00Z,TAG-EX204-L02
-EX-204,EX-204,Hydraulic Excavator,EX-204-L03,Lip shroud 03,lipShroud,3,OK,2026-06-21T11:31:00Z,TAG-EX204-L03
-EX-204,EX-204,Hydraulic Excavator,EX-204-L04,Lip shroud 04,lipShroud,4,OK,2026-06-21T11:31:00Z,TAG-EX204-L04
-EX-204,EX-204,Hydraulic Excavator,EX-204-L05,Lip shroud 05,lipShroud,5,Proximity alarm,2026-06-21T11:32:00Z,TAG-EX204-L05
-EX-204,EX-204,Hydraulic Excavator,EX-204-L06,Lip shroud 06,lipShroud,6,OK,2026-06-21T11:31:00Z,TAG-EX204-L06
-EX-204,EX-204,Hydraulic Excavator,EX-204-L07,Lip shroud 07,lipShroud,7,OK,2026-06-21T11:31:00Z,TAG-EX204-L07
-EX-204,EX-204,Hydraulic Excavator,EX-204-L08,Lip shroud 08,lipShroud,8,OK,2026-06-21T11:31:00Z,TAG-EX204-L08
-EX-204,EX-204,Hydraulic Excavator,EX-204-L09,Lip shroud 09,lipShroud,9,Lockout + No data,2026-06-21T10:11:00Z,TAG-EX204-L09
-EX-204,EX-204,Hydraulic Excavator,EX-204-W01,Wing shroud 01,wingShroud,1,OK,2026-06-21T11:31:00Z,TAG-EX204-W01
-EX-204,EX-204,Hydraulic Excavator,EX-204-W02,Wing shroud 02,wingShroud,2,OK,2026-06-21T11:31:00Z,TAG-EX204-W02
-EX-204,EX-204,Hydraulic Excavator,EX-204-W03,Wing shroud 03,wingShroud,3,Lockout + No data,2026-06-21T10:11:00Z,TAG-EX204-W03
-EX-204,EX-204,Hydraulic Excavator,EX-204-W04,Wing shroud 04,wingShroud,4,OK,2026-06-21T11:31:00Z,TAG-EX204-W04
-EX-204,EX-204,Hydraulic Excavator,EX-204-W05,Wing shroud 05,wingShroud,5,OK,2026-06-21T11:31:00Z,TAG-EX204-W05
-EX-204,EX-204,Hydraulic Excavator,EX-204-W06,Wing shroud 06,wingShroud,6,OK,2026-06-21T11:31:00Z,TAG-EX204-W06
-EX-204,EX-204,Hydraulic Excavator,EX-204-W07,Wing shroud 07,wingShroud,7,OK,2026-06-21T11:31:00Z,TAG-EX204-W07
-EX-204,EX-204,Hydraulic Excavator,EX-204-W08,Wing shroud 08,wingShroud,8,OK,2026-06-21T11:31:00Z,TAG-EX204-W08
-LD-031,LD-031,Wheel Loader,LD-031-T01,Tooth 01,tooth,1,OK,2026-06-21T11:28:00Z,TAG-LD031-T01
-LD-031,LD-031,Wheel Loader,LD-031-T02,Tooth 02,tooth,2,OK,2026-06-21T11:28:00Z,TAG-LD031-T02
-LD-031,LD-031,Wheel Loader,LD-031-T03,Tooth 03,tooth,3,OK,2026-06-21T11:28:00Z,TAG-LD031-T03
-LD-031,LD-031,Wheel Loader,LD-031-T04,Tooth 04,tooth,4,OK,2026-06-21T11:28:00Z,TAG-LD031-T04
-LD-031,LD-031,Wheel Loader,LD-031-T05,Tooth 05,tooth,5,OK,2026-06-21T11:28:00Z,TAG-LD031-T05
-LD-031,LD-031,Wheel Loader,LD-031-T06,Tooth 06,tooth,6,OK,2026-06-21T11:28:00Z,TAG-LD031-T06
-LD-031,LD-031,Wheel Loader,LD-031-L01,Lip shroud 01,lipShroud,1,OK,2026-06-21T11:28:00Z,TAG-LD031-L01
-LD-031,LD-031,Wheel Loader,LD-031-L02,Lip shroud 02,lipShroud,2,OK,2026-06-21T11:28:00Z,TAG-LD031-L02
-LD-031,LD-031,Wheel Loader,LD-031-L03,Lip shroud 03,lipShroud,3,No data (1h),2026-06-21T10:20:00Z,TAG-LD031-L03
-LD-031,LD-031,Wheel Loader,LD-031-L04,Lip shroud 04,lipShroud,4,OK,2026-06-21T11:28:00Z,TAG-LD031-L04
-LD-031,LD-031,Wheel Loader,LD-031-L05,Lip shroud 05,lipShroud,5,Lockout,2026-06-21T11:05:00Z,TAG-LD031-L05
-EX-988,EX-988,Hydraulic Excavator,EX-988-T01,Tooth 01,tooth,1,OK,2026-06-21T11:33:00Z,TAG-EX988-T01
-EX-988,EX-988,Hydraulic Excavator,EX-988-T02,Tooth 02,tooth,2,OK,2026-06-21T11:33:00Z,TAG-EX988-T02
-EX-988,EX-988,Hydraulic Excavator,EX-988-T03,Tooth 03,tooth,3,OK,2026-06-21T11:33:00Z,TAG-EX988-T03
-EX-988,EX-988,Hydraulic Excavator,EX-988-T04,Tooth 04,tooth,4,OK,2026-06-21T11:33:00Z,TAG-EX988-T04
-EX-988,EX-988,Hydraulic Excavator,EX-988-T05,Tooth 05,tooth,5,OK,2026-06-21T11:33:00Z,TAG-EX988-T05
-EX-988,EX-988,Hydraulic Excavator,EX-988-T06,Tooth 06,tooth,6,OK,2026-06-21T11:33:00Z,TAG-EX988-T06
-EX-988,EX-988,Hydraulic Excavator,EX-988-T07,Tooth 07,tooth,7,OK,2026-06-21T11:33:00Z,TAG-EX988-T07
-EX-988,EX-988,Hydraulic Excavator,EX-988-T08,Tooth 08,tooth,8,OK,2026-06-21T11:33:00Z,TAG-EX988-T08
-EX-988,EX-988,Hydraulic Excavator,EX-988-T09,Tooth 09,tooth,9,OK,2026-06-21T11:33:00Z,TAG-EX988-T09
-EX-988,EX-988,Hydraulic Excavator,EX-988-T10,Tooth 10,tooth,10,OK,2026-06-21T11:33:00Z,TAG-EX988-T10
-EX-988,EX-988,Hydraulic Excavator,EX-988-T11,Tooth 11,tooth,11,OK,2026-06-21T11:33:00Z,TAG-EX988-T11
-EX-988,EX-988,Hydraulic Excavator,EX-988-T12,Tooth 12,tooth,12,OK,2026-06-21T11:33:00Z,TAG-EX988-T12
-EX-988,EX-988,Hydraulic Excavator,EX-988-T13,Tooth 13,tooth,13,OK,2026-06-21T11:33:00Z,TAG-EX988-T13
-EX-988,EX-988,Hydraulic Excavator,EX-988-T14,Tooth 14,tooth,14,OK,2026-06-21T11:33:00Z,TAG-EX988-T14
-EX-988,EX-988,Hydraulic Excavator,EX-988-T15,Tooth 15,tooth,15,OK,2026-06-21T11:33:00Z,TAG-EX988-T15
-EX-988,EX-988,Hydraulic Excavator,EX-988-T16,Tooth 16,tooth,16,OK,2026-06-21T11:33:00Z,TAG-EX988-T16
-EX-988,EX-988,Hydraulic Excavator,EX-988-T17,Tooth 17,tooth,17,OK,2026-06-21T11:33:00Z,TAG-EX988-T17
-EX-988,EX-988,Hydraulic Excavator,EX-988-T18,Tooth 18,tooth,18,OK,2026-06-21T11:33:00Z,TAG-EX988-T18
-EX-988,EX-988,Hydraulic Excavator,EX-988-T19,Tooth 19,tooth,19,OK,2026-06-21T11:33:00Z,TAG-EX988-T19
-EX-988,EX-988,Hydraulic Excavator,EX-988-T20,Tooth 20,tooth,20,OK,2026-06-21T11:33:00Z,TAG-EX988-T20
-EX-988,EX-988,Hydraulic Excavator,EX-988-L01,Lip shroud 01,lipShroud,1,OK,2026-06-21T11:33:00Z,TAG-EX988-L01
-EX-988,EX-988,Hydraulic Excavator,EX-988-L02,Lip shroud 02,lipShroud,2,OK,2026-06-21T11:33:00Z,TAG-EX988-L02
-EX-988,EX-988,Hydraulic Excavator,EX-988-L03,Lip shroud 03,lipShroud,3,OK,2026-06-21T11:33:00Z,TAG-EX988-L03
-EX-988,EX-988,Hydraulic Excavator,EX-988-L04,Lip shroud 04,lipShroud,4,OK,2026-06-21T11:33:00Z,TAG-EX988-L04
-EX-988,EX-988,Hydraulic Excavator,EX-988-L05,Lip shroud 05,lipShroud,5,OK,2026-06-21T11:33:00Z,TAG-EX988-L05
-EX-988,EX-988,Hydraulic Excavator,EX-988-L06,Lip shroud 06,lipShroud,6,OK,2026-06-21T11:33:00Z,TAG-EX988-L06
-EX-988,EX-988,Hydraulic Excavator,EX-988-L07,Lip shroud 07,lipShroud,7,OK,2026-06-21T11:33:00Z,TAG-EX988-L07
-EX-988,EX-988,Hydraulic Excavator,EX-988-L08,Lip shroud 08,lipShroud,8,OK,2026-06-21T11:33:00Z,TAG-EX988-L08
-EX-988,EX-988,Hydraulic Excavator,EX-988-L09,Lip shroud 09,lipShroud,9,OK,2026-06-21T11:33:00Z,TAG-EX988-L09
-EX-988,EX-988,Hydraulic Excavator,EX-988-L10,Lip shroud 10,lipShroud,10,OK,2026-06-21T11:33:00Z,TAG-EX988-L10
-EX-988,EX-988,Hydraulic Excavator,EX-988-L11,Lip shroud 11,lipShroud,11,OK,2026-06-21T11:33:00Z,TAG-EX988-L11
-EX-988,EX-988,Hydraulic Excavator,EX-988-L12,Lip shroud 12,lipShroud,12,OK,2026-06-21T11:33:00Z,TAG-EX988-L12
-EX-988,EX-988,Hydraulic Excavator,EX-988-L13,Lip shroud 13,lipShroud,13,OK,2026-06-21T11:33:00Z,TAG-EX988-L13
-EX-988,EX-988,Hydraulic Excavator,EX-988-L14,Lip shroud 14,lipShroud,14,OK,2026-06-21T11:33:00Z,TAG-EX988-L14
-EX-988,EX-988,Hydraulic Excavator,EX-988-L15,Lip shroud 15,lipShroud,15,OK,2026-06-21T11:33:00Z,TAG-EX988-L15
-EX-988,EX-988,Hydraulic Excavator,EX-988-L16,Lip shroud 16,lipShroud,16,OK,2026-06-21T11:33:00Z,TAG-EX988-L16
-EX-988,EX-988,Hydraulic Excavator,EX-988-L17,Lip shroud 17,lipShroud,17,OK,2026-06-21T11:33:00Z,TAG-EX988-L17
-EX-988,EX-988,Hydraulic Excavator,EX-988-L18,Lip shroud 18,lipShroud,18,OK,2026-06-21T11:33:00Z,TAG-EX988-L18
-EX-988,EX-988,Hydraulic Excavator,EX-988-L19,Lip shroud 19,lipShroud,19,OK,2026-06-21T11:33:00Z,TAG-EX988-L19
-EX-988,EX-988,Hydraulic Excavator,EX-988-W01,Wing shroud 01,wingShroud,1,OK,2026-06-21T11:33:00Z,TAG-EX988-W01
-EX-988,EX-988,Hydraulic Excavator,EX-988-W02,Wing shroud 02,wingShroud,2,OK,2026-06-21T11:33:00Z,TAG-EX988-W02
-EX-988,EX-988,Hydraulic Excavator,EX-988-W03,Wing shroud 03,wingShroud,3,OK,2026-06-21T11:33:00Z,TAG-EX988-W03
-EX-988,EX-988,Hydraulic Excavator,EX-988-W04,Wing shroud 04,wingShroud,4,OK,2026-06-21T11:33:00Z,TAG-EX988-W04
-EX-988,EX-988,Hydraulic Excavator,EX-988-W05,Wing shroud 05,wingShroud,5,OK,2026-06-21T11:33:00Z,TAG-EX988-W05
-EX-988,EX-988,Hydraulic Excavator,EX-988-W06,Wing shroud 06,wingShroud,6,OK,2026-06-21T11:33:00Z,TAG-EX988-W06
-EX-988,EX-988,Hydraulic Excavator,EX-988-W07,Wing shroud 07,wingShroud,7,OK,2026-06-21T11:33:00Z,TAG-EX988-W07
-EX-988,EX-988,Hydraulic Excavator,EX-988-W08,Wing shroud 08,wingShroud,8,OK,2026-06-21T11:33:00Z,TAG-EX988-W08
-EX-041,EX-041,Hydraulic Excavator,EX-041-T01,Tooth 01,tooth,1,OK,2026-06-21T11:26:00Z,TAG-EX041-T01
-EX-041,EX-041,Hydraulic Excavator,EX-041-T02,Tooth 02,tooth,2,OK,2026-06-21T11:26:00Z,TAG-EX041-T02
-EX-041,EX-041,Hydraulic Excavator,EX-041-T03,Tooth 03,tooth,3,OK,2026-06-21T11:26:00Z,TAG-EX041-T03
-EX-041,EX-041,Hydraulic Excavator,EX-041-T04,Tooth 04,tooth,4,No data (1h),2026-06-21T10:18:00Z,TAG-EX041-T04
-EX-041,EX-041,Hydraulic Excavator,EX-041-L01,Lip shroud 01,lipShroud,1,OK,2026-06-21T11:26:00Z,TAG-EX041-L01
-EX-041,EX-041,Hydraulic Excavator,EX-041-L02,Lip shroud 02,lipShroud,2,OK,2026-06-21T11:26:00Z,TAG-EX041-L02
-EX-041,EX-041,Hydraulic Excavator,EX-041-L03,Lip shroud 03,lipShroud,3,OK,2026-06-21T11:26:00Z,TAG-EX041-L03
+machine_key,machine_name,machine_type,component_key,component_name,component_category,component_order,status,last_seen_utc,tag_id,alarm_time
+EX-204,EX-204,Hydraulic Excavator,EX-204-T01,Tooth 01,tooth,1,OK,2026-06-21T11:31:00Z,TAG-EX204-T01,
+EX-204,EX-204,Hydraulic Excavator,EX-204-T02,Tooth 02,tooth,2,OK,2026-06-21T11:31:00Z,TAG-EX204-T02,
+EX-204,EX-204,Hydraulic Excavator,EX-204-T03,Tooth 03,tooth,3,No data (1h),2026-06-21T10:25:00Z,TAG-EX204-T03,
+EX-204,EX-204,Hydraulic Excavator,EX-204-T04,Tooth 04,tooth,4,OK,2026-06-21T11:31:00Z,TAG-EX204-T04,
+EX-204,EX-204,Hydraulic Excavator,EX-204-T05,Tooth 05,tooth,5,Proximity alarm,2026-06-21T11:32:00Z,TAG-EX204-T05,2026-06-21T11:32:00Z
+EX-204,EX-204,Hydraulic Excavator,EX-204-T06,Tooth 06,tooth,6,OK,2026-06-21T11:32:00Z,TAG-EX204-T06,
+EX-204,EX-204,Hydraulic Excavator,EX-204-T07,Tooth 07,tooth,7,OK,2026-06-21T11:32:00Z,TAG-EX204-T07,
+EX-204,EX-204,Hydraulic Excavator,EX-204-T08,Tooth 08,tooth,8,Movement alarm,2026-06-21T11:32:00Z,TAG-EX204-T08,2026-06-21T11:32:00Z
+EX-204,EX-204,Hydraulic Excavator,EX-204-T09,Tooth 09,tooth,9,OK,2026-06-21T11:32:00Z,TAG-EX204-T09,
+EX-204,EX-204,Hydraulic Excavator,EX-204-T10,Tooth 10,tooth,10,Lockout,2026-06-21T11:29:00Z,TAG-EX204-T10,
+EX-204,EX-204,Hydraulic Excavator,EX-204-L01,Lip shroud 01,lipShroud,1,OK,2026-06-21T11:31:00Z,TAG-EX204-L01,
+EX-204,EX-204,Hydraulic Excavator,EX-204-L02,Lip shroud 02,lipShroud,2,OK,2026-06-21T11:31:00Z,TAG-EX204-L02,
+EX-204,EX-204,Hydraulic Excavator,EX-204-L03,Lip shroud 03,lipShroud,3,OK,2026-06-21T11:31:00Z,TAG-EX204-L03,
+EX-204,EX-204,Hydraulic Excavator,EX-204-L04,Lip shroud 04,lipShroud,4,OK,2026-06-21T11:31:00Z,TAG-EX204-L04,
+EX-204,EX-204,Hydraulic Excavator,EX-204-L05,Lip shroud 05,lipShroud,5,Proximity alarm,2026-06-21T11:32:00Z,TAG-EX204-L05,2026-06-21T11:32:00Z
+EX-204,EX-204,Hydraulic Excavator,EX-204-L06,Lip shroud 06,lipShroud,6,OK,2026-06-21T11:31:00Z,TAG-EX204-L06,
+EX-204,EX-204,Hydraulic Excavator,EX-204-L07,Lip shroud 07,lipShroud,7,OK,2026-06-21T11:31:00Z,TAG-EX204-L07,
+EX-204,EX-204,Hydraulic Excavator,EX-204-L08,Lip shroud 08,lipShroud,8,OK,2026-06-21T11:31:00Z,TAG-EX204-L08,
+EX-204,EX-204,Hydraulic Excavator,EX-204-L09,Lip shroud 09,lipShroud,9,Lockout + No data,2026-06-21T10:11:00Z,TAG-EX204-L09,
+EX-204,EX-204,Hydraulic Excavator,EX-204-W01,Wing shroud 01,wingShroud,1,OK,2026-06-21T11:31:00Z,TAG-EX204-W01,
+EX-204,EX-204,Hydraulic Excavator,EX-204-W02,Wing shroud 02,wingShroud,2,OK,2026-06-21T11:31:00Z,TAG-EX204-W02,
+EX-204,EX-204,Hydraulic Excavator,EX-204-W03,Wing shroud 03,wingShroud,3,Lockout + No data,2026-06-21T10:11:00Z,TAG-EX204-W03,
+EX-204,EX-204,Hydraulic Excavator,EX-204-W04,Wing shroud 04,wingShroud,4,OK,2026-06-21T11:31:00Z,TAG-EX204-W04,
+EX-204,EX-204,Hydraulic Excavator,EX-204-W05,Wing shroud 05,wingShroud,5,OK,2026-06-21T11:31:00Z,TAG-EX204-W05,
+EX-204,EX-204,Hydraulic Excavator,EX-204-W06,Wing shroud 06,wingShroud,6,OK,2026-06-21T11:31:00Z,TAG-EX204-W06,
+EX-204,EX-204,Hydraulic Excavator,EX-204-W07,Wing shroud 07,wingShroud,7,OK,2026-06-21T11:31:00Z,TAG-EX204-W07,
+EX-204,EX-204,Hydraulic Excavator,EX-204-W08,Wing shroud 08,wingShroud,8,OK,2026-06-21T11:31:00Z,TAG-EX204-W08,
+LD-031,LD-031,Wheel Loader,LD-031-T01,Tooth 01,tooth,1,OK,2026-06-21T11:28:00Z,TAG-LD031-T01,
+LD-031,LD-031,Wheel Loader,LD-031-T02,Tooth 02,tooth,2,OK,2026-06-21T11:28:00Z,TAG-LD031-T02,
+LD-031,LD-031,Wheel Loader,LD-031-T03,Tooth 03,tooth,3,OK,2026-06-21T11:28:00Z,TAG-LD031-T03,
+LD-031,LD-031,Wheel Loader,LD-031-T04,Tooth 04,tooth,4,OK,2026-06-21T11:28:00Z,TAG-LD031-T04,
+LD-031,LD-031,Wheel Loader,LD-031-T05,Tooth 05,tooth,5,OK,2026-06-21T11:28:00Z,TAG-LD031-T05,
+LD-031,LD-031,Wheel Loader,LD-031-T06,Tooth 06,tooth,6,OK,2026-06-21T11:28:00Z,TAG-LD031-T06,
+LD-031,LD-031,Wheel Loader,LD-031-L01,Lip shroud 01,lipShroud,1,OK,2026-06-21T11:28:00Z,TAG-LD031-L01,
+LD-031,LD-031,Wheel Loader,LD-031-L02,Lip shroud 02,lipShroud,2,OK,2026-06-21T11:28:00Z,TAG-LD031-L02,
+LD-031,LD-031,Wheel Loader,LD-031-L03,Lip shroud 03,lipShroud,3,No data (1h),2026-06-21T10:20:00Z,TAG-LD031-L03,
+LD-031,LD-031,Wheel Loader,LD-031-L04,Lip shroud 04,lipShroud,4,OK,2026-06-21T11:28:00Z,TAG-LD031-L04,
+LD-031,LD-031,Wheel Loader,LD-031-L05,Lip shroud 05,lipShroud,5,Lockout,2026-06-21T11:05:00Z,TAG-LD031-L05,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T01,Tooth 01,tooth,1,OK,2026-06-21T11:33:00Z,TAG-EX988-T01,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T02,Tooth 02,tooth,2,OK,2026-06-21T11:33:00Z,TAG-EX988-T02,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T03,Tooth 03,tooth,3,OK,2026-06-21T11:33:00Z,TAG-EX988-T03,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T04,Tooth 04,tooth,4,OK,2026-06-21T11:33:00Z,TAG-EX988-T04,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T05,Tooth 05,tooth,5,OK,2026-06-21T11:33:00Z,TAG-EX988-T05,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T06,Tooth 06,tooth,6,OK,2026-06-21T11:33:00Z,TAG-EX988-T06,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T07,Tooth 07,tooth,7,OK,2026-06-21T11:33:00Z,TAG-EX988-T07,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T08,Tooth 08,tooth,8,OK,2026-06-21T11:33:00Z,TAG-EX988-T08,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T09,Tooth 09,tooth,9,OK,2026-06-21T11:33:00Z,TAG-EX988-T09,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T10,Tooth 10,tooth,10,OK,2026-06-21T11:33:00Z,TAG-EX988-T10,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T11,Tooth 11,tooth,11,OK,2026-06-21T11:33:00Z,TAG-EX988-T11,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T12,Tooth 12,tooth,12,OK,2026-06-21T11:33:00Z,TAG-EX988-T12,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T13,Tooth 13,tooth,13,OK,2026-06-21T11:33:00Z,TAG-EX988-T13,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T14,Tooth 14,tooth,14,OK,2026-06-21T11:33:00Z,TAG-EX988-T14,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T15,Tooth 15,tooth,15,OK,2026-06-21T11:33:00Z,TAG-EX988-T15,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T16,Tooth 16,tooth,16,OK,2026-06-21T11:33:00Z,TAG-EX988-T16,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T17,Tooth 17,tooth,17,OK,2026-06-21T11:33:00Z,TAG-EX988-T17,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T18,Tooth 18,tooth,18,OK,2026-06-21T11:33:00Z,TAG-EX988-T18,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T19,Tooth 19,tooth,19,OK,2026-06-21T11:33:00Z,TAG-EX988-T19,
+EX-988,EX-988,Hydraulic Excavator,EX-988-T20,Tooth 20,tooth,20,OK,2026-06-21T11:33:00Z,TAG-EX988-T20,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L01,Lip shroud 01,lipShroud,1,OK,2026-06-21T11:33:00Z,TAG-EX988-L01,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L02,Lip shroud 02,lipShroud,2,OK,2026-06-21T11:33:00Z,TAG-EX988-L02,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L03,Lip shroud 03,lipShroud,3,OK,2026-06-21T11:33:00Z,TAG-EX988-L03,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L04,Lip shroud 04,lipShroud,4,OK,2026-06-21T11:33:00Z,TAG-EX988-L04,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L05,Lip shroud 05,lipShroud,5,OK,2026-06-21T11:33:00Z,TAG-EX988-L05,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L06,Lip shroud 06,lipShroud,6,OK,2026-06-21T11:33:00Z,TAG-EX988-L06,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L07,Lip shroud 07,lipShroud,7,OK,2026-06-21T11:33:00Z,TAG-EX988-L07,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L08,Lip shroud 08,lipShroud,8,OK,2026-06-21T11:33:00Z,TAG-EX988-L08,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L09,Lip shroud 09,lipShroud,9,OK,2026-06-21T11:33:00Z,TAG-EX988-L09,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L10,Lip shroud 10,lipShroud,10,OK,2026-06-21T11:33:00Z,TAG-EX988-L10,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L11,Lip shroud 11,lipShroud,11,OK,2026-06-21T11:33:00Z,TAG-EX988-L11,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L12,Lip shroud 12,lipShroud,12,OK,2026-06-21T11:33:00Z,TAG-EX988-L12,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L13,Lip shroud 13,lipShroud,13,OK,2026-06-21T11:33:00Z,TAG-EX988-L13,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L14,Lip shroud 14,lipShroud,14,OK,2026-06-21T11:33:00Z,TAG-EX988-L14,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L15,Lip shroud 15,lipShroud,15,OK,2026-06-21T11:33:00Z,TAG-EX988-L15,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L16,Lip shroud 16,lipShroud,16,OK,2026-06-21T11:33:00Z,TAG-EX988-L16,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L17,Lip shroud 17,lipShroud,17,OK,2026-06-21T11:33:00Z,TAG-EX988-L17,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L18,Lip shroud 18,lipShroud,18,OK,2026-06-21T11:33:00Z,TAG-EX988-L18,
+EX-988,EX-988,Hydraulic Excavator,EX-988-L19,Lip shroud 19,lipShroud,19,OK,2026-06-21T11:33:00Z,TAG-EX988-L19,
+EX-988,EX-988,Hydraulic Excavator,EX-988-W01,Wing shroud 01,wingShroud,1,OK,2026-06-21T11:33:00Z,TAG-EX988-W01,
+EX-988,EX-988,Hydraulic Excavator,EX-988-W02,Wing shroud 02,wingShroud,2,OK,2026-06-21T11:33:00Z,TAG-EX988-W02,
+EX-988,EX-988,Hydraulic Excavator,EX-988-W03,Wing shroud 03,wingShroud,3,OK,2026-06-21T11:33:00Z,TAG-EX988-W03,
+EX-988,EX-988,Hydraulic Excavator,EX-988-W04,Wing shroud 04,wingShroud,4,OK,2026-06-21T11:33:00Z,TAG-EX988-W04,
+EX-988,EX-988,Hydraulic Excavator,EX-988-W05,Wing shroud 05,wingShroud,5,OK,2026-06-21T11:33:00Z,TAG-EX988-W05,
+EX-988,EX-988,Hydraulic Excavator,EX-988-W06,Wing shroud 06,wingShroud,6,OK,2026-06-21T11:33:00Z,TAG-EX988-W06,
+EX-988,EX-988,Hydraulic Excavator,EX-988-W07,Wing shroud 07,wingShroud,7,OK,2026-06-21T11:33:00Z,TAG-EX988-W07,
+EX-988,EX-988,Hydraulic Excavator,EX-988-W08,Wing shroud 08,wingShroud,8,OK,2026-06-21T11:33:00Z,TAG-EX988-W08,
+EX-041,EX-041,Hydraulic Excavator,EX-041-T01,Tooth 01,tooth,1,OK,2026-06-21T11:26:00Z,TAG-EX041-T01,
+EX-041,EX-041,Hydraulic Excavator,EX-041-T02,Tooth 02,tooth,2,OK,2026-06-21T11:26:00Z,TAG-EX041-T02,
+EX-041,EX-041,Hydraulic Excavator,EX-041-T03,Tooth 03,tooth,3,OK,2026-06-21T11:26:00Z,TAG-EX041-T03,
+EX-041,EX-041,Hydraulic Excavator,EX-041-T04,Tooth 04,tooth,4,No data (1h),2026-06-21T10:18:00Z,TAG-EX041-T04,
+EX-041,EX-041,Hydraulic Excavator,EX-041-L01,Lip shroud 01,lipShroud,1,OK,2026-06-21T11:26:00Z,TAG-EX041-L01,
+EX-041,EX-041,Hydraulic Excavator,EX-041-L02,Lip shroud 02,lipShroud,2,OK,2026-06-21T11:26:00Z,TAG-EX041-L02,
+EX-041,EX-041,Hydraulic Excavator,EX-041-L03,Lip shroud 03,lipShroud,3,OK,2026-06-21T11:26:00Z,TAG-EX041-L03,

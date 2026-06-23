@@ -18,18 +18,19 @@ export const statusLabels: Record<BucketStatusKey, string> = {
     move: "Movement Alarm"
 };
 
-export const statusSeverity: Record<BucketStatusKey, number> = {
-    ok: 0,
-    nodata: 1,
-    lockout: 2,
-    lockoutnd: 3,
-    prox: 4,
-    move: 5
-};
-
-export function worstStatus(statuses: BucketStatusKey[]): BucketStatusKey {
-    return statuses.reduce<BucketStatusKey>(
-        (worst, current) => (statusSeverity[current] > statusSeverity[worst] ? current : worst),
-        "ok"
-    );
+// Reduces a machine's component statuses to the single status that drives its frame color:
+// - any alarm component -> alarm (movement outranks proximity)
+// - else if every component is "no data" or "lockout + no data" -> nodata
+// - otherwise -> ok
+export function machineStatusKey(statuses: BucketStatusKey[]): BucketStatusKey {
+    if (statuses.some((status) => status === "move")) {
+        return "move";
+    }
+    if (statuses.some((status) => status === "prox")) {
+        return "prox";
+    }
+    if (statuses.length > 0 && statuses.every((status) => status === "nodata" || status === "lockoutnd")) {
+        return "nodata";
+    }
+    return "ok";
 }

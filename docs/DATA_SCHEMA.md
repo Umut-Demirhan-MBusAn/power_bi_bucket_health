@@ -33,6 +33,7 @@ The source data does not contain wing side. The visual assigns wing shrouds to l
 | `status` | Yes | Enum | `status` | Source status string mapped to the canonical status model. |
 | `last_seen_utc` | No | ISO datetime text | `lastSeen` | Last update timestamp, stored as UTC in the fixture. |
 | `tag_id` | No | Text | Tooltip metadata | Source tag/sensor identifier. |
+| `alarm_time` | No | ISO datetime text | `alarmTime` | Time the alarm was raised. Supplied only for alarm rows. With `machine_key` + `component_key` it forms the unique alarm identity used to dedupe audio so the same alarm never re-triggers. |
 
 ## Enumerations
 

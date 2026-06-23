@@ -1,7 +1,7 @@
 import { MachineBucketModel } from "../data/types";
 import { buildBucketGeometry } from "../geometry/bucketGeometry";
 import { renderBucketSvg } from "./renderBucketSvg";
-import { statusColors, statusLabels, worstStatus } from "../domain/statusMeta";
+import { machineStatusKey, statusColors, statusLabels } from "../domain/statusMeta";
 import { isAlarmStatus } from "../data/normalizeStatus";
 
 export function renderMachineCard(machine: MachineBucketModel): HTMLElement {
@@ -18,9 +18,10 @@ export function renderMachineCard(machine: MachineBucketModel): HTMLElement {
         ...machine.wingShroudsRight
     ];
 
-    // Frame is colored by the worst status across all of the machine's components.
-    const worst = worstStatus(all.map(c => c.status));
-    card.style.borderColor = statusColors[worst];
+    // Frame color reflects the machine's overall status: alarm if any component alarms,
+    // "no data" if every component is no-data/lockout+no-data, otherwise OK.
+    const statusKey = machineStatusKey(all.map(c => c.status));
+    card.style.borderColor = statusColors[statusKey];
 
     // Card height is uniform across the fleet; width tracks the bucket's aspect ratio so the
     // bucket fills that fixed height without distortion. More teeth → wider viewBox → wider card.
@@ -37,19 +38,25 @@ export function renderMachineCard(machine: MachineBucketModel): HTMLElement {
     const title = document.createElement("h2");
     title.textContent = machine.name;
 
+    const wingCount = machine.wingShroudsLeft.length + machine.wingShroudsRight.length;
+    const countLabel = (count: number, noun: string): string | undefined =>
+        count > 0 ? `${count} ${noun}` : undefined;
+
     const meta = document.createElement("p");
     meta.textContent = [
         machine.type,
-        `${machine.teeth.length} teeth`,
-        `${machine.lipShrouds.length} lip shrouds`,
-        `${machine.wingShroudsLeft.length + machine.wingShroudsRight.length} wing shrouds`
+        countLabel(machine.teeth.length, "teeth"),
+        countLabel(machine.lipShrouds.length, "lip shrouds"),
+        countLabel(wingCount, "wing shrouds")
     ].filter(Boolean).join(" · ");
 
     const statusBadge = document.createElement("span");
     statusBadge.className = machine.hasAlarm
         ? "bucket-health-card__status bucket-health-card__status--alarm"
         : "bucket-health-card__status";
-    statusBadge.textContent = machine.hasAlarm ? "ALARM!" : "OK";
+    statusBadge.textContent = machine.hasAlarm
+        ? "ALARM!"
+        : statusKey === "nodata" ? "NO DATA" : "OK";
 
     headerText.append(title, meta);
     cardHeader.append(headerText, statusBadge);
@@ -79,7 +86,7 @@ export function renderMachineCard(machine: MachineBucketModel): HTMLElement {
             moveLine.className =
                 "bucket-health-card__alarm-line bucket-health-card__alarm-line--move";
             moveLine.textContent =
-                statusLabels["move"] + " — " + moveComponents.map(componentLabel).join(", ");
+                statusLabels["move"] + " - " + moveComponents.map(componentLabel).join(", ");
             alarmBanner.append(moveLine);
         }
 
@@ -88,7 +95,7 @@ export function renderMachineCard(machine: MachineBucketModel): HTMLElement {
             proxLine.className =
                 "bucket-health-card__alarm-line bucket-health-card__alarm-line--prox";
             proxLine.textContent =
-                statusLabels["prox"] + " — " + proxComponents.map(componentLabel).join(", ");
+                statusLabels["prox"] + " - " + proxComponents.map(componentLabel).join(", ");
             alarmBanner.append(proxLine);
         }
 

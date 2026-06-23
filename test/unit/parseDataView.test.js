@@ -12,7 +12,8 @@ const roleByHeader = {
     component_order: "order",
     status: "status",
     last_seen_utc: "lastSeen",
-    tag_id: "tooltipFields"
+    tag_id: "tooltipFields",
+    alarm_time: "alarmTime"
 };
 
 function csvFixtureDataView() {
@@ -86,6 +87,8 @@ test("parseDataView parses the mock CSV fixture into machine models", () => {
     assert.equal(machine.hasAlarm, true);
     assert.equal(machine.dominantAlarm, "move");
     assert.equal(machine.teeth[4].status, "prox");
+    assert.equal(machine.teeth[4].alarmTime, "2026-06-21T11:32:00Z");
+    assert.equal(machine.teeth[0].alarmTime, "");
     assert.equal(machine.lipShrouds[4].status, "prox");
     assert.deepEqual(machine.wingShroudsLeft.map((component) => component.order), [1, 3, 5, 7]);
     assert.deepEqual(machine.wingShroudsRight.map((component) => component.order), [2, 4, 6, 8]);
