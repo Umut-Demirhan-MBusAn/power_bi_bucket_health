@@ -37,7 +37,7 @@ Certification requires the visual to be (or be in the process of being) publishe
 | `npm audit` → no high/moderate | ✅ | 0 vulnerabilities. |
 | `pbiviz package --certification-audit` clean | ✅ | No unsafe calls flagged. |
 | ESLint (powerbi-visuals config) → no errors | ✅ | `npm run eslint` exits 0. |
-| Use the **latest** API + powerbi-visuals-tools | ⚠️ verify | Currently API `5.11.0`, tools `7.1.0`. Check npm for newer and bump before submitting. |
+| Use the **latest** API + powerbi-visuals-tools | ✅ | API `5.11.0`, tools `7.1.0` — confirmed current on npm as of 2026-06-23. |
 | GitHub branch named `certification` matching the submitted package | ❌ TODO | Create at submission time (see below). |
 
 **Bottom line:** the code already satisfies the safety/structure rules that are the core of certification.
@@ -51,10 +51,10 @@ complete, professional visual. Status and risk:
 | Feature | Status | Risk to implement | Needs Desktop to verify |
 | --- | --- | --- | --- |
 | Alarm motion respects accessibility | ✅ Done | low | yes (visual check) |
-| Context menu (right-click) | ❌ TODO | medium | yes |
-| Selection / cross-filtering | ❌ TODO | medium-high (DataView identities) | yes |
-| Keyboard navigation + focus | ❌ TODO | medium | yes |
-| High-contrast mode | ❌ TODO | medium (cross-cutting colors) | yes |
+| Context menu (right-click) | ✅ Done (PR #11) | medium | yes — verify in Desktop |
+| Selection / cross-filtering | ✅ Done (PR #11) | medium-high | yes — verify in Desktop |
+| Keyboard navigation + focus | ✅ Done (PR #11) | medium | yes — verify in Desktop |
+| High-contrast mode | ✅ Done (PR #11) | medium | yes — verify in Desktop |
 | Landing page (no-data guidance) | ◐ Partial | low | yes |
 | Report-page tooltips (official API) | ◐ N/A by choice | — | — |
 
@@ -89,11 +89,10 @@ accessibility review while preserving the flashing feature.
 Register at **partner.microsoft.com** and create a Marketplace/commercial-marketplace account. This is
 required to submit any AppSource offer.
 
-### 2. Confirm the GitHub repo + fix the URL
-`package.json` `repository.url` points to `github.com/demirhanayhan/power_bi_bucket_health`, but the
-push remote is `github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health`. Decide which account is
-canonical for publishing and make `package.json`, the remote, and the Partner Center submission all
-agree. The repo must contain **only this one visual**.
+### 2. GitHub repo URL ✅
+`package.json` `repository.url` is now `github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health` —
+matches the push remote. Ensure the Partner Center submission links to the same repo. The repo must
+contain **only this one visual**.
 
 ### 3. Marketing/submission assets (required for AppSource)
 - Visual **icon** (have `assets/icon.png` — confirm it meets size specs)
