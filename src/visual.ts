@@ -87,6 +87,10 @@ export class Visual implements IVisual {
     }
 
     private render(model: BucketHealthDataModel): void {
+        // Power BI calls update() frequently; preserve the fleet scroll position across re-renders
+        // so the user's scrollbar does not snap back to the top.
+        const previousScroll = this.target.querySelector<HTMLElement>(".bucket-health")?.scrollTop ?? 0;
+
         this.hideTooltip();
         this.target.replaceChildren();
         this.tooltip = null;
@@ -103,7 +107,9 @@ export class Visual implements IVisual {
         }
 
         this.componentLookup = buildComponentLookup(model.machines);
-        this.target.appendChild(renderFleet(model.machines));
+        const fleet = renderFleet(model.machines);
+        this.target.appendChild(fleet);
+        fleet.scrollTop = previousScroll;
     }
 
     private handlePointerMove(event: MouseEvent): void {
