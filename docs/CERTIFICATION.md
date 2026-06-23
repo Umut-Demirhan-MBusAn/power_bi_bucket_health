@@ -55,7 +55,7 @@ complete, professional visual. Status and risk:
 | Selection / cross-filtering | ✅ Done (PR #11) | medium-high | yes — verify in Desktop |
 | Keyboard navigation + focus | ✅ Done (PR #11) | medium | yes — verify in Desktop |
 | High-contrast mode | ✅ Done (PR #11) | medium | yes — verify in Desktop |
-| Landing page (no-data guidance) | ◐ Partial | low | yes |
+| Landing page (no-data guidance) | ✅ Done (2026-06-24) | low | yes |
 | Report-page tooltips (official API) | ◐ N/A by choice | — | — |
 
 Notes:
