@@ -56,8 +56,9 @@ export class Visual implements IVisual {
 
             const audioEnabled = this.formattingSettings.alarm.audioEnabled.value ?? true;
 
-            const reducedMotion = this.formattingSettings.alarm.reducedMotion.value ?? false;
-            this.target.classList.toggle("bucket-health-root--reduced-motion", reducedMotion);
+            const alarmMotion = (this.formattingSettings.alarm.alarmMotion.value?.value as string | undefined) ?? "always";
+            this.target.classList.toggle("bucket-health-root--flash-always", alarmMotion === "always");
+            this.target.classList.toggle("bucket-health-root--flash-never", alarmMotion === "never");
 
             const model = parseDataView(dataView, wingSideAssignment);
             this.alarmController.update(model, audioEnabled);

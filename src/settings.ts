@@ -50,14 +50,19 @@ class AlarmCard extends FormattingSettingsCard {
         value: true
     });
 
-    reducedMotion = new formattingSettings.ToggleSwitch({
-        name: "reducedMotion",
-        displayName: "Reduced motion",
-        description: "Disable flashing animation on alarm components.",
-        value: false
+    alarmMotion = new formattingSettings.ItemDropdown({
+        name: "alarmMotion",
+        displayName: "Alarm motion",
+        description: "Controls alarm flashing. Always flashes regardless of the system setting; Auto respects the system reduced-motion preference (solid when reduced); Never shows a solid, non-flashing alarm.",
+        value: { value: "always", displayName: "Always flash" },
+        items: [
+            { value: "always", displayName: "Always flash" },
+            { value: "auto", displayName: "Auto (respect system reduced motion)" },
+            { value: "never", displayName: "Never (solid)" }
+        ]
     });
 
-    slices = [this.audioEnabled, this.reducedMotion];
+    slices = [this.audioEnabled, this.alarmMotion];
 }
 
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {

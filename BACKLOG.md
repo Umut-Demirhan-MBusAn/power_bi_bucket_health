@@ -32,7 +32,7 @@ scope changes, work starts, work completes, or a blocker appears.
 | PBH-015 | Done | Add test and validation suite | Codex | Parser, status precedence, component counts, wing side assignment, alarm transitions, grid columns, geometry min/max, and edge-state logic have tests; `pbiviz lint` and `pbiviz package` pass. | columnCount and alarm-sort tests added. All unit tests pass. |
 | PBH-016 | Done | Graphify repo setup | Codex | Codex/Claude Graphify instructions and hooks are configured; generated `graphify-out/` output is ignored. | Completed 2026-06-21; refreshed 2026-06-22 with shared Graphify hook guidance. |
 | PBH-017 | Done | Define data schema and mock CSV fixture | Codex | `docs/DATA_SCHEMA.md` defines source CSV columns and parser rules; a representative mock CSV exists and validates with the repo test command. | Completed 2026-06-21; supports PBH-008 parser implementation. |
-| PBH-018 | Not Started | Accessibility & AppSource readiness | User | Keyboard nav, high-contrast, context menu, selection, official tooltip API, and reduced-motion certification posture evaluated/implemented. | Captures TD-8; gated on certification decision. |
+| PBH-018 | In Progress | Accessibility & AppSource certification | Codex/User | Hard certification requirements pass (audit/eslint/no-external/rendering events); recommended features (keyboard, high-contrast, context menu, selection) implemented and Desktop-verified. | Compliance baseline met and alarm-motion accessibility resolved; see `docs/CERTIFICATION.md`. Remaining features need Power BI Desktop verification. |
 
 ## Milestones
 
@@ -137,3 +137,4 @@ The detailed question list is in [docs/SPEC.md](docs/SPEC.md). Highest-priority 
 | 2026-06-23 | Removed prefers-reduced-motion auto-disable so OS setting no longer suppresses alarm flashing (explicit reducedMotion toggle still applies). |
 | 2026-06-23 | Removed dead alarm-ring geometry (AlarmRingGeometry, addAlarmRing, alarmRings field) left unused after the ring circles were dropped; alarmLabel now derived directly from components. |
 | 2026-06-23 | Tech-debt cleanup: removed dead columnCount layout helper, unified the component-key separator, compute each card's bucket geometry once, arm audio on a user gesture, added CI, and reconciled docs (SPEC/VISUAL_CONTRACT/ARCHITECTURE/DECISIONS) with current behavior. |
+| 2026-06-23 | Certification readiness: fixed eslint script to required form, verified npm audit + certification-audit + eslint clean; added tri-state Alarm motion setting (always/auto/never) to reconcile flashing with reduced-motion accessibility; documented full path in docs/CERTIFICATION.md. |
