@@ -18,6 +18,8 @@ export type WingSideAssignment =
     | "FirstHalfLeftSecondHalfRight"
     | "FirstHalfRightSecondHalfLeft";
 
+export type ComponentOrderDirection = "leftToRight" | "rightToLeft";
+
 export interface TooltipField {
     label: string;
     value: PrimitiveValue;

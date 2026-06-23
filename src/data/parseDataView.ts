@@ -4,6 +4,7 @@ import { isAlarmStatus, normalizeStatus } from "./normalizeStatus";
 import {
     BucketHealthDataModel,
     ComponentCategory,
+    ComponentOrderDirection,
     ComponentRecord,
     MachineBucketModel,
     TooltipField,
@@ -32,7 +33,8 @@ interface RoleIndexes {
 
 export function parseDataView(
     dataView: DataView | undefined,
-    wingSideAssignment: WingSideAssignment = defaultWingSideAssignment
+    wingSideAssignment: WingSideAssignment = defaultWingSideAssignment,
+    componentOrder: ComponentOrderDirection = "leftToRight"
 ): BucketHealthDataModel {
     const table = dataView?.table;
     if (!table) {
@@ -109,7 +111,7 @@ export function parseDataView(
         };
     }
 
-    const machines = deriveMachines(components, errors, wingSideAssignment);
+    const machines = deriveMachines(components, errors, wingSideAssignment, componentOrder);
     if (errors.length > 0) {
         return {
             state: "error",
@@ -178,7 +180,8 @@ function findRoleIndexes(columns: DataViewMetadataColumn[], role: string): numbe
 function deriveMachines(
     components: ComponentRecord[],
     errors: string[],
-    wingSideAssignment: WingSideAssignment
+    wingSideAssignment: WingSideAssignment,
+    componentOrder: ComponentOrderDirection
 ): MachineBucketModel[] {
     const byMachine = new Map<string, ComponentRecord[]>();
     const sourceOrder = new Map<string, number>();
@@ -197,8 +200,8 @@ function deriveMachines(
         const duplicateKeys = findDuplicateComponentKeys(machineComponents);
         duplicateKeys.forEach((componentKey) => errors.push(`Machine '${machineKey}' has duplicate component '${componentKey}'.`));
 
-        const teeth = sortComponents(machineComponents.filter((component) => component.category === "tooth"));
-        const lipShrouds = sortComponents(machineComponents.filter((component) => component.category === "lipShroud"));
+        const teeth = orderComponents(machineComponents.filter((component) => component.category === "tooth"), componentOrder);
+        const lipShrouds = orderComponents(machineComponents.filter((component) => component.category === "lipShroud"), componentOrder);
         const wingShrouds = assignWingSides(
             machineComponents.filter((component) => component.category === "wingShroud"),
             wingSideAssignment
@@ -250,6 +253,13 @@ function deriveMachines(
 
 function sortComponents(components: ComponentRecord[]): ComponentRecord[] {
     return [...components].sort((a, b) => a.order - b.order || a.sourceOrder - b.sourceOrder);
+}
+
+// Orders a row of components left-to-right (ascending order) or right-to-left (descending),
+// so the renderer can lay them out by array index.
+function orderComponents(components: ComponentRecord[], direction: ComponentOrderDirection): ComponentRecord[] {
+    const sorted = sortComponents(components);
+    return direction === "rightToLeft" ? sorted.reverse() : sorted;
 }
 
 function findDuplicateComponentKeys(components: ComponentRecord[]): string[] {

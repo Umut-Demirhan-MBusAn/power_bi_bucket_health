@@ -104,6 +104,14 @@ test("parseDataView can derive wing sides with sequential split modes", () => {
     assert.deepEqual(machine.wingShroudsLeft.map((component) => component.order), [5, 6, 7, 8]);
 });
 
+test("parseDataView lays teeth and lip shrouds right-to-left when requested", () => {
+    const ltr = parseDataView(csvFixtureDataView(), undefined, "leftToRight").machines.find((item) => item.key === "EX-204");
+    const rtl = parseDataView(csvFixtureDataView(), undefined, "rightToLeft").machines.find((item) => item.key === "EX-204");
+
+    assert.deepEqual(rtl.teeth.map((t) => t.order), [...ltr.teeth.map((t) => t.order)].reverse());
+    assert.deepEqual(rtl.lipShrouds.map((l) => l.order), [...ltr.lipShrouds.map((l) => l.order)].reverse());
+});
+
 test("parseDataView rejects missing lip shroud rows", () => {
     const rows = [
         componentRow("EX-1", "T1", "tooth", "1", "OK"),

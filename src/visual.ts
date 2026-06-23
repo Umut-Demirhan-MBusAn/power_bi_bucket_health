@@ -7,7 +7,7 @@ import "./../style/visual.less";
 import { AlarmController } from "./audio/alarmController";
 import { COMPOSITE_KEY_SEPARATOR } from "./data/keys";
 import { parseDataView } from "./data/parseDataView";
-import { BucketHealthDataModel, ComponentRecord, MachineBucketModel, WingSideAssignment } from "./data/types";
+import { BucketHealthDataModel, ComponentOrderDirection, ComponentRecord, MachineBucketModel, WingSideAssignment } from "./data/types";
 import { defaultWingSideAssignment } from "./domain/wingSideAssignment";
 import { statusColors, statusLabels, VisualTheme } from "./domain/statusMeta";
 import { renderEdgeState } from "./rendering/renderEdgeStates";
@@ -73,13 +73,17 @@ export class Visual implements IVisual {
                 this.formattingSettings.ordering.wingSideAssignment.value?.value as WingSideAssignment | undefined
             ) ?? defaultWingSideAssignment;
 
+            const componentOrder = (
+                this.formattingSettings.ordering.componentOrder.value?.value as ComponentOrderDirection | undefined
+            ) ?? "leftToRight";
+
             const audioEnabled = this.formattingSettings.alarm.audioEnabled.value ?? true;
 
             const alarmMotion = (this.formattingSettings.alarm.alarmMotion.value?.value as string | undefined) ?? "always";
             this.target.classList.toggle("bucket-health-root--flash-always", alarmMotion === "always");
             this.target.classList.toggle("bucket-health-root--flash-never", alarmMotion === "never");
 
-            const model = parseDataView(dataView, wingSideAssignment);
+            const model = parseDataView(dataView, wingSideAssignment, componentOrder);
             this.alarmController.update(model, audioEnabled);
 
             const theme = this.readTheme();
