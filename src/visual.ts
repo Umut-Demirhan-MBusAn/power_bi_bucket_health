@@ -5,10 +5,10 @@ import { FormattingSettingsService } from "powerbi-visuals-utils-formattingmodel
 import "./../style/visual.less";
 
 import { AlarmController } from "./audio/alarmController";
-import { COMPOSITE_KEY_SEPARATOR } from "./data/keys";
+import { buildCompositeKey } from "./data/keys";
 import { parseDataView } from "./data/parseDataView";
-import { BucketHealthDataModel, ComponentOrderDirection, ComponentRecord, MachineBucketModel, WingSideAssignment } from "./data/types";
-import { defaultWingSideAssignment } from "./domain/wingSideAssignment";
+import { BucketHealthDataModel, ComponentRecord, MachineBucketModel } from "./data/types";
+import { asAlarmMotion, asComponentOrderDirection, asWingSideAssignment } from "./domain/settingsGuards";
 import { statusColors, statusLabels, VisualTheme } from "./domain/statusMeta";
 import { renderEdgeState } from "./rendering/renderEdgeStates";
 import { renderFleet } from "./rendering/renderFleet";
@@ -39,6 +39,7 @@ export class Visual implements IVisual {
     private readonly host: IVisualHost;
     private readonly selectionManager: ISelectionManager;
     private minCardWidth = 220;
+    private rowCount = 0;
 
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
@@ -56,8 +57,8 @@ export class Visual implements IVisual {
 
         try {
             this.selectionManager.registerOnSelectCallback(() => this.applyDimming());
-        } catch {
-            // registerOnSelectCallback is best-effort; some host versions omit it.
+        } catch (e) {
+            console.warn("[BucketHealth] registerOnSelectCallback unavailable:", e);
         }
     }
 
@@ -71,22 +72,18 @@ export class Visual implements IVisual {
                 dataView
             );
 
-            const wingSideAssignment = (
-                this.formattingSettings.ordering.wingSideAssignment.value?.value as WingSideAssignment | undefined
-            ) ?? defaultWingSideAssignment;
-
-            const componentOrder = (
-                this.formattingSettings.ordering.componentOrder.value?.value as ComponentOrderDirection | undefined
-            ) ?? "leftToRight";
+            const wingSideAssignment = asWingSideAssignment(this.formattingSettings.ordering.wingSideAssignment.value?.value);
+            const componentOrder = asComponentOrderDirection(this.formattingSettings.ordering.componentOrder.value?.value);
 
             const audioEnabled = this.formattingSettings.alarm.audioEnabled.value ?? true;
 
-            const alarmMotion = (this.formattingSettings.alarm.alarmMotion.value?.value as string | undefined) ?? "always";
+            const alarmMotion = asAlarmMotion(this.formattingSettings.alarm.alarmMotion.value?.value);
             const minCardWidth = this.formattingSettings.layout.minCardWidth.value ?? 220;
             this.minCardWidth = minCardWidth;
             this.target.classList.toggle("bucket-health-root--flash-always", alarmMotion === "always");
             this.target.classList.toggle("bucket-health-root--flash-never", alarmMotion === "never");
 
+            this.rowCount = dataView?.table?.rows?.length ?? 0;
             const model = parseDataView(dataView, wingSideAssignment, componentOrder);
             this.alarmController.update(model, audioEnabled);
 
@@ -136,7 +133,7 @@ export class Visual implements IVisual {
         }
 
         this.componentLookup = buildComponentLookup(model.machines);
-        const fleet = renderFleet(model.machines, theme, this.minCardWidth);
+        const fleet = renderFleet(model.machines, theme, this.minCardWidth, this.rowCount >= 2000);
         this.target.appendChild(fleet);
         fleet.scrollTop = previousScroll;
 
@@ -173,7 +170,7 @@ export class Visual implements IVisual {
                     .withTable(table, component.sourceOrder)
                     .createSelectionId();
                 this.selectionIdLookup.set(
-                    machine.key + COMPOSITE_KEY_SEPARATOR + component.componentKey,
+                    buildCompositeKey(machine.key, component.componentKey),
                     id
                 );
             });
@@ -190,7 +187,7 @@ export class Visual implements IVisual {
         if (!machineKey) {
             return undefined;
         }
-        return this.selectionIdLookup.get(machineKey + COMPOSITE_KEY_SEPARATOR + componentKey);
+        return this.selectionIdLookup.get(buildCompositeKey(machineKey, componentKey));
     }
 
     private handleClick(event: MouseEvent): void {
@@ -294,7 +291,7 @@ export class Visual implements IVisual {
 
         const componentKey = componentEl.getAttribute("data-component-key") ?? "";
         const machineKey = machineEl.getAttribute("data-machine-key") ?? "";
-        const record = this.componentLookup.get(machineKey + COMPOSITE_KEY_SEPARATOR + componentKey);
+        const record = this.componentLookup.get(buildCompositeKey(machineKey, componentKey));
 
         if (!record) {
             this.hideTooltip();
@@ -381,7 +378,7 @@ function buildComponentLookup(machines: MachineBucketModel[]): Map<string, Compo
     const lookup = new Map<string, ComponentRecord>();
     machines.forEach((machine) => {
         const all = [...machine.teeth, ...machine.lipShrouds, ...machine.wingShroudsLeft, ...machine.wingShroudsRight];
-        all.forEach((component) => lookup.set(machine.key + COMPOSITE_KEY_SEPARATOR + component.componentKey, component));
+        all.forEach((component) => lookup.set(buildCompositeKey(machine.key, component.componentKey), component));
     });
     return lookup;
 }
