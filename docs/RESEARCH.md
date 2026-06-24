@@ -47,18 +47,18 @@ instead of pasting long source text.
 - **Two-tone pattern**: 880 Hz then 660 Hz
 - **Tone duration**: 0.24 seconds each
 - **Repeat interval**: 1.5 seconds
-- **Auto-stop duration**: 120 seconds
+- **Auto-stop duration**: 120 seconds *(handoff value; the shipped visual auto-stops at 60 s — see [SPEC.md](SPEC.md))*
 
-### Fleet Grid Column Rules
-- **1 machine**: 1 column (fills visual)
-- **2 machines**: 2 columns
-- **3-6 machines**: 3 columns
-- **7-12 machines**: 4 columns
-- **13-20 machines**: 5 columns
+### Fleet Grid Column Rules *(superseded)*
+The handoff originally specified fixed column counts (1→1, 2→2, 3–6→3, 7–12→4, 13–20→5). The shipped
+visual replaced this with a flex-wrap proportional layout where each card's width tracks its bucket
+aspect ratio and there is no fixed column-count rule — see
+[DECISIONS.md (2026-06-23, flex-wrap proportional layout)](DECISIONS.md).
 
-### Animation Timings
-- **Alarm Flashing**: 1.0 second cycle (0.5s on, 0.5s off)
-- **Alarm Ring Pulse**: 2.0 second cycle (expanding and fading)
+### Animation Timings *(handoff reference — shipped values differ)*
+- **Alarm Flashing**: handoff 1.0 s cycle; shipped ~0.7–0.8 s (card frame 0.8 s; components and the
+  ALARM! chip 0.7 s).
+- ~~Alarm Ring Pulse~~: removed — the shipped visual has no alarm ring circles.
 
 ## Pending Research
 

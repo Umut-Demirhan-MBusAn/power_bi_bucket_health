@@ -45,12 +45,12 @@ const FIELD_DEFS = [
     { name: "Component", desc: "Component key (e.g. T1, L2, W3R)" },
     { name: "Category",  desc: "tooth / lipShroud / wingShroud" },
     { name: "Order",     desc: "Integer position of the component" },
-    { name: "Status",    desc: "Component health status" },
+    { name: "Component Status", desc: "Component health status" },
 ];
 
 const ROLE_DISPLAY_NAMES: Record<string, string> = {
     machine: "Machine", component: "Component", category: "Category",
-    order: "Order", status: "Status", lastSeen: "Last Seen", alarmTime: "Alarm Time"
+    order: "Order", status: "Component Status", lastSeen: "Last Seen", alarmTime: "Comp. Alarm Time"
 };
 
 // ---- public API -------------------------------------------------------------

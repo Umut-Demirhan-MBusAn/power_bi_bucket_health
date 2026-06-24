@@ -9,7 +9,7 @@ A Power BI custom visual for real-time monitoring of mining excavator bucket GET
 ## Features
 
 - **Adaptive bucket geometry** — teeth, lip shrouds, and wing shrouds rendered from your actual component counts (4–20 teeth, 0–4 wings per side)
-- **Status colour coding** — OK (green), No Data (amber), Lockout (blue), Lockout + No Data (dark blue), Proximity Alarm (red), Movement Alarm (dark red)
+- **Status colour coding** — six component health states, each with a distinct colour and alarm/no-alarm behaviour (table under [Data schema](#data-schema))
 - **Fleet grid** — up to 20 machines in a responsive flex grid; alarm machines sort to the front with a pulsing red border
 - **Audio alert** — opt-in two-tone beep triggered on fresh alarm transitions, with auto-stop at 60 s
 - **Rich tooltips** — component name, status, machine, last-seen time, and any extra tooltip columns from your data
@@ -45,17 +45,34 @@ Each row must represent **one component on one machine**. Bind these roles in th
 
 | Role | Required | Description | Example values |
 |---|---|---|---|
-| **Machine** | ✓ | Unique excavator identifier | `EX-204`, `CAT-01` |
-| **Component** | ✓ | Component key (unique per machine) | `T1`, `L3`, `W2R` |
-| **Category** | ✓ | Component type | `tooth`, `lipShroud`, `wingShroud` |
-| **Order** | ✓ | Integer position (left→right for teeth/lips; see Wing side assignment for wings) | `1`, `2`, … |
-| **Status** | ✓ | Health status string | `OK`, `No Data`, `Lockout`, `Lockout + No Data`, `Proximity Alarm`, `Movement Alarm` |
-| Machine Type | — | Human-readable machine label | `Hydraulic Excavator` |
-| Last Seen | — | Timestamp of last data receipt | `2026-06-22T08:14:00Z` |
-| Alarm Time | — | Timestamp when the alarm was raised (used for audio deduplication) | ISO 8601 string |
-| Tooltip Fields | — | Any extra columns shown in the component tooltip (multi-column) | Tag IDs, sensor readings, … |
+| **Machine** | ✓ | The machine's name and its unique identifier. Every row must belong to a machine. Each unique value becomes one card in the fleet view and is shown as the card header. | `EX-204`, `CAT-01` |
+| Machine Type | — | Human-readable label for the machine class or model. Shown in the card header below the machine name. If omitted, only the machine name is shown. | `Hydraulic Excavator` |
+| **Component** | ✓ | The component's name, unique within its machine. Identifies a single tooth, lip shroud, or wing shroud on that machine. Used for rendering, tooltips, selection, and alarm detection. | `T1`, `L3`, `W2R` |
+| **Category** | ✓ | The component type. Determines where on the bucket schematic the component is drawn. Must be one of three exact values. | `tooth`, `lipShroud`, `wingShroud` |
+| **Order** | ✓ | Integer position of the component within its category (1 = leftmost for teeth and lip shrouds). For wing shrouds, left/right side is inferred from this value by the **Wing side assignment** Formatting pane setting — there is no left/right column in the data. | `1`, `2`, `3`, … |
+| **Component Status** | ✓ | The current health status of this component. Matched case-insensitively against the accepted status strings (see table below). Non-alarm statuses leave the Alarm Time cell blank. | `OK`, `No Data`, `Lockout`, `Lockout + No Data`, `Proximity Alarm`, `Movement Alarm` |
+| Comp. Alarm Time | Recommended | Timestamp when this component entered its current alarm state. The visual builds an alarm identity from machine + component + alarm time; audio fires exactly once per unique identity. **If left unbound the visual still renders, but a component that clears and then re-alarms in the same session won't beep the second time** (see [Alarm audio logic](docs/DATA_SCHEMA.md#alarm-audio-logic)). Leave the cell blank (null) for non-alarm rows. | `2026-06-22T08:14:00Z` |
+| Last Seen | — | Timestamp of the last data receipt for this component. Shown in the component tooltip. | `2026-06-22T08:14:00Z` |
+| Tooltip Fields | — | Any additional columns to include in the component tooltip. You can bind multiple columns here. They appear after the standard fields. | Tag IDs, sensor readings, … |
 
-Full schema documentation: [`docs/DATA_SCHEMA.md`](docs/DATA_SCHEMA.md)
+### Status values
+
+Accepted status strings (case-insensitive; alternate spellings such as `prox` or `No data (1h)` also work):
+
+| Status | Colour | Alarm audio |
+|---|---|---|
+| `OK` | Green | No |
+| `No Data` | Amber | No |
+| `Lockout` | Blue | No |
+| `Lockout + No Data` | Dark blue | No |
+| `Proximity Alarm` | Flashing red | Yes — on transition |
+| `Movement Alarm` | Flashing dark red | Yes — on transition |
+
+### Component counts & layout
+
+Each machine's bucket geometry adapts to the rows you supply: **4–20 teeth**, **lip shrouds = teeth − 1**, and **0–8 wing shrouds** (up to 4 per side). Wing shrouds have no left/right column — the side is derived from **Order** via the **Wing side assignment** setting.
+
+See **[`docs/DATA_SCHEMA.md`](docs/DATA_SCHEMA.md)** for the full schema: exact count rules, all four wing-assignment modes, accepted status spellings, and the alarm-audio logic.
 
 ---
 

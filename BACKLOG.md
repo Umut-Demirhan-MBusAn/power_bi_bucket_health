@@ -96,3 +96,5 @@ All accessibility features, polished landing page, icon, privacy/support pages, 
 | 2026-06-24 | Added docs/privacy-policy.html and docs/support.html for AppSource submission. |
 | 2026-06-24 | Rewrote README.md as user/AppSource-facing guide. |
 | 2026-06-24 | Removed stray root tooltips.png and docs/design_handoff_bucket_health/ (design handoff served its purpose). |
+| 2026-06-24 | Documented Comp. Alarm Time as optional-but-strongly-recommended (with empty-field consequence); standardised field order and renamed roles Status→"Component status", Alarm time→"Comp. alarm time" in capabilities.json. |
+| 2026-06-24 | Docs consistency pass: corrected VISUAL_CONTRACT formatting objects to the real 5 settings; fixed reduced-motion to the shipped tri-state across SPEC/ARCH/SYS/DECISIONS; documented the 2000-row host cap; updated as-built source trees; de-duplicated schema/status/wing/count info to canonical homes. |

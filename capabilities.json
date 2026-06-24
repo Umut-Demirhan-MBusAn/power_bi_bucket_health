@@ -7,7 +7,7 @@
             "kind": "Grouping"
         },
         {
-            "displayName": "Machine type",
+            "displayName": "Machine Type",
             "name": "machineType",
             "kind": "Grouping"
         },
@@ -27,22 +27,22 @@
             "kind": "GroupingOrMeasure"
         },
         {
-            "displayName": "Status",
+            "displayName": "Component Status",
             "name": "status",
             "kind": "GroupingOrMeasure"
         },
         {
-            "displayName": "Last seen",
-            "name": "lastSeen",
-            "kind": "GroupingOrMeasure"
-        },
-        {
-            "displayName": "Alarm time",
+            "displayName": "Comp. Alarm Time",
             "name": "alarmTime",
             "kind": "GroupingOrMeasure"
         },
         {
-            "displayName": "Tooltip fields",
+            "displayName": "Last Seen",
+            "name": "lastSeen",
+            "kind": "GroupingOrMeasure"
+        },
+        {
+            "displayName": "Tooltip Fields",
             "name": "tooltipFields",
             "kind": "Measure"
         }
@@ -123,12 +123,12 @@
                         },
                         {
                             "for": {
-                                "in": "lastSeen"
+                                "in": "alarmTime"
                             }
                         },
                         {
                             "for": {
-                                "in": "alarmTime"
+                                "in": "lastSeen"
                             }
                         },
                         {

@@ -132,12 +132,16 @@ The five non-normal states must match `States.dc.html`:
 
 ## Status Model
 
-| Status | Visual Treatment | Audio Alarm |
+The six statuses and how each is treated. Exact hex colours, canonical keys, and alarm precedence are
+defined once in [VISUAL_CONTRACT.md › Status Model](VISUAL_CONTRACT.md#status-model); accepted input
+spellings are in [DATA_SCHEMA.md › Status values](DATA_SCHEMA.md#status-values).
+
+| Status (as displayed) | Visual Treatment | Audio Alarm |
 | --- | --- | --- |
 | OK | Green | No |
-| No Data Last Hour | Yellow | No |
+| No Data (1h) | Yellow | No |
 | Lockout | Blue | No |
-| Lockout + No Data Last Hour | Dark blue | No |
+| Lockout + No Data | Dark blue | No |
 | Proximity Alarm | Flashing red | Yes, on transition into alarm |
 | Movement Alarm | Flashing dark red | Yes, on transition into alarm |
 
@@ -151,9 +155,12 @@ Each machine card frame and badge reflect the worst status across its components
 - OK (green frame): otherwise.
 
 Alarm id rule: each alarm has a stable id formed from machine + component + alarm time (the
-`alarmTime` data role). Audio fires once per distinct alarm id and never re-fires for that same id,
-including after the audio has been dismissed. The first render after the visual loads seeds the known
-alarm ids without firing audio, so pre-existing alarms do not beep on load.
+`alarmTime` data role, which is **strongly recommended**). Audio fires once per distinct alarm id and never
+re-fires for that same id, including after the audio has been dismissed. The first render after the
+visual loads seeds the known alarm ids without firing audio, so pre-existing alarms do not beep on
+load. Without `alarmTime` bound, the id falls back to machine + component + "" — audio still fires
+the first time a component alarms, but if that component clears and re-alarms in the same session the
+id is already cached and no further audio plays.
 
 Dismissal rule: clicking anywhere on the visual dismisses current audio. Dismissing does not re-arm
 the already-heard alarm id; only a genuinely new alarm id (a new machine/component alarm, or the same
@@ -167,16 +174,20 @@ each, repeating every 1.5 seconds, with auto-stop after 60 seconds (one minute).
 
 ## Interactions
 
-- Selection/cross-filter: TBD.
+- Selection/cross-filter: clicking a component selects it and cross-filters other visuals on the
+  page (PR #11).
 - Highlighting: alarm machine cards are highlighted and prioritized visually.
 - Tooltips: component-level custom themed HTML tooltips (not the Power BI host tooltip service) with
   component metadata and user-added fields.
-- Sorting: machine/card order is affected by alarm priority; base ordering is TBD.
-- Drill: TBD.
-- Context menu: TBD.
-- Formatting pane: report author should be able to configure layout, minimum card size, colors,
-  status-string mapping, audio behavior, ordering rules, and alarm priority.
-- Keyboard/focus: TBD.
+- Sorting: alarm priority overrides base order in fleet view (movement before proximity, then alarm
+  count); ties keep source order.
+- Drill: not used — the visual auto-renders the single-machine detail view when one machine is
+  present and the fleet view otherwise.
+- Context menu: right-click opens Power BI's default context menu (PR #11).
+- Formatting pane: report authors configure minimum card width (Layout), wing side assignment and
+  teeth/lip order (Ordering), and audio + alarm motion (Alarm). Status strings and colours are fixed
+  and bucket geometry is adaptive — neither is author-configurable.
+- Keyboard/focus: components are focusable; arrow keys move focus and Enter/Space selects (PR #11).
 
 ## Data Requirements
 
@@ -184,15 +195,15 @@ Link the detailed host contract in [VISUAL_CONTRACT.md](VISUAL_CONTRACT.md).
 
 Known logical entities:
 
-- Machine
-- Machine Type (e.g., "Hydraulic Excavator")
-- GET component
+- Machine — name and unique identifier; one card per machine
+- Machine Type (e.g., "Hydraulic Excavator") — optional label shown in card header
+- GET component — name, unique within its machine
 - GET component category: tooth, lip shroud, wing shroud
-- Component order/index
-- Component order for wing shrouds; side is derived by visual settings
-- Component status
-- Last seen timestamp
-- Tooltip metadata fields
+- Component order — integer position; wing shroud side is derived from this value by a visual setting
+- Component status — one of six accepted strings
+- Comp. Alarm Time — timestamp when alarm was raised; optional but strongly recommended for correct per-session re-alarm audio
+- Last seen timestamp — optional; shown in tooltip
+- Tooltip metadata fields — any extra columns bound by the report author
 
 ## Performance Requirements
 
@@ -214,11 +225,12 @@ Known logical entities:
 - Status cannot rely on color alone; alarm animation, labels/tooltips, or icons must provide a
   secondary signal.
 - Audio alarm must be dismissible.
-- An explicit in-visual reduced-motion toggle is provided to soften flashing alarms. The OS
-  `prefers-reduced-motion` setting is intentionally not honored for safety-alarm flashing, so an
-  operating-system setting cannot silently suppress an active alarm.
-- Keyboard/focus behavior is TBD.
-- Screen reader strategy is TBD.
+- An in-visual **Alarm motion** setting controls flashing without ever hiding the alarm: *Always
+  flash* (default) ignores the OS reduced-motion setting so a safety alarm is never silently
+  suppressed; *Auto* flashes but renders a solid, still-prominent alarm when the OS requests reduced
+  motion; *Never* is always solid. Audio is independent (governed by the audio toggle).
+- Keyboard/focus: components are focusable; arrow keys move focus and Enter/Space selects (PR #11).
+- Screen reader strategy: not yet implemented; tracked as a post-ship enhancement.
 
 ## Acceptance Criteria
 
@@ -285,14 +297,13 @@ Known logical entities:
 - Within each wing side, does order run top-to-bottom, bottom-to-top, front-to-back, or back-to-front?
 - Can a machine have asymmetric wing shroud counts?
 
-### Status And Alarms
+### Status And Alarms — resolved
 
-- Which status wins if multiple statuses are present for the same component?
-- If a machine has both proximity and movement alarms, which alarm color/priority wins?
-- Should movement alarm outrank proximity alarm?
-- Should an acknowledged/dismissed alarm remain visually highlighted?
-- Is audio allowed in Power BI service/Desktop without user gesture, or do we need a visual-level
-  "enable audio" interaction/setting?
+- Status precedence: movement > proximity > lockout+nodata > lockout > nodata > ok (see
+  [VISUAL_CONTRACT.md › Status Model](VISUAL_CONTRACT.md#status-model)). Movement outranks proximity.
+- A dismissed alarm stays visually highlighted; dismissing only stops the audio.
+- Audio requires a user gesture (browser autoplay policy): it is armed on the first click inside the
+  visual and gated by the **Enable audio alarm** setting.
 
 ### Power BI Behavior
 
