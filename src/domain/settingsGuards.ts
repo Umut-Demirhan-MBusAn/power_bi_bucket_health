@@ -1,5 +1,3 @@
-"use strict";
-
 import { ComponentOrderDirection, WingSideAssignment } from "../data/types";
 import { defaultWingSideAssignment } from "./wingSideAssignment";
 
@@ -8,7 +6,7 @@ const WING_SIDE: WingSideAssignment[] = [
     "FirstHalfLeftSecondHalfRight", "FirstHalfRightSecondHalfLeft"
 ];
 const COMPONENT_ORDER: ComponentOrderDirection[] = ["leftToRight", "rightToLeft"];
-const ALARM_MOTION = ["always", "auto", "never"] as const;
+const ALARM_MOTION: Array<"always" | "auto" | "never"> = ["always", "auto", "never"];
 
 export function asWingSideAssignment(val: unknown): WingSideAssignment {
     return (WING_SIDE as unknown[]).includes(val)
