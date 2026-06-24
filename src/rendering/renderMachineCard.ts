@@ -5,7 +5,7 @@ import { machineStatusKey, statusColors, statusLabels, VisualTheme } from "../do
 
 const BUCKET_TARGET_HEIGHT = 220; // paired with .bucket-health-card height in style/visual.less
 
-export function renderMachineCard(machine: MachineBucketModel, theme: VisualTheme): HTMLElement {
+export function renderMachineCard(machine: MachineBucketModel, theme: VisualTheme, minCardWidth: number): HTMLElement {
     const card = document.createElement("article");
     card.className = machine.hasAlarm
         ? "bucket-health-card bucket-health-card--alarm"
@@ -39,6 +39,7 @@ export function renderMachineCard(machine: MachineBucketModel, theme: VisualThem
     const aspect = geometry.viewBoxWidth / geometry.viewBoxHeight;
     const targetWidth = Math.round(aspect * BUCKET_TARGET_HEIGHT);
     card.style.flex = `${targetWidth} 1 ${targetWidth}px`;
+    card.style.minWidth = `${minCardWidth}px`;
 
     const cardHeader = document.createElement("div");
     cardHeader.className = "bucket-health-card__header";
