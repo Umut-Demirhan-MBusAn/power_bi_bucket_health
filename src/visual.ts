@@ -35,6 +35,7 @@ export class Visual implements IVisual {
     private componentLookup = new Map<string, ComponentRecord>();
     private selectionIdLookup = new Map<string, ISelectionId>();
     private tooltip: HTMLElement | null = null;
+    private hideTooltipTimer: ReturnType<typeof setTimeout> | null = null;
     private readonly host: IVisualHost;
     private readonly selectionManager: ISelectionManager;
     private minCardWidth = 220;
@@ -51,7 +52,7 @@ export class Visual implements IVisual {
         this.target.addEventListener("contextmenu", (event) => this.handleContextMenu(event));
         this.target.addEventListener("keydown", (event) => this.handleKeyDown(event));
         this.target.addEventListener("mousemove", (event) => this.handlePointerMove(event));
-        this.target.addEventListener("mouseleave", () => this.hideTooltip());
+        this.target.addEventListener("mouseleave", () => this.hideTooltipNow());
 
         try {
             this.selectionManager.registerOnSelectCallback(() => this.applyDimming());
@@ -112,6 +113,7 @@ export class Visual implements IVisual {
 
     public destroy(): void {
         this.alarmController.destroy();
+        this.hideTooltipNow();
         this.tooltip = null;
         this.target.replaceChildren();
     }
@@ -121,7 +123,7 @@ export class Visual implements IVisual {
         // so the user's scrollbar does not snap back to the top.
         const previousScroll = this.target.querySelector<HTMLElement>(".bucket-health")?.scrollTop ?? 0;
 
-        this.hideTooltip();
+        this.hideTooltipNow();
         this.target.replaceChildren();
         this.tooltip = null;
 
@@ -314,6 +316,10 @@ export class Visual implements IVisual {
     }
 
     private showTooltip(component: ComponentRecord, event: MouseEvent): void {
+        if (this.hideTooltipTimer !== null) {
+            clearTimeout(this.hideTooltipTimer);
+            this.hideTooltipTimer = null;
+        }
         const tooltip = this.ensureTooltip();
         tooltip.replaceChildren(...buildTooltipContent(component));
         tooltip.hidden = false;
@@ -338,9 +344,19 @@ export class Visual implements IVisual {
     }
 
     private hideTooltip(): void {
-        if (this.tooltip) {
-            this.tooltip.hidden = true;
+        if (this.hideTooltipTimer !== null) return;
+        this.hideTooltipTimer = setTimeout(() => {
+            this.hideTooltipTimer = null;
+            if (this.tooltip) this.tooltip.hidden = true;
+        }, 8000);
+    }
+
+    private hideTooltipNow(): void {
+        if (this.hideTooltipTimer !== null) {
+            clearTimeout(this.hideTooltipTimer);
+            this.hideTooltipTimer = null;
         }
+        if (this.tooltip) this.tooltip.hidden = true;
     }
 }
 
