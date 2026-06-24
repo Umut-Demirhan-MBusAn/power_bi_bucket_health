@@ -37,6 +37,7 @@ export class Visual implements IVisual {
     private tooltip: HTMLElement | null = null;
     private readonly host: IVisualHost;
     private readonly selectionManager: ISelectionManager;
+    private minCardWidth = 220;
 
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
@@ -80,6 +81,8 @@ export class Visual implements IVisual {
             const audioEnabled = this.formattingSettings.alarm.audioEnabled.value ?? true;
 
             const alarmMotion = (this.formattingSettings.alarm.alarmMotion.value?.value as string | undefined) ?? "always";
+            const minCardWidth = this.formattingSettings.layout.minCardWidth.value ?? 220;
+            this.minCardWidth = minCardWidth;
             this.target.classList.toggle("bucket-health-root--flash-always", alarmMotion === "always");
             this.target.classList.toggle("bucket-health-root--flash-never", alarmMotion === "never");
 
@@ -131,7 +134,7 @@ export class Visual implements IVisual {
         }
 
         this.componentLookup = buildComponentLookup(model.machines);
-        const fleet = renderFleet(model.machines, theme);
+        const fleet = renderFleet(model.machines, theme, this.minCardWidth);
         this.target.appendChild(fleet);
         fleet.scrollTop = previousScroll;
 
@@ -189,6 +192,7 @@ export class Visual implements IVisual {
     }
 
     private handleClick(event: MouseEvent): void {
+        if (!this.host.hostCapabilities.allowInteractions) return;
         // Preserve the existing audio arm/dismiss behavior on every click.
         this.alarmController.arm();
         this.alarmController.dismiss();
@@ -214,6 +218,7 @@ export class Visual implements IVisual {
     }
 
     private handleContextMenu(event: MouseEvent): void {
+        if (!this.host.hostCapabilities.allowInteractions) return;
         const target = event.target as Element | null;
         const componentEl = target?.closest("[data-component-key]") ?? null;
         const selectionId = componentEl ? this.resolveSelectionId(componentEl) : undefined;
@@ -226,6 +231,7 @@ export class Visual implements IVisual {
     }
 
     private handleKeyDown(event: KeyboardEvent): void {
+        if (!this.host.hostCapabilities.allowInteractions) return;
         const active = document.activeElement as Element | null;
         const componentEl = active?.closest?.("[data-component-key]") ?? null;
         if (!componentEl) {

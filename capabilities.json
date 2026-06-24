@@ -1,5 +1,7 @@
 {
     "supportsKeyboardFocus": true,
+    "supportsLandingPage": true,
+    "supportsMultiVisualSelection": true,
     "dataRoles": [
         {
             "displayName": "Machine",

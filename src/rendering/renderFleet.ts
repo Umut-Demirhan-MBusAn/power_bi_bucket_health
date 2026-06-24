@@ -2,7 +2,7 @@ import { MachineBucketModel } from "../data/types";
 import { VisualTheme } from "../domain/statusMeta";
 import { renderMachineCard } from "./renderMachineCard";
 
-export function renderFleet(machines: MachineBucketModel[], theme: VisualTheme): HTMLElement {
+export function renderFleet(machines: MachineBucketModel[], theme: VisualTheme, minCardWidth: number): HTMLElement {
     const section = document.createElement("section");
     section.className = "bucket-health";
 
@@ -11,7 +11,7 @@ export function renderFleet(machines: MachineBucketModel[], theme: VisualTheme):
         ? "bucket-health__grid bucket-health__grid--single"
         : "bucket-health__grid";
 
-    machines.forEach((machine) => grid.appendChild(renderMachineCard(machine, theme)));
+    machines.forEach((machine) => grid.appendChild(renderMachineCard(machine, theme, minCardWidth)));
     section.appendChild(grid);
 
     return section;
