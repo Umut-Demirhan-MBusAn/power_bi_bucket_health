@@ -98,7 +98,7 @@ tooltips or the official tooltip API later would require revisiting this decisio
 
 ### 2026-06-23 - OS reduced-motion not honored for alarm flashing
 
-Status: Accepted
+Status: Superseded by 2026-06-24 (tri-state Alarm motion). The default still ignores the OS setting; the new "Auto" mode lets users opt into honoring it.
 
 Decision: Do not honor the operating-system `prefers-reduced-motion` setting for safety-alarm
 flashing. Provide an explicit in-visual `reducedMotion` toggle instead.
@@ -112,7 +112,7 @@ flashing while keeping the alarm perceptible.
 
 ### 2026-06-23 - AppSource / accessibility posture deferred
 
-Status: Proposed
+Status: Superseded by 2026-06-24. AppSource certification is now the target, and the deferred features (keyboard navigation, high contrast, context menu, cross-visual selection) shipped in PR #11.
 
 Decision: Defer keyboard navigation, high-contrast support, the context menu, cross-visual selection,
 and the official tooltip API. None are implemented yet; they are gated on a certification decision.
@@ -125,3 +125,41 @@ from typical a11y guidance that any certification review must account for.
 Consequences: Tracked as backlog item PBH-018. Until the certification decision is made, the visual
 ships without these host integrations, and docs note them as deferred rather than missing by
 oversight.
+
+### 2026-06-24 - Tri-state Alarm motion (Always / Auto / Never)
+
+Status: Accepted
+
+Decision: Replace the single reduced-motion toggle with a three-way **Alarm motion** setting:
+`always` (default), `auto`, and `never`.
+
+Context: A binary "honor OS reduced-motion or not" choice forced a trade-off between accessibility and
+the safety requirement that an alarm must never be silently suppressed. A tri-state gives report
+authors explicit control while keeping a safe default.
+
+Consequences:
+
+- `always` (default): flashes regardless of the OS `prefers-reduced-motion` setting, so a safety
+  alarm is never silently suppressed by a global OS setting.
+- `auto`: flashes, but renders a solid, still-prominent alarm when the OS requests reduced motion
+  (a `@media (prefers-reduced-motion: reduce)` rule that excludes the `always` class).
+- `never`: always solid.
+- In every mode the alarm stays fully visible, and audio is independent (governed by `audioEnabled`).
+  Supersedes the 2026-06-23 "OS reduced-motion not honored" decision.
+
+### 2026-06-24 - Alarm Time is optional but strongly recommended
+
+Status: Accepted
+
+Decision: Keep the `alarmTime` data role optional (not a required role). Document it as strongly
+recommended and explain the consequence of leaving it unbound.
+
+Context: `alarmTime` is the only field not needed to render a bucket — the visual draws fully without
+it. Making it a hard-required role would block rendering for datasets that have no alarm-timestamp
+column, even though everything needed to draw is present. Its only effect is audio de-duplication.
+
+Consequences: The visual always renders when the five required roles are bound. The alarm identity is
+`machine + component + alarmTime`; without `alarmTime` the identity is `machine + component + ""`, so
+a component that clears and re-alarms within one uninterrupted session will not replay audio (the
+first alarm still fires; closing/reopening the report resets the cache). The visual alarm (flash or
+solid) is unaffected. See [DATA_SCHEMA.md › Alarm audio logic](DATA_SCHEMA.md#alarm-audio-logic).

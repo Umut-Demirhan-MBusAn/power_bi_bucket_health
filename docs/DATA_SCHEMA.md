@@ -1,104 +1,129 @@
 # Data Schema
 
-This document defines the concrete source schema used by the initial mock CSV fixture. It maps to the
-Power BI data roles in [VISUAL_CONTRACT.md](VISUAL_CONTRACT.md) and should be treated as the parser
-contract until real business column names are confirmed.
+This document defines the Power BI field role contract and the concrete source column names used by
+the mock CSV fixture. It is the authoritative reference for anyone binding data to the visual or
+writing queries that feed it.
 
 Fixture path: [test/fixtures/bucket_health_components.csv](../test/fixtures/bucket_health_components.csv)
 
-## Row Grain
+## Row grain
 
-One row represents one GET component status for one machine at one update time.
+One row = one GET component on one machine at one point in time.
 
-The visual groups rows by `machine_key`, then derives a `MachineBucketModel`:
+The visual groups rows by machine, derives component counts per category, and renders one bucket card
+per machine. There is no aggregation — every component row is rendered individually.
 
-- Teeth are supplied as `component_category = tooth` rows.
-- Lip shrouds are supplied as `component_category = lipShroud` rows.
-- Wing shrouds are supplied as `component_category = wingShroud` rows.
+## Field roles (Fields pane)
 
-The source data does not contain wing side. The visual assigns wing shrouds to left/right sides from
-`component_order` using a formatting setting.
+These are the roles you bind in the Power BI Fields pane. The column names in your data model can be
+anything; the role name is what matters.
 
-## Columns
-
-| Column | Required | Type | Power BI Role | Description |
+| Role | Required | Type | Fixture column | Description |
 | --- | --- | --- | --- | --- |
-| `machine_key` | Yes | Text | `machine` | Stable unique machine identifier used for grouping and alarm state. |
-| `machine_name` | No | Text | Display metadata | Friendly machine label shown in the card header. Falls back to `machine_key`. |
-| `machine_type` | No | Text | `machineType` | Machine class or model label shown in the card header. |
-| `component_key` | Yes | Text | `component` | Stable unique component key within a machine. |
-| `component_name` | No | Text | Tooltip metadata | Human-friendly component label. Falls back to `component_key`. |
-| `component_category` | Yes | Enum | `category` | One of `tooth`, `lipShroud`, `wingShroud`. |
-| `component_order` | Yes | Integer | `order` | Physical order within the component category. Starts at 1. Wing side assignment is derived from this value. |
-| `status` | Yes | Enum | `status` | Source status string mapped to the canonical status model. |
-| `last_seen_utc` | No | ISO datetime text | `lastSeen` | Last update timestamp, stored as UTC in the fixture. |
-| `tag_id` | No | Text | Tooltip metadata | Source tag/sensor identifier. |
-| `alarm_time` | No | ISO datetime text | `alarmTime` | Time the alarm was raised. Supplied only for alarm rows. With `machine_key` + `component_key` it forms the unique alarm identity used to dedupe audio so the same alarm never re-triggers. |
+| **Machine** | ✓ | Text | `machine_key` | The machine's name and its unique identifier. Every row must belong to a machine. Each unique value becomes one card in the fleet view and is also shown as the card header label. Must be stable across data refreshes — changing this value resets alarm state for that machine. |
+| **Machine Type** | — | Text | `machine_type` | Human-readable machine class or model (e.g. "Hydraulic Excavator"). Shown in the card header below the machine name. If omitted, only the machine name is shown. |
+| **Component** | ✓ | Text | `component_key` | The component's name, unique within its machine. Identifies a single tooth, lip shroud, or wing shroud on that machine. Used for status rendering, the component tooltip, cross-filter selection, and alarm transition detection. Must be stable across refreshes — changing this value resets alarm history for that component. |
+| **Category** | ✓ | Text | `component_category` | The component type. Determines where on the bucket schematic the component is drawn. Must be one of three exact values: `tooth`, `lipShroud`, `wingShroud`. |
+| **Order** | ✓ | Integer | `component_order` | Integer position of this component within its category, starting at 1. For teeth and lip shrouds, 1 is the leftmost position. For wing shrouds, left/right side is inferred from this value by the **Wing side assignment** Formatting pane setting — there is no left/right column in the data. Must be unique within the same machine and category. |
+| **Component Status** | ✓ | Text | `status` | The current health status of this component. Matched case-insensitively against the accepted status strings (see [Status values](#status-values) below). Non-alarm rows should have a blank Comp. Alarm Time. |
+| **Comp. Alarm Time** | Recommended | Datetime | `alarm_time` | Timestamp when this component entered its current alarm state. The visual constructs an alarm identity from machine + component + alarm time; audio fires exactly once per unique identity. **Strongly recommended: if you leave this unbound, a component that clears its alarm and then re-alarms in the same session will not play audio the second time** — the alarm identity is permanently cached for the lifetime of that session (see [Alarm audio logic](#alarm-audio-logic)). The visual still renders normally without it. Leave the cell blank (null) for non-alarm rows. |
+| **Last Seen** | — | Datetime | `last_seen_utc` | Timestamp of the last data receipt for this component. Shown in the component tooltip as a full local date and time. |
+| **Tooltip Fields** | — | Any, multiple | `tag_id` (example) | Additional columns to include in the component tooltip after the standard fields. You can bind multiple columns here. |
 
-## Enumerations
+## Status values
 
-`component_category`:
+The **Component Status** value is matched **case-insensitively** (leading/trailing spaces are
+ignored). Each status accepts several spellings; the visual normalises them to a canonical key and
+shows a fixed display label. Bind any of the accepted inputs below:
 
-- `tooth`
-- `lipShroud`
-- `wingShroud`
+| Accepted input (any case) | Canonical key | Displayed in the visual | Alarm + audio |
+| --- | --- | --- | --- |
+| `OK` | `ok` | OK | No |
+| `No Data` · `No data (1h)` · `nodata` | `nodata` | No Data (1h) | No |
+| `Lockout` | `lockout` | Lockout | No |
+| `Lockout + No Data` · `lockout+no data` · `lockoutnd` | `lockoutnd` | Lockout + No Data | No |
+| `Proximity Alarm` · `proximity` · `prox` | `prox` | Proximity Alarm | Yes — on transition |
+| `Movement Alarm` · `movement` · `move` | `move` | Movement Alarm | Yes — on transition |
 
-`status` source values:
+An unrecognised status string is treated as **No Data (1h)**.
 
-- `OK`
-- `No data (1h)`
-- `Lockout`
-- `Lockout + No data`
-- `Proximity alarm`
-- `Movement alarm`
+Status **colours (hex), alarm precedence, and the component stroke rule** are defined once in the host
+contract — see [VISUAL_CONTRACT.md › Status Model](VISUAL_CONTRACT.md#status-model) — and are not
+repeated here.
 
-Parser output must normalize those values to:
+## Component counts per machine
 
-| Source Value | Canonical Key |
+The bucket geometry adapts to the number of component rows you supply per machine:
+
+| Category | Min | Max | Rule |
+| --- | --- | --- | --- |
+| `tooth` | 4 | 20 | Any count in this range |
+| `lipShroud` | 3 | 19 | Must equal teeth count − 1 |
+| `wingShroud` | 0 | 8 | Up to 4 per side; side is inferred from Order |
+
+More teeth widen the bucket; more wing shrouds extend the bucket sides. The schematic always looks
+proportional because the body geometry recalculates from the counts.
+
+## Wing side assignment
+
+Wing shrouds do not carry a left/right column. The visual derives each wing's side from its **Order**
+value using the **Wing side assignment** Formatting pane setting:
+
+| Setting | Rule |
 | --- | --- |
-| `OK` | `ok` |
-| `No data (1h)` | `nodata` |
-| `Lockout` | `lockout` |
-| `Lockout + No data` | `lockoutnd` |
-| `Proximity alarm` | `prox` |
-| `Movement alarm` | `move` |
+| Odd left / Even right *(default)* | Odd Order → left side; even Order → right side |
+| Odd right / Even left | Odd Order → right side; even Order → left side |
+| First half left / Second half right | Lower half of order values → left; remainder → right |
+| First half right / Second half left | Lower half of order values → right; remainder → left |
 
-## Wing Side Assignment
+Choose the mode that matches how your source system numbers wing shrouds.
 
-Wing shroud side is a visual setting, not a data column. The parser preserves source order and
-`component_order`; a domain function later assigns each wing shroud to a rendered side.
+## Alarm audio logic
 
-Supported assignment modes:
+Understanding this logic explains why **Comp. Alarm Time is strongly recommended**:
 
-- `OddLeftEvenRight`: odd `component_order` values render on the left; even values render on the
-  right.
-- `OddRightEvenLeft`: odd `component_order` values render on the right; even values render on the
-  left.
-- `FirstHalfLeftSecondHalfRight`: lower order values render on the left; remaining values render on
-  the right.
-- `FirstHalfRightSecondHalfLeft`: lower order values render on the right; remaining values render on
-  the left.
+1. On the **first data update** after the visual loads, all currently-alarming components are
+   recorded silently — no audio fires. This prevents the report from beeping every time it opens.
+2. On each **subsequent update**, the visual checks whether any alarm identity (machine + component +
+   alarm time) is new since the last update. If it finds a new identity, audio fires.
+3. An alarm identity, once heard, is **permanently cached** for the lifetime of that visual session.
+   It will never fire again in that session regardless of dismiss or data changes.
+4. When the report is **closed and reopened**, the session resets and the cache is empty, so the
+   seeding step runs again on the first update.
 
-## Validation Rules
+**Why binding Comp. Alarm Time matters:**
 
-- Required columns must exist.
-- Required field values must be non-empty.
-- `component_key` must be unique within each `machine_key`.
-- `component_order` must be an integer greater than or equal to 1.
-- Each machine must have 4-20 supplied tooth rows.
-- Each machine must have supplied lip shroud rows equal to `tooth count - 1`.
-- Each machine may have 0-8 wing shroud rows total.
-- The fixture must use exactly the documented columns; wing side and unrelated operational fields
-  are not part of the source schema.
-- The fixture must contain no more than 20 machines.
-- The parser must preserve source row order as `sourceOrder` before applying alarm priority sorting.
+Without an alarm time, the identity for component `T1` on machine `EX-204` is always
+`EX-204::T1::` (empty timestamp). The first time it alarms, the identity is new and audio fires.
+But the identity is then cached. If the operator fixes the component (status returns to OK) and it
+later re-alarms, the identity is still `EX-204::T1::` — already cached — and no audio plays.
 
-## Mock Coverage
+With an alarm time, the second alarm produces a different identity (`EX-204::T1::2026-06-24T10:30:00Z`)
+that was never cached, so audio fires correctly.
 
-The fixture intentionally includes:
+**Consequence if left empty:** the visual still renders and the *first* alarm on each component still
+plays audio. You only lose the audio cue for a **repeat** alarm on the **same** component within one
+uninterrupted session (closing and reopening the report resets the cache). The flashing/solid visual
+alarm is unaffected either way. Bind Comp. Alarm Time for reliable repeat-alarm audio in long-running
+live dashboards.
+
+## Validation rules
+
+- All required roles must be bound.
+- Status values must match one of the six accepted strings.
+- Component must be unique within each machine.
+- Order must be an integer ≥ 1 and unique within the same machine and category.
+- Each machine must have 4–20 tooth rows.
+- Each machine must have exactly `teeth − 1` lip shroud rows.
+- Each machine may have 0–8 wing shroud rows.
+- The visual supports up to 20 machines per data update.
+
+## Fixture coverage
+
+The mock CSV (`test/fixtures/bucket_health_components.csv`) intentionally covers:
 
 - A single-machine alarm scenario with both proximity and movement alarms.
-- Explicit lip shroud rows for every machine.
-- A maximum-geometry machine with 20 teeth, 19 lip shrouds, and 8 wing shrouds.
-- A minimum-geometry machine with 4 teeth, 3 lip shrouds, and no wing shrouds.
-- All six status source values.
+- A maximum-geometry machine: 20 teeth, 19 lip shrouds, 8 wing shrouds.
+- A minimum-geometry machine: 4 teeth, 3 lip shrouds, 0 wing shrouds.
+- All six status values across different machines and components.
+- Explicit alarm_time values on all alarm rows.

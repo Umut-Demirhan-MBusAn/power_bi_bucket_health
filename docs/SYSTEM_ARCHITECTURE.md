@@ -67,58 +67,42 @@ Renderer
 
 ## Proposed Source Structure
 
+As built (the early plan below was consolidated — validation lives in `parseDataView.ts`, status
+metadata/sorting in `statusMeta.ts`, and selection/tooltip wiring in `rendering/` + `visual.ts`,
+rather than in separate `layout/`/`interactions/` directories):
+
 ```text
 src/
   visual.ts
-  capabilities.json
   settings.ts
 
   data/
-    parseDataView.ts
-    validateRoles.ts
+    keys.ts
     normalizeStatus.ts
-    deriveMachines.ts
+    parseDataView.ts        # role validation + row parsing + machine derivation
     types.ts
 
   domain/
-    status.ts
-    alarms.ts
-    sorting.ts
+    statusMeta.ts           # status colours/labels, machine-status precedence
     wingSideAssignment.ts
 
   geometry/
     bucketGeometry.ts
-    toothGeometry.ts
-    lipShroudGeometry.ts
-    wingShroudGeometry.ts
     geometryTypes.ts
 
-  layout/
-    fleetGrid.ts
-    cardSizing.ts
-    viewMode.ts
-
   rendering/
-    renderRoot.ts
+    renderBucketSvg.ts
+    renderEdgeStates.ts
     renderFleet.ts
     renderMachineCard.ts
-    renderBucketSvg.ts
-    renderStates.ts
-    renderTooltip.ts
-    styles.ts
-
-  interactions/
-    selection.ts
-    tooltipService.ts
-    drillNavigation.ts
 
   audio/
-    audioAlarmController.ts
-    webAudioBeep.ts
+    alarmAudio.ts           # WebAudio two-tone beep
+    alarmController.ts      # alarm-id dedup + audio trigger
 
-  test/
-    fixtures.ts
-    sampleData.ts
+capabilities.json
+style/visual.less
+test/unit/                  # status, parser, geometry, wing-side, alarm-controller tests
 ```
 
 ## Data Pipeline
@@ -253,7 +237,7 @@ Responsibilities:
 - Keep audio armed after dismissal.
 - Fire only for a new alarm id while armed (see Alarm Identity Tracker).
 - Suppress audio in loading/error states.
-  *(Reduced motion: the OS prefers-reduced-motion setting is intentionally not honored for alarm flashing, so a system setting cannot silence a safety alarm. An explicit in-visual reducedMotion toggle disables the visual flashing animations only; audio is governed by the audio-enabled setting.)*
+  *(Reduced motion: the **Alarm motion** setting governs flashing — `always` (default) flashes regardless of the OS prefers-reduced-motion setting; `auto` honors it by showing a solid, still-prominent alarm; `never` is always solid. The alarm is never hidden, and audio is governed independently by the audio-enabled setting.)*
 
 ## Rendering Strategy
 
@@ -263,8 +247,8 @@ Rationale:
 
 - The handoff graphics are generated SVG.
 - SVG supports crisp scaling, component hit targets, gradients, filters, and tooltips.
-- Worst-case geometry is moderate: approximately 20 machines and fewer than 1,000 supplied GET
-  component rows.
+- Worst-case geometry is moderate: ~20 machines and ~940 supplied GET component rows, within the
+  2000-row host cap (see [VISUAL_CONTRACT.md › Data Limits](VISUAL_CONTRACT.md#data-limits)).
 - SVG is simpler to test and maintain than WebGL for this front-on technical illustration.
 
 D3 may be used for DOM joins and path updates, but the geometry math should remain framework-agnostic
@@ -272,14 +256,14 @@ pure TypeScript.
 
 ## Formatting Settings Architecture
 
-Formatting model should map directly to the settings in `VISUAL_CONTRACT.md`:
+Formatting model maps directly to the settings in `VISUAL_CONTRACT.md` (three cards only):
 
-- layout
-- bucket
-- ordering
-- status mapping
-- status colors
-- alarm
+- layout (minimum card width)
+- ordering (wing side assignment, teeth & lip order)
+- alarm (enable audio, alarm motion)
+
+There is no `bucket`, `status mapping`, or `status colors` card: geometry is adaptive and status
+strings/colours are fixed.
 
 Settings parsing must produce a typed settings object with defaults. Rendering modules should receive
 the typed settings object, not raw Power BI formatting metadata.

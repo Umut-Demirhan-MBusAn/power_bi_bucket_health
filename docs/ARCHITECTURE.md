@@ -16,21 +16,25 @@ Design source: [design_handoff_bucket_health](design_handoff_bucket_health/READM
 
 ## Proposed Structure
 
+As built:
+
 ```text
 src/
-  visual.ts                 # Power BI IVisual entry point
-  capabilities.json         # Visual capabilities and data roles
-  settings.ts               # Formatting model and settings
+  visual.ts                 # IVisual entry point; host services, selection, keyboard, context menu
+  settings.ts               # Formatting model (layout, ordering, alarm)
+  data/                     # DataView parsing, validation, normalization, status mapping
+  domain/                   # Status metadata/colours and wing-side assignment
+  geometry/                 # Adaptive bucket and GET component SVG geometry
+  rendering/                # SVG/HTML rendering: fleet, machine card, bucket SVG, edge states, tooltip
+  audio/                    # AlarmController + WebAudio beep (AlarmAudio)
 
-  data/                     # DataView parsing, validation, and normalization
-  domain/                   # Domain logic (status, alarms, sorting, wing side assignment)
-  geometry/                 # Adaptive bucket and GET component shape generation
-  layout/                   # Responsive machine-card grid and card sizing
-  rendering/                # SVG/HTML rendering (fleet, machine card, states, tooltips)
-  interactions/             # Selection, tooltips, and drill navigation
-  audio/                    # Audio alarm controller and WebAudio beep generation
-  test/                     # Test helpers, fixtures, and sample data
+capabilities.json           # Data roles, formatting objects, dataView mapping, privileges
+style/visual.less           # Stylesheet (incl. alarm flashing + reduced-motion media query)
+test/unit/                  # Node.js unit tests (no framework, no DOM)
 ```
+
+Layout/card sizing and selection/tooltip wiring live inside `rendering/` and `visual.ts` rather than
+in separate `layout/` or `interactions/` directories.
 
 ## Data Flow
 
@@ -52,14 +56,16 @@ src/
 
 - Primary renderer: SVG-first, matching the handoff prototypes. Canvas or WebGL/Three.js should be
   considered only if SVG fails performance/fidelity tests.
-- Libraries: D3 subpackages may be used for DOM joins/path updates. Geometry math should stay pure
-  TypeScript and framework-agnostic.
+- Libraries: none for rendering — a minimal hand-written DOM/SVG renderer is used (D3 was removed).
+  Geometry math is pure TypeScript and framework-agnostic.
 - Resize strategy: uniform fixed-height cards flex-wrap to fill the available width, each card sized
   to its bucket aspect ratio (more teeth = wider). Scroll overflow appears once the wrapped cards
   exceed the available space; there is no fixed column-count rule.
-- Animation strategy: CSS or renderer-managed flashing for alarm components. The OS
-  `prefers-reduced-motion` setting is intentionally not honored for alarm flashing (safety); only the
-  explicit in-visual reducedMotion toggle softens it.
+- Animation strategy: CSS-driven flashing for alarm components, controlled by the **Alarm motion**
+  setting (`always` / `auto` / `never`). `always` (default) flashes regardless of the OS
+  `prefers-reduced-motion` setting so a safety alarm is never silently suppressed; `auto` honors the
+  OS setting by rendering a solid, still-prominent alarm; `never` is always solid. The alarm is never
+  hidden and audio is independent.
 - Tooltip strategy: a custom themed HTML tooltip element is rendered by the visual itself rather than
   calling the Power BI host tooltip service.
 - Geometry strategy: bucket shape is generated, not a static image. More GET components widen/extend
@@ -99,11 +105,13 @@ src/
 - Avoid full recompute when data/settings/viewport are unchanged.
 - Define high-cardinality limits in `VISUAL_CONTRACT.md`.
 - Measure representative render/update timings before release.
-- Test worst-case expected data: 20 machines and about 940 supplied GET component rows.
+- Test worst-case expected data: 20 machines and ~940 supplied GET component rows (the host row cap
+  is 2000; see [VISUAL_CONTRACT.md › Data Limits](VISUAL_CONTRACT.md#data-limits)).
 
-## Open Architecture Questions
+## Resolved Architecture Questions
 
-- Whether D3 should be used directly or whether a minimal DOM/SVG renderer is enough.
-- Is AppSource certification required?
-- How reliable is audio playback in Power BI Desktop/service without an initial user gesture?
-- Should Power BI selection/cross-filter/drill behavior be implemented in the first build?
+- Renderer: a minimal hand-written DOM/SVG renderer is used; D3 was removed as a dependency.
+- AppSource certification: yes — targeted; see [CERTIFICATION.md](CERTIFICATION.md).
+- Selection / cross-filter / context menu / keyboard navigation: implemented (PR #11).
+- Audio without a user gesture: not possible (browser autoplay policy); audio is armed on the first
+  user click inside the visual.
