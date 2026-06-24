@@ -1,6 +1,6 @@
-import { BucketHealthDataModel, ComponentRecord, MachineBucketModel } from "../data/types";
+import { BucketHealthDataModel, MachineBucketModel } from "../data/types";
 import { isAlarmStatus } from "../data/normalizeStatus";
-import { COMPOSITE_KEY_SEPARATOR } from "../data/keys";
+import { buildCompositeKey } from "../data/keys";
 import { AlarmAudio } from "./alarmAudio";
 
 export interface AlarmSink {
@@ -10,9 +10,8 @@ export interface AlarmSink {
     destroy(): void;
 }
 
-export function buildAlarmId(machineKey: string, componentKey: string, alarmTime: ComponentRecord["alarmTime"]): string {
-    const time = alarmTime === null || alarmTime === undefined ? "" : String(alarmTime);
-    return machineKey + COMPOSITE_KEY_SEPARATOR + componentKey + COMPOSITE_KEY_SEPARATOR + time;
+export function buildAlarmId(machine: string, component: string, time: string | undefined): string {
+    return buildCompositeKey(machine, component, time ?? "");
 }
 
 export function collectAlarmIds(machines: MachineBucketModel[]): Set<string> {
@@ -21,7 +20,10 @@ export function collectAlarmIds(machines: MachineBucketModel[]): Set<string> {
         const all = [...machine.teeth, ...machine.lipShrouds, ...machine.wingShroudsLeft, ...machine.wingShroudsRight];
         all.forEach((component) => {
             if (isAlarmStatus(component.status)) {
-                ids.add(buildAlarmId(machine.key, component.componentKey, component.alarmTime));
+                const alarmTime = component.alarmTime === null || component.alarmTime === undefined
+                    ? undefined
+                    : String(component.alarmTime);
+                ids.add(buildAlarmId(machine.key, component.componentKey, alarmTime));
             }
         });
     });

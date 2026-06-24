@@ -78,7 +78,7 @@ export function renderEdgeState(
             icon.classList.add("bucket-health-state__icon--add");
             title.textContent = "Add data to get started";
             subtitle.textContent = "Bind the required fields in the Fields pane to render machine bucket health.";
-            container.append(icon, title, subtitle, buildFieldList(FIELD_DEFS));
+            container.append(icon, title, subtitle, buildFieldList(FIELD_DEFS), buildAlarmTimeTip());
             break;
 
         case "loading":
@@ -143,6 +143,16 @@ function svgEl(svgString: string): Element {
         return document.createElement("span");
     }
     return root;
+}
+
+// ---- tip builder ------------------------------------------------------------
+
+function buildAlarmTimeTip(): HTMLElement {
+    const tip = document.createElement("p");
+    tip.className = "bh-landing-tip";
+    tip.textContent =
+        "Tip: Also bind Comp. Alarm Time for per-component audio tracking — without it, audio won't re-fire if a component clears and re-alarms in the same session.";
+    return tip;
 }
 
 // ---- list builders ----------------------------------------------------------

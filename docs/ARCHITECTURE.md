@@ -3,7 +3,7 @@
 This file summarizes how the visual will be implemented. The detailed build architecture lives in
 [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md).
 
-Design source: [design_handoff_bucket_health](design_handoff_bucket_health/README.md).
+Design artifacts were removed after implementation was complete. Design decisions are captured in docs/DECISIONS.md.
 
 ## Principles
 
