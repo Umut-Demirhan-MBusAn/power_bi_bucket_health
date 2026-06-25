@@ -25,21 +25,6 @@
       "Bash(pbiviz package:*)",
       "Bash(pbiviz start:*)"
     ],
-    "ask": [
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(npm install:*)",
-      "Bash(npm i:*)",
-      "Bash(npm add:*)",
-      "Bash(npm uninstall:*)",
-      "Bash(npm run deploy:*)",
-      "Bash(pbiviz install-cert:*)",
-      "Bash(pbiviz mcp --init:*)",
-      "Bash(rm:*)",
-      "Bash(rmdir:*)",
-      "Edit(.github/workflows/**)",
-      "Write(.github/workflows/**)"
-    ],
     "deny": [
       "Read(./.env)",
       "Read(./.env.*)",
