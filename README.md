@@ -127,7 +127,7 @@ src/           TypeScript source
   settings.ts  Formatting pane model
   visual.ts    IVisual host contract entry point
 style/         LESS stylesheet
-test/unit/     Node.js unit tests (no framework, no DOM)
+test/unit/     Node.js unit tests (built-in runner; jsdom for rendering tests)
 docs/          Spec, architecture, visual contract, certification guide
 assets/        icon.png
 ```
