@@ -2,7 +2,7 @@
 
 A Power BI custom visual for real-time monitoring of mining excavator bucket GET (Ground Engaging Tools) component health. Each machine is rendered as a responsive schematic bucket with live status colours, alarm prioritisation, audio alerts, and rich tooltips.
 
-![Bucket Health fleet view](photos_for_launch/eight_machines.png)
+![Bucket Health fleet view](photos_for_launch/multiple_machine_alarming.png)
 
 ---
 
@@ -11,7 +11,7 @@ A Power BI custom visual for real-time monitoring of mining excavator bucket GET
 - **Adaptive bucket geometry** — teeth, lip shrouds, and wing shrouds rendered from your actual component counts (4–20 teeth, 0–4 wings per side)
 - **Status colour coding** — six component health states, each with a distinct colour and alarm/no-alarm behaviour (table under [Data schema](#data-schema))
 - **Fleet grid** — up to 20 machines in a responsive flex grid; alarm machines sort to the front with a pulsing red border
-- **Audio alert** — opt-in two-tone beep triggered on fresh alarm transitions, with auto-stop at 60 s
+- **Audio alert** — opt-in two-tone beep triggered on fresh alarm transitions, with auto-stop at 60 s. **Requires DirectQuery or Live Connection** — Import mode data is a static snapshot and does not push updates to the visual automatically, so audio alarms will not fire until a manual refresh.
 - **Rich tooltips** — component name, status, machine, last-seen time, and any extra tooltip columns from your data
 - **Cross-filter & selection** — click a component to cross-filter other visuals on the report page
 - **Context menu** — right-click a component for Power BI's standard drill/filter context menu
@@ -23,9 +23,13 @@ A Power BI custom visual for real-time monitoring of mining excavator bucket GET
 
 ## Screenshots
 
-| Single machine | Fleet (no alarm) | Fleet (alarm active) |
+| Single machine (OK) | Fleet — no alarm | Fleet — alarm active |
 |---|---|---|
-| ![Single](photos_for_launch/no_data_one_machine.png) | ![Fleet](photos_for_launch/four_machines.png) | ![Alarm](photos_for_launch/prox_alarm.png) |
+| ![Single machine OK](photos_for_launch/on_machine_with_ok_status.png) | ![Fleet no alarm](photos_for_launch/no_alarm.png) | ![Fleet alarm](photos_for_launch/fleet_with_one_machine_alarming.png) |
+
+| Component tooltip | Cross-filter selection | Edge state + formatting setup |
+|---|---|---|
+| ![Tooltip](photos_for_launch/tooltips.png) | ![Cross-filter](photos_for_launch/select_component_to_cross_filter.png) | ![Setup](photos_for_launch/no_machines_to_show_and_format_visual_setup.png) |
 
 ---
 
@@ -35,7 +39,9 @@ A Power BI custom visual for real-time monitoring of mining excavator bucket GET
 2. In Power BI Desktop: **Insert → More visuals → Import a visual from a file** → select the `.pbiviz`.
 3. Add the visual to your report page and bind the required fields (see below).
 
-A sample `.pbix` demo report is included at [`bucket_health_example_dashboard.pbix`](bucket_health_example_dashboard.pbix).
+A sample `.pbix` demo report is included at [`example_bucket_health_dashboard.pbix`](example_bucket_health_dashboard.pbix).
+
+> **Import mode and audio alarms:** The example dashboard uses Import mode, which loads a static snapshot of the data. Audio alarms fire when the visual receives a live data update — this happens automatically with **DirectQuery** or **Live Connection** but only on manual refresh with Import mode. For real-time alarm monitoring in production, connect your report with DirectQuery or a live/streaming dataset.
 
 ---
 
