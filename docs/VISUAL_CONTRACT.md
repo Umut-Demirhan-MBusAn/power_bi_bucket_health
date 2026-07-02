@@ -9,7 +9,7 @@ This file defines the contract between Power BI and the visual. Update it before
 - Display name: **Bucket Health**.
 - GUID: `bucketHealthD598C3A88E864DB290BEFCEF7B22DF7B`.
 - API version: `5.11.0`; `powerbi-visuals-tools` `7.1.0`.
-- Package target: AppSource listing + Microsoft certification — see [CERTIFICATION.md](CERTIFICATION.md).
+- Package target: internal organizational visual — see [MAINTENANCE.md](MAINTENANCE.md).
 
 ## Expected Dataset Shape
 
@@ -168,8 +168,8 @@ Audio uses the in-browser WebAudio API, so no host privilege is declared. Becaus
 policies block sound without a user gesture, the audio context is armed/resumed on a user click
 inside the visual before any alarm can play.
 
-The visual targets AppSource listing and Microsoft certification; `privileges` is empty (`[]`) so the
-visual makes no external calls — a prerequisite for certification (see [CERTIFICATION.md](CERTIFICATION.md)).
+`privileges` is empty (`[]`) so the visual makes no external calls — good security posture for an
+internally distributed visual regardless of certification status.
 
 ## Data Limits
 

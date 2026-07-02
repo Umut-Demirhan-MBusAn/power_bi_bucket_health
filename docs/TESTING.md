@@ -31,7 +31,7 @@ npm run build:test && node --test test/unit/*.test.js
 | Fixtures | `test/fixtures/bucket_health_components.csv` — canonical mock data used by `parseDataView` tests |
 
 No test framework (Jest, Vitest, Mocha, etc.) is used. The Node built-in runner keeps the
-dependency surface minimal and matches the project's certification constraints.
+dependency surface minimal.
 
 ---
 
@@ -116,4 +116,5 @@ Behaviors to verify manually:
 - High-contrast theme rendering
 - Alarm motion setting (Always / Auto / Never)
 
-See [`docs/SPEC.md`](SPEC.md) for the full acceptance criteria.
+See [`docs/SPEC.md`](SPEC.md) for the full acceptance criteria and
+[`docs/MAINTENANCE.md`](MAINTENANCE.md) for the release process and version-bump checklist.

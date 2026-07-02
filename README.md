@@ -1,6 +1,8 @@
 # Bucket Health for Power BI
 
-A Power BI custom visual for real-time monitoring of mining excavator bucket GET (Ground Engaging Tools) component health. Each machine is rendered as a responsive schematic bucket with live status colours, alarm prioritisation, audio alerts, and rich tooltips.
+An internal Power BI custom visual for real-time monitoring of mining excavator bucket GET (Ground Engaging Tools) component health. Each machine is rendered as a responsive schematic bucket with live status colours, alarm prioritisation, audio alerts, and rich tooltips.
+
+Distributed only within this organization as an organizational visual (not on AppSource). See [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) for versioning, release, and distribution.
 
 ![Bucket Health fleet view](photos_for_launch/multiple_machine_alarming.png)
 
@@ -35,9 +37,10 @@ A Power BI custom visual for real-time monitoring of mining excavator bucket GET
 
 ## Quick start
 
-1. Download the latest `.pbiviz` from the [Releases](https://github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health/releases) page (or from AppSource once published).
-2. In Power BI Desktop: **Insert → More visuals → Import a visual from a file** → select the `.pbiviz`.
-3. Add the visual to your report page and bind the required fields (see below).
+The visual is deployed org-wide as an organizational visual — most report authors just add it from
+**Insert → More visuals → My organization** and bind the required fields (see below); no file
+import needed. See [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) for how new versions reach that
+store, and for the one-off `.pbiviz` import path used for local development/testing.
 
 A sample `.pbix` demo report is included at [`example_bucket_health_dashboard.pbix`](example_bucket_health_dashboard.pbix).
 
@@ -94,11 +97,10 @@ See **[`docs/DATA_SCHEMA.md`](docs/DATA_SCHEMA.md)** for the full schema: exact 
 
 ---
 
-## Support & links
+## Support
 
-- **Bugs / feature requests:** [GitHub Issues](https://github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health/issues)
-- **Support page:** [https://umut-demirhan-mbusan.github.io/power_bi_bucket_health/support.html](https://umut-demirhan-mbusan.github.io/power_bi_bucket_health/support.html)
-- **Privacy policy:** [https://umut-demirhan-mbusan.github.io/power_bi_bucket_health/privacy-policy.html](https://umut-demirhan-mbusan.github.io/power_bi_bucket_health/privacy-policy.html)
+Bugs and feature requests are tracked as Azure DevOps work items alongside the rest of the org's
+project work. See [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) for ownership and support scope.
 
 ---
 
@@ -106,8 +108,8 @@ See **[`docs/DATA_SCHEMA.md`](docs/DATA_SCHEMA.md)** for the full schema: exact 
 
 Requires Node.js ≥ 20.19 (see `.nvmrc`) and the `pbiviz` CLI installed globally:
 `npm install -g powerbi-visuals-tools@7.1.0` (the version CI pins). It is deliberately **not** a
-devDependency — its webpack-dev-server tree carries `npm audit` findings, and AppSource
-certification requires this repo's audit to be clean.
+devDependency — its webpack-dev-server tree carries `npm audit` findings, and this repo keeps its
+audit clean regardless of distribution model.
 
 ```bash
 # Install dependencies
@@ -140,16 +142,16 @@ src/           TypeScript source
   visual.ts    IVisual host contract entry point
 style/         LESS stylesheet
 test/unit/     Node.js unit tests (built-in runner; jsdom for rendering tests)
-docs/          Product spec, architecture, visual contract, data schema, testing,
-               certification guide, privacy/support pages
+docs/          Product spec, architecture, visual contract, data schema, testing, maintenance
 scripts/       gen-icon.js (regenerates assets/icon.png), validate-mock-data.ps1
 assets/        icon.png (generated — run `node scripts/gen-icon.js`, don't hand-edit),
                icon.svg (hand-maintained vector, not an input to the script)
 ```
 
-### Certification
+### Versioning & releases
 
-This visual targets [Microsoft AppSource certification](https://learn.microsoft.com/en-us/power-bi/developer/visuals/power-bi-custom-visuals-certified). See [`docs/CERTIFICATION.md`](docs/CERTIFICATION.md) for the full submission checklist and status.
+See [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) for the version-bump rules, release process, and
+how a new build reaches the organizational visual store.
 
 ## License
 

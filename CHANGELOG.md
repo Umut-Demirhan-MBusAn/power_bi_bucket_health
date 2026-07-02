@@ -1,6 +1,8 @@
 # Changelog
 
-Versions follow the four-part `pbiviz.json` scheme required by AppSource.
+Versions follow Power BI's mandatory four-part `pbiviz.json` scheme (`MAJOR.MINOR.PATCH.0`). See
+[`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) for what triggers each segment and the release
+process.
 
 ## 1.0.0.0 — 2026-07-02
 

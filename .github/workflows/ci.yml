@@ -2,6 +2,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*.*.*.*"]
   pull_request:
     branches: [main]
 jobs:
@@ -15,7 +16,7 @@ jobs:
           cache: npm
       - run: npm ci
       # pbiviz stays a global install (not a devDependency): its webpack-dev-server tree
-      # carries audit findings, and certification requires a clean `npm audit` for this repo.
+      # carries audit findings, and this repo keeps its audit clean regardless.
       - run: npm install -g powerbi-visuals-tools@7.1.0
       - run: npm run build:test
       - run: node --test test/unit/*.test.js
@@ -26,3 +27,61 @@ jobs:
         with:
           name: pbiviz-package
           path: dist/*.pbiviz
+
+  # Publishes the built .pbiviz to the org's Azure Artifacts Universal Packages feed on every
+  # version tag (vMAJOR.MINOR.PATCH.0, matching pbiviz.json). See docs/MAINTENANCE.md for the
+  # release process — a tenant admin still has to manually upload the downloaded artifact to the
+  # Power BI organizational visual store; there is no API to do that step from CI.
+  #
+  # Requires these repo secrets/variables (see docs/MAINTENANCE.md § One-time Azure DevOps setup):
+  #   secret   AZURE_DEVOPS_PAT      — PAT scoped to Packaging: Read, write, & manage
+  #   variable AZURE_DEVOPS_ORG     — e.g. https://dev.azure.com/<org>
+  #   variable AZURE_DEVOPS_PROJECT
+  #   variable AZURE_ARTIFACTS_FEED
+  release:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate tag matches vMAJOR.MINOR.PATCH.0
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Malformed tag: $GITHUB_REF_NAME (expected vMAJOR.MINOR.PATCH.0)"
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm install -g powerbi-visuals-tools@7.1.0
+      - run: npm run build:test
+      - run: node --test test/unit/*.test.js
+      - run: npm run eslint
+      - run: npm audit --audit-level=moderate
+      - run: npm run package
+      - name: Stage package for Universal Packages publish
+        run: |
+          mkdir -p release-artifact
+          cp dist/*.pbiviz release-artifact/
+      - name: Derive Universal Packages version (3-part SemVer) from the tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"     # e.g. 1.1.0.0
+          SEMVER="${TAG%.*}"              # drop the trailing .0 -> 1.1.0
+          echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
+      - name: Publish to Azure Artifacts
+        env:
+          AZURE_DEVOPS_EXT_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
+        run: |
+          az extension add --name azure-devops --only-show-errors
+          az artifacts universal publish \
+            --organization "${{ vars.AZURE_DEVOPS_ORG }}" \
+            --project "${{ vars.AZURE_DEVOPS_PROJECT }}" \
+            --scope project \
+            --feed "${{ vars.AZURE_ARTIFACTS_FEED }}" \
+            --name bucket-health-pbiviz \
+            --version "${{ steps.version.outputs.semver }}" \
+            --path release-artifact \
+            --description "Bucket Health ${{ github.ref_name }}"
