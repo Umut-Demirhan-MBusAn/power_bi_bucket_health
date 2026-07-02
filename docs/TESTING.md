@@ -13,7 +13,10 @@ runs all test files with Node's built-in test runner:
 npm run build:test && node --test test/unit/*.test.js
 ```
 
-**Current count: 91 tests, 0 failures.**
+`npm run test:coverage` runs the same suite with Node's built-in coverage reporter
+(`--experimental-test-coverage`).
+
+**Current count: 99 tests, 0 failures.**
 
 ---
 
@@ -62,6 +65,7 @@ changes were needed — the rendering modules call the global `document` directl
 | `renderEdgeStates.test.js` | `src/rendering/renderEdgeStates` | All 5 non-ready states (`noFields`, `loading`, `invalidConfig`, `noData`, `error`); missing-role display-name mapping; unknown-role raw-string fallback; `invalidConfig` with empty roles, detail-only, and neither; error code `ERR ·` prefix; error-without-detail path; alarm-time tip; field-list item count |
 | `renderMachineCard.test.js` | `src/rendering/renderMachineCard` | OK / alarm / no-data card classes and badges; alarm banner move-only, prox-only, and both; `Lip` and `Wing` component label prefixes; tooth/lip/wing meta text counts; no-data `aria-label` (`"No Data (1h)"`); min-width style; high-contrast foreground vs foregroundSelected border color (exact `rgb()` values) |
 | `renderFleet.test.js` | `src/rendering/renderFleet` | Truncation banner present/absent; single-machine `--single` grid modifier; multi-machine plain grid class; card count; empty machines array |
+| `renderBucketSvg.test.js` | `src/rendering/renderBucketSvg` | SVG root viewBox/role/aria-label; per-status component fills; component data attributes and keyboard/a11y attributes; center alarm shown for alarm machines and hidden otherwise; high-contrast fills/strokes for decorative shell and components (alarm vs non-alarm stroke); gradient ids sanitized from the machine key |
 
 ---
 
@@ -71,6 +75,12 @@ changes were needed — the rendering modules call the global `document` directl
 machines with a realistic mix of component types and statuses, including alarm states. The
 `parseDataView` tests use it as a round-trip integration fixture.
 
+The fixture can be schema-validated with `scripts/validate-mock-data.ps1` (PowerShell; its default
+`-Path` is the fixture — also exposed as `npm run validate:fixtures`). It enforces the exact
+expected column set: `machine_key`, `machine_name`, `machine_type`, `component_key`,
+`component_name`, `component_category`, `component_order`, `status`, `last_seen_utc`, `tag_id`,
+`alarm_time` — and errors on missing or unexpected columns.
+
 ---
 
 ## What is not unit-tested
@@ -79,14 +89,24 @@ machines with a realistic mix of component types and statuses, including alarm s
 |---|---|
 | `src/visual.ts` | Power BI host entry point — tightly coupled to the `IVisual` host interface; no practical way to unit-test without a full PBI host |
 | `src/settings.ts` | Purely declarative Power BI formatting-model configuration; no logic to exercise |
-| `src/rendering/renderBucketSvg.ts` | Mostly mechanical SVG attribute setting; meaningful branches (high-contrast color switching, center alarm visible/hidden) have low regression risk and are verified visually via Developer Visual |
 
 ---
 
 ## Manual testing
 
 Unit tests verify logic and DOM structure. These behaviors require manual verification in Power BI
-Desktop using `pbiviz start` (Developer Visual mode):
+Desktop using `pbiviz start` (Developer Visual mode).
+
+Setup notes for `pbiviz start`:
+
+- Developer mode must be enabled first. In Power BI Desktop it must be re-enabled for each session
+  where the local Developer Visual is used; in the Power BI service the custom-visual developer
+  mode setting must be enabled before the Developer Visual appears.
+- pbiviz serves the Developer Visual over a self-signed localhost certificate. If Power BI shows a
+  localhost connection error, open `https://localhost:8080/assets` in the same browser and
+  accept/trust the certificate (on Windows the cert can be trusted in `Cert:\CurrentUser\Root`).
+
+Behaviors to verify manually:
 
 - Audio alarm arm, fire, and auto-stop at 60 s
 - Alarm dismissal and re-alarm within a session

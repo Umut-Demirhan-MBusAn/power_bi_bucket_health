@@ -24,7 +24,7 @@ Certification requires the visual to be (or be in the process of being) publishe
 | No external services/resources (no HTTP/S, WebSocket) | ✅ | No network calls; only the SVG XML namespace URI. |
 | `WebAccess` privileges empty/omitted | ✅ | `capabilities.json` → `"privileges": []`. |
 | No `XMLHttpRequest` / `fetch` | ✅ | None in `src/`. |
-| No `innerHTML` / `D3.html(user data)` | ✅ | DOM built with `createElement` + `textContent` (auto-escaped). |
+| No `innerHTML` / `D3.html(user data)` | ✅ | DOM built with `createElement` + `textContent` (auto-escaped). The five static edge-state icons are parsed from hardcoded SVG string constants via `DOMParser` — no user data flows into them. |
 | No `eval` / `Function` / unsafe timers on user input | ✅ | `setInterval`/`setTimeout` use fixed callbacks (alarm audio), not user data. |
 | No console errors/exceptions for any input | ✅ (code) ⚠️ (verify) | `update()` is wrapped in try/catch with an error state. Verify across edge data in Desktop. |
 | No minified source | ✅ | Source is plain TS; `pbiviz` bundles. |
@@ -38,10 +38,10 @@ Certification requires the visual to be (or be in the process of being) publishe
 | `pbiviz package --certification-audit` clean | ✅ | No unsafe calls flagged. |
 | ESLint (powerbi-visuals config) → no errors | ✅ | `npm run eslint` exits 0. |
 | Use the **latest** API + powerbi-visuals-tools | ✅ | API `5.11.0`, tools `7.1.0` — confirmed current on npm as of 2026-06-23. |
-| GitHub branch named `certification` matching the submitted package | ❌ TODO | Create at submission time (see below). |
+| GitHub branch named `certification` matching the submitted package | ✅ | Branch exists locally and on origin. Re-point it at the exact submitted commit before each submission. |
 
 **Bottom line:** the code already satisfies the safety/structure rules that are the core of certification.
-The remaining hard items are paperwork/process (cert branch, possibly an API bump), not code rewrites.
+What remains is submission paperwork on Partner Center, not code rewrites.
 
 ## Recommended quality features (the "full on" list)
 
@@ -97,7 +97,7 @@ contain **only this one visual**.
 ### 3. Marketing/submission assets (required for AppSource)
 - Visual **icon** (have `assets/icon.png` — confirm it meets size specs)
 - **5+ screenshots** of the visual in a report
-- A **sample `.pbix`** report demonstrating the visual (you'll build this in Desktop with the fixture)
+- A **sample `.pbix`** report demonstrating the visual — ✅ have `example_bucket_health_dashboard.pbix` in the repo root
 - **Description** that lists supported features (mention high contrast, tooltips, drill where applicable)
 - **Privacy policy URL** (required)
 - **Support URL / contact**
@@ -109,16 +109,15 @@ Follow Partner Center → create a "Power BI visual" offer → upload the `.pbiv
 the assets above → submit. New visuals appear on AppSource within hours and reach Desktop/Service in
 ~10–14 days.
 
-### 5. Create the `certification` branch
-When the submitted package is final, create a branch named **`certification`** (lowercase) whose code
-matches the submitted `.pbiviz` exactly:
+### 5. Update the `certification` branch
+The branch **`certification`** already exists on origin. Before each submission, re-point it at
+the exact commit that produced the submitted `.pbiviz`:
 ```
-git checkout main
-git pull
-git checkout -b certification
-git push -u origin certification
+git checkout certification
+git merge --ff-only main   # or: git reset --hard <submitted commit>
+git push origin certification
 ```
-Only update this branch on your next submission.
+Only update this branch when you submit.
 
 ### 6. Request certification + provide source access
 In Partner Center → your visual → **Product setup** → check **Request Power BI certification** →
@@ -144,8 +143,8 @@ npm test                        # unit tests
 ## Remaining engineering work
 
 All recommended quality features (high contrast, context menu, selection / cross-filtering, keyboard
-navigation + focus + ARIA) and the landing page were completed in PR #11 and PR #13 — see the status
-table above and `BACKLOG.md` (PBH-018). The only remaining engineering step before submission is:
+navigation + focus + ARIA) and the landing page are complete — see the status table above. The only
+remaining engineering step before submission is:
 
 1. **Smoke-test** all features in the Power BI Developer Visual (audio gesture, selection, keyboard,
    high contrast, context menu), confirm the sample `.pbix` renders, then submit on Partner Center.

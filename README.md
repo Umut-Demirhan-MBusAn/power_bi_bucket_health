@@ -11,7 +11,7 @@ A Power BI custom visual for real-time monitoring of mining excavator bucket GET
 - **Adaptive bucket geometry** — teeth, lip shrouds, and wing shrouds rendered from your actual component counts (4–20 teeth, 0–4 wings per side)
 - **Status colour coding** — six component health states, each with a distinct colour and alarm/no-alarm behaviour (table under [Data schema](#data-schema))
 - **Fleet grid** — up to 20 machines in a responsive flex grid; alarm machines sort to the front with a pulsing red border
-- **Audio alert** — opt-in two-tone beep triggered on fresh alarm transitions, with auto-stop at 60 s. **Requires DirectQuery or Live Connection** — Import mode data is a static snapshot and does not push updates to the visual automatically, so audio alarms will not fire until a manual refresh.
+- **Audio alert** — two-tone beep triggered on fresh alarm transitions (enabled by default; toggle in the Formatting pane), with auto-stop at 60 s. **Requires DirectQuery or Live Connection** — Import mode data is a static snapshot and does not push updates to the visual automatically, so audio alarms will not fire until a manual refresh.
 - **Rich tooltips** — component name, status, machine, last-seen time, and any extra tooltip columns from your data
 - **Cross-filter & selection** — click a component to cross-filter other visuals on the report page
 - **Context menu** — right-click a component for Power BI's standard drill/filter context menu
@@ -104,18 +104,24 @@ See **[`docs/DATA_SCHEMA.md`](docs/DATA_SCHEMA.md)** for the full schema: exact 
 
 ## Development
 
+Requires Node.js ≥ 20.19 (see `.nvmrc`) and the `pbiviz` CLI installed globally:
+`npm install -g powerbi-visuals-tools@7.1.0` (the version CI pins). It is deliberately **not** a
+devDependency — its webpack-dev-server tree carries `npm audit` findings, and AppSource
+certification requires this repo's audit to be clean.
+
 ```bash
 # Install dependencies
 npm install
 
 # Start local developer visual (Power BI Developer Visual)
-npm run start        # or: pbiviz start
+npm run start
 
-# Run unit tests
+# Run unit tests (add coverage with npm run test:coverage)
 npm test
 
 # Lint
-npm run eslint
+npm run eslint       # ESLint with the powerbi-visuals config
+npm run lint         # pbiviz lint
 
 # Package for distribution
 npm run package      # produces dist/*.pbiviz
@@ -134,10 +140,17 @@ src/           TypeScript source
   visual.ts    IVisual host contract entry point
 style/         LESS stylesheet
 test/unit/     Node.js unit tests (built-in runner; jsdom for rendering tests)
-docs/          Spec, architecture, visual contract, certification guide
-assets/        icon.png
+docs/          Product spec, architecture, visual contract, data schema, testing,
+               certification guide, privacy/support pages
+scripts/       gen-icon.js (regenerates assets/icon.png), validate-mock-data.ps1
+assets/        icon.png (generated — run `node scripts/gen-icon.js`, don't hand-edit),
+               icon.svg (hand-maintained vector, not an input to the script)
 ```
 
 ### Certification
 
 This visual targets [Microsoft AppSource certification](https://learn.microsoft.com/en-us/power-bi/developer/visuals/power-bi-custom-visuals-certified). See [`docs/CERTIFICATION.md`](docs/CERTIFICATION.md) for the full submission checklist and status.
+
+## License
+
+[MIT](LICENSE) © Umut Demirhan. Version history is in the [CHANGELOG](CHANGELOG.md).

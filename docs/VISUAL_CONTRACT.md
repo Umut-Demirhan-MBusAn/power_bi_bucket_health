@@ -3,9 +3,6 @@
 This file defines the contract between Power BI and the visual. Update it before changing
 `capabilities.json`, formatting settings, selections, privileges, or host interactions.
 
-Design source: [design_handoff_bucket_health](design_handoff_bucket_health/README.md) and
-[IMPLEMENTATION.md](design_handoff_bucket_health/IMPLEMENTATION.md).
-
 ## Visual Identity
 
 - Visual name: `bucketHealth` (internal `name` in `pbiviz.json`).
@@ -25,10 +22,14 @@ scaffolded.
 
 Counts are derived from component rows:
 
-- Teeth = count of `category = tooth` rows for the machine, clamped to 4-20.
+- Teeth = count of `category = tooth` rows for the machine; must be 4-20. Out-of-range counts are
+  rejected — the whole data view renders the error state (the geometry engine's 4-20 clamp exists
+  only as defense-in-depth behind that validation).
 - Lip shrouds = count of `category = lipShroud` rows for the machine; count must equal `teeth - 1`.
-- Wing shrouds = count of `category = wingShroud` rows, up to 8 total. Left/right side is derived
-  from `order` using a visual formatting setting, not from a source data column.
+- Wing shrouds = count of `category = wingShroud` rows, up to 8 total (only the total is
+  validated). Left/right side is derived from `order` using a visual formatting setting, not from
+  a source data column, so an uneven split can put more than 4 on one side; the geometry height
+  accommodates up to 4 per side.
 
 ## Data Roles
 
@@ -38,8 +39,8 @@ Counts are derived from component rows:
 | machineType | Grouping | No | Human-readable machine class or model label (e.g. "Hydraulic Excavator"). Shown in the card header below the machine name. | Displayed below the machine name in the card header. Omit if not applicable. |
 | component | Grouping | Yes | The component's name, unique within its machine. Identifies a single tooth, lip shroud, or wing shroud. Used for rendering, tooltip, cross-filter selection, and alarm transition detection. Must be stable across refreshes — changing this value resets alarm history for that component. | Must be unique within each machine. |
 | category | Grouping | Yes | GET component type. Determines where on the bucket schematic the component is drawn. | Must be one of: `tooth`, `lipShroud`, `wingShroud`. |
-| order | Measure or Grouping | Yes | Integer position of this component within its category, starting at 1. For teeth and lip shrouds, 1 is the leftmost position. For wing shrouds, left/right side is inferred from this value by the Wing side assignment formatting setting — there is no left/right column in the data. | Integer ≥ 1. Must be unique within the same machine and category. |
-| status | Grouping or Measure | Yes | Current health status of the component. Must match one of the six accepted status strings (case-insensitive). | Maps to the status model below. |
+| order | Measure or Grouping | Yes | Integer position of this component within its category, starting at 1. For teeth and lip shrouds, 1 is the leftmost position under the default **Teeth & lip order** setting (right-to-left flips it). For wing shrouds, left/right side is inferred from this value by the Wing side assignment formatting setting — there is no left/right column in the data. | Integer ≥ 1 (validated). Duplicate order values within a machine+category are not rejected — they tie-break by source row order — but unique values are strongly recommended for a deterministic layout. |
+| status | Grouping or Measure | Yes | Current health status of the component. Must match one of the accepted status spellings (case-insensitive; several inputs per canonical status — see [DATA_SCHEMA.md › Status values](DATA_SCHEMA.md#status-values)). | Maps to the status model below. |
 | alarmTime | Grouping or Measure | No (recommended) | Timestamp when this component entered its current alarm state. The visual builds an alarm identity from machine + component + alarmTime. Audio fires exactly once per unique identity and is permanently cached for the session. The visual renders normally without it; **without it, a component that clears and re-alarms in the same session will not trigger audio a second time** because the identity never changes. Strongly recommended for live dashboards. Leave null/blank for non-alarm rows. | ISO 8601 datetime string or datetime value. Must be null/blank for non-alarm rows. |
 | lastSeen | Grouping or Measure | No | Timestamp of the last data receipt for this component. Displayed in the component tooltip as a full local date and time. | — |
 | tooltipFields | Measure, multiple | No | Additional report-author-selected columns appended to the component tooltip after the standard fields. Multiple columns can be bound. | — |
@@ -55,8 +56,9 @@ Counts are derived from component rows:
 | Proximity alarm | `prox` | `#FF5A5A` | Yes | Yes, on transition |
 | Movement alarm | `move` | `#C42B4A` | Yes | Yes, on transition |
 
-Precedence for multiple statuses on one component: movement > proximity > lockout+nodata > lockout >
-nodata > ok.
+Each component carries exactly one status — duplicate component rows are rejected as an error, so
+no per-component precedence is ever applied. At machine level the frame/badge status reduces as:
+any movement alarm > any proximity alarm > all-components no-data (nodata/lockoutnd) > ok.
 
 Component stroke = component fill mixed 42% toward black.
 
@@ -76,6 +78,9 @@ parser should still normalize to component records.
 
 ## Internal Normalized Model
 
+As defined in [`src/data/types.ts`](../src/data/types.ts) (`PrimitiveValue` is the Power BI host
+value type):
+
 ```ts
 type BucketStatusKey =
   | "ok"
@@ -87,13 +92,16 @@ type BucketStatusKey =
 
 interface ComponentRecord {
   machineKey: string;
+  machineType?: string;
   componentKey: string;
   category: "tooth" | "lipShroud" | "wingShroud";
   order: number;
   derivedWingSide?: "left" | "right";
   status: BucketStatusKey;
-  lastSeen?: Date | string;
-  tooltipFields: Array<{ label: string; value: unknown }>;
+  lastSeen?: PrimitiveValue;
+  alarmTime?: PrimitiveValue;   // feeds the alarm identity (machine + component + alarmTime)
+  tooltipFields: Array<{ label: string; value: PrimitiveValue }>;
+  sourceOrder: number;          // original row index; tie-breaker for sorting
 }
 
 interface MachineBucketModel {
@@ -107,6 +115,7 @@ interface MachineBucketModel {
   alarmCount: number;
   hasAlarm: boolean;
   dominantAlarm?: "prox" | "move";
+  sourceOrder: number;
 }
 ```
 
@@ -135,8 +144,9 @@ is fully adaptive (not author-configurable), and status strings/colours are fixe
 - Highlight: alarm highlight is visual-owned; alarming machines flash/solid and sort to the front.
 - Tooltip: the visual renders its own custom themed HTML tooltip rather than calling the Power BI
   host tooltip service. It shows the component label, a human-readable status, the machine, the full
-  local Last seen date and time, and the bound tooltip fields. The official tooltip API and report
-  page tooltips are not used (see [DECISIONS.md](DECISIONS.md)).
+  local Last seen date and time, and the bound tooltip fields. The host tooltip service was
+  deliberately rejected because its styling cannot be themed to match the visual's design, so the
+  visual owns tooltip positioning, theming, and content; report-page tooltips are not used.
 - Sorting: alarm priority overrides base order in fleet view (movement before proximity, then alarm
   count, then source order). Ties keep source order.
 - Context menu: right-click opens the Power BI default context menu via
@@ -163,7 +173,8 @@ visual makes no external calls — a prerequisite for certification (see [CERTIF
 
 ## Data Limits
 
-- Maximum machines: 20.
+- Machines: 20 is the design/performance target. The machine count itself is not validated — the
+  effective ceiling is the 2000-row host cap below.
 - Teeth per machine: 4 to 20.
 - Lip shrouds per machine: supplied rows equal to `teeth - 1`.
 - Wing shrouds per machine: 0 to 8 total, assigned to sides by visual settings.
@@ -178,19 +189,19 @@ visual makes no external calls — a prerequisite for certification (see [CERTIF
 All geometry is front-on parametric SVG. Component sizes are fixed in SVG user units; the bucket
 scales around them.
 
-Constants from handoff:
+Constants (SVG user units):
 
 ```text
-SLOT       = 66
-TOOTH_W    = 36
-TOOTH_H    = 62
-LIP_W      = 22
-LIP_H      = 24
-WING_HL    = 24
-WING_IN    = 11
-WING_OUT   = 14
-WING_PITCH = 56
-MARGIN     = 72
+SLOT       = 66   # tooth slot width (per-tooth pitch along the cutting edge)
+TOOTH_W    = 36   # tooth width
+TOOTH_H    = 62   # tooth height
+LIP_W      = 22   # lip shroud width
+LIP_H      = 24   # lip shroud height
+WING_HL    = 24   # wing shroud horizontal half-length
+WING_IN    = 11   # wing shroud inner offset
+WING_OUT   = 14   # wing shroud outer offset
+WING_PITCH = 56   # wing shroud vertical pitch along the bucket side
+MARGIN     = 72   # left/right margin around the bucket
 ```
 
 For teeth count `n` and wings per side `w`:
@@ -222,14 +233,16 @@ Geometry rules:
 
 ## Validation Checklist
 
-- [ ] Every formatting descriptor exists in `capabilities.json`.
-- [ ] Empty/missing data views are handled.
-- [ ] Invalid field assignments show useful guidance.
-- [ ] Selection IDs are built from the correct data view shape.
-- [ ] Privileges match actual behavior.
-- [ ] High-cardinality behavior is explicit.
-- [ ] Alarm transition detection has a deterministic key per component.
-- [ ] Audio dismissal state does not suppress visual alarm highlighting.
-- [ ] Layout has tested minimum card dimensions and overflow behavior.
-- [ ] Bucket geometry adapts to GET counts without overlapping components.
-- [ ] Component geometry remains legible at minimum supported card size.
+Re-verify when changing `capabilities.json`, settings, or interactions (all hold as of v1.0.0.0):
+
+- [x] Every formatting descriptor exists in `capabilities.json`.
+- [x] Empty/missing data views are handled.
+- [x] Invalid field assignments show useful guidance.
+- [x] Selection IDs are built from the correct data view shape.
+- [x] Privileges match actual behavior.
+- [x] High-cardinality behavior is explicit.
+- [x] Alarm transition detection has a deterministic key per component.
+- [x] Audio dismissal state does not suppress visual alarm highlighting.
+- [x] Layout has tested minimum card dimensions and overflow behavior.
+- [x] Bucket geometry adapts to GET counts without overlapping components.
+- [x] Component geometry remains legible at minimum supported card size.
