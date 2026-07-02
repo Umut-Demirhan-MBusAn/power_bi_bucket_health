@@ -1,8 +1,7 @@
 # Changelog
 
-Versions follow Power BI's mandatory four-part `pbiviz.json` scheme (`MAJOR.MINOR.PATCH.0`). See
-[`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) for what triggers each segment and the release
-process.
+Four-part `MAJOR.MINOR.PATCH.0` versions — bump rules and release process:
+[`docs/MAINTENANCE.md`](docs/MAINTENANCE.md).
 
 ## 1.0.0.0 — 2026-07-02
 

@@ -28,16 +28,8 @@ jobs:
           name: pbiviz-package
           path: dist/*.pbiviz
 
-  # Publishes the built .pbiviz to the org's Azure Artifacts Universal Packages feed on every
-  # version tag (vMAJOR.MINOR.PATCH.0, matching pbiviz.json). See docs/MAINTENANCE.md for the
-  # release process — a tenant admin still has to manually upload the downloaded artifact to the
-  # Power BI organizational visual store; there is no API to do that step from CI.
-  #
-  # Requires these repo secrets/variables (see docs/MAINTENANCE.md § One-time Azure DevOps setup):
-  #   secret   AZURE_DEVOPS_PAT      — PAT scoped to Packaging: Read, write, & manage
-  #   variable AZURE_DEVOPS_ORG     — e.g. https://dev.azure.com/<org>
-  #   variable AZURE_DEVOPS_PROJECT
-  #   variable AZURE_ARTIFACTS_FEED
+  # Publishes the .pbiviz to Azure Artifacts on version tags (vMAJOR.MINOR.PATCH.0).
+  # Release process and required secrets/variables: docs/MAINTENANCE.md.
   release:
     needs: test
     if: startsWith(github.ref, 'refs/tags/v')

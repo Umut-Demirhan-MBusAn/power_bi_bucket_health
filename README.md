@@ -2,7 +2,7 @@
 
 An internal Power BI custom visual for real-time monitoring of mining excavator bucket GET (Ground Engaging Tools) component health. Each machine is rendered as a responsive schematic bucket with live status colours, alarm prioritisation, audio alerts, and rich tooltips.
 
-Distributed only within this organization as an organizational visual (not on AppSource). See [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) for versioning, release, and distribution.
+Developed by **Umut Demirhan**. Distributed internally as an organizational visual (not on AppSource) — versioning, releases, and distribution: [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md).
 
 ![Bucket Health fleet view](photos_for_launch/multiple_machine_alarming.png)
 
@@ -37,10 +37,8 @@ Distributed only within this organization as an organizational visual (not on Ap
 
 ## Quick start
 
-The visual is deployed org-wide as an organizational visual — most report authors just add it from
-**Insert → More visuals → My organization** and bind the required fields (see below); no file
-import needed. See [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) for how new versions reach that
-store, and for the one-off `.pbiviz` import path used for local development/testing.
+Add the visual from **Insert → More visuals → My organization** and bind the required fields
+(see below).
 
 A sample `.pbix` demo report is included at [`example_bucket_health_dashboard.pbix`](example_bucket_health_dashboard.pbix).
 
@@ -99,17 +97,15 @@ See **[`docs/DATA_SCHEMA.md`](docs/DATA_SCHEMA.md)** for the full schema: exact 
 
 ## Support
 
-Bugs and feature requests are tracked as Azure DevOps work items alongside the rest of the org's
-project work. See [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) for ownership and support scope.
+Bugs and feature requests → Azure DevOps work items. Developer/maintainer: **Umut Demirhan**.
 
 ---
 
 ## Development
 
-Requires Node.js ≥ 20.19 (see `.nvmrc`) and the `pbiviz` CLI installed globally:
-`npm install -g powerbi-visuals-tools@7.1.0` (the version CI pins). It is deliberately **not** a
-devDependency — its webpack-dev-server tree carries `npm audit` findings, and this repo keeps its
-audit clean regardless of distribution model.
+Requires Node.js ≥ 20.19 (see `.nvmrc`) and the `pbiviz` CLI:
+`npm install -g powerbi-visuals-tools@7.1.0` (kept global, not a devDependency — its dependency
+tree fails `npm audit`).
 
 ```bash
 # Install dependencies
@@ -148,10 +144,7 @@ assets/        icon.png (generated — run `node scripts/gen-icon.js`, don't han
                icon.svg (hand-maintained vector, not an input to the script)
 ```
 
-### Versioning & releases
-
-See [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) for the version-bump rules, release process, and
-how a new build reaches the organizational visual store.
+Versioning, releases, and deployment: [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md).
 
 ## License
 
