@@ -1,6 +1,8 @@
 # Bucket Health for Power BI
 
-A Power BI custom visual for real-time monitoring of mining excavator bucket GET (Ground Engaging Tools) component health. Each machine is rendered as a responsive schematic bucket with live status colours, alarm prioritisation, audio alerts, and rich tooltips.
+An internal Power BI custom visual for real-time monitoring of mining excavator bucket GET (Ground Engaging Tools) component health. Each machine is rendered as a responsive schematic bucket with live status colours, alarm prioritisation, audio alerts, and rich tooltips.
+
+Developed by **Umut Demirhan**. Distributed internally as an organizational visual (not on AppSource) — versioning, releases, and distribution: [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md).
 
 ![Bucket Health fleet view](photos_for_launch/multiple_machine_alarming.png)
 
@@ -11,7 +13,7 @@ A Power BI custom visual for real-time monitoring of mining excavator bucket GET
 - **Adaptive bucket geometry** — teeth, lip shrouds, and wing shrouds rendered from your actual component counts (4–20 teeth, 0–4 wings per side)
 - **Status colour coding** — six component health states, each with a distinct colour and alarm/no-alarm behaviour (table under [Data schema](#data-schema))
 - **Fleet grid** — up to 20 machines in a responsive flex grid; alarm machines sort to the front with a pulsing red border
-- **Audio alert** — opt-in two-tone beep triggered on fresh alarm transitions, with auto-stop at 60 s. **Requires DirectQuery or Live Connection** — Import mode data is a static snapshot and does not push updates to the visual automatically, so audio alarms will not fire until a manual refresh.
+- **Audio alert** — two-tone beep triggered on fresh alarm transitions (enabled by default; toggle in the Formatting pane), with auto-stop at 60 s. **Requires DirectQuery or Live Connection** — Import mode data is a static snapshot and does not push updates to the visual automatically, so audio alarms will not fire until a manual refresh.
 - **Rich tooltips** — component name, status, machine, last-seen time, and any extra tooltip columns from your data
 - **Cross-filter & selection** — click a component to cross-filter other visuals on the report page
 - **Context menu** — right-click a component for Power BI's standard drill/filter context menu
@@ -35,9 +37,8 @@ A Power BI custom visual for real-time monitoring of mining excavator bucket GET
 
 ## Quick start
 
-1. Download the latest `.pbiviz` from the [Releases](https://github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health/releases) page (or from AppSource once published).
-2. In Power BI Desktop: **Insert → More visuals → Import a visual from a file** → select the `.pbiviz`.
-3. Add the visual to your report page and bind the required fields (see below).
+Add the visual from **Insert → More visuals → My organization** and bind the required fields
+(see below).
 
 A sample `.pbix` demo report is included at [`example_bucket_health_dashboard.pbix`](example_bucket_health_dashboard.pbix).
 
@@ -94,28 +95,31 @@ See **[`docs/DATA_SCHEMA.md`](docs/DATA_SCHEMA.md)** for the full schema: exact 
 
 ---
 
-## Support & links
+## Support
 
-- **Bugs / feature requests:** [GitHub Issues](https://github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health/issues)
-- **Support page:** [https://umut-demirhan-mbusan.github.io/power_bi_bucket_health/support.html](https://umut-demirhan-mbusan.github.io/power_bi_bucket_health/support.html)
-- **Privacy policy:** [https://umut-demirhan-mbusan.github.io/power_bi_bucket_health/privacy-policy.html](https://umut-demirhan-mbusan.github.io/power_bi_bucket_health/privacy-policy.html)
+Bugs and feature requests → Azure DevOps work items. Developer/maintainer: **Umut Demirhan**.
 
 ---
 
 ## Development
+
+Requires Node.js ≥ 20.19 (see `.nvmrc`) and the `pbiviz` CLI:
+`npm install -g powerbi-visuals-tools@7.1.0` (kept global, not a devDependency — its dependency
+tree fails `npm audit`).
 
 ```bash
 # Install dependencies
 npm install
 
 # Start local developer visual (Power BI Developer Visual)
-npm run start        # or: pbiviz start
+npm run start
 
-# Run unit tests
+# Run unit tests (add coverage with npm run test:coverage)
 npm test
 
 # Lint
-npm run eslint
+npm run eslint       # ESLint with the powerbi-visuals config
+npm run lint         # pbiviz lint
 
 # Package for distribution
 npm run package      # produces dist/*.pbiviz
@@ -134,10 +138,14 @@ src/           TypeScript source
   visual.ts    IVisual host contract entry point
 style/         LESS stylesheet
 test/unit/     Node.js unit tests (built-in runner; jsdom for rendering tests)
-docs/          Spec, architecture, visual contract, certification guide
-assets/        icon.png
+docs/          Product spec, architecture, visual contract, data schema, testing, maintenance
+scripts/       gen-icon.js (regenerates assets/icon.png), validate-mock-data.ps1
+assets/        icon.png (generated — run `node scripts/gen-icon.js`, don't hand-edit),
+               icon.svg (hand-maintained vector, not an input to the script)
 ```
 
-### Certification
+Versioning, releases, and deployment: [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md).
 
-This visual targets [Microsoft AppSource certification](https://learn.microsoft.com/en-us/power-bi/developer/visuals/power-bi-custom-visuals-certified). See [`docs/CERTIFICATION.md`](docs/CERTIFICATION.md) for the full submission checklist and status.
+## License
+
+[MIT](LICENSE) © Umut Demirhan. Version history is in the [CHANGELOG](CHANGELOG.md).

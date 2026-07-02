@@ -24,7 +24,7 @@ anything; the role name is what matters.
 | **Machine Type** | — | Text | `machine_type` | Human-readable machine class or model (e.g. "Hydraulic Excavator"). Shown in the card header below the machine name. If omitted, only the machine name is shown. |
 | **Component** | ✓ | Text | `component_key` | The component's name, unique within its machine. Identifies a single tooth, lip shroud, or wing shroud on that machine. Used for status rendering, the component tooltip, cross-filter selection, and alarm transition detection. Must be stable across refreshes — changing this value resets alarm history for that component. |
 | **Category** | ✓ | Text | `component_category` | The component type. Determines where on the bucket schematic the component is drawn. Must be one of three exact values: `tooth`, `lipShroud`, `wingShroud`. |
-| **Order** | ✓ | Integer | `component_order` | Integer position of this component within its category, starting at 1. For teeth and lip shrouds, 1 is the leftmost position. For wing shrouds, left/right side is inferred from this value by the **Wing side assignment** Formatting pane setting — there is no left/right column in the data. Must be unique within the same machine and category. |
+| **Order** | ✓ | Integer | `component_order` | Integer position of this component within its category, starting at 1. For teeth and lip shrouds, 1 is the leftmost position under the default **Teeth & lip order** setting (choose *Right to left* to flip it). For wing shrouds, left/right side is inferred from this value by the **Wing side assignment** Formatting pane setting — there is no left/right column in the data. Use unique values within each machine and category: duplicates are not rejected, but they tie-break by source row order, which makes the layout depend on row order. |
 | **Component Status** | ✓ | Text | `status` | The current health status of this component. Matched case-insensitively against the accepted status strings (see [Status values](#status-values) below). Non-alarm rows should have a blank Comp. Alarm Time. |
 | **Comp. Alarm Time** | Recommended | Datetime | `alarm_time` | Timestamp when this component entered its current alarm state. The visual constructs an alarm identity from machine + component + alarm time; audio fires exactly once per unique identity. **Strongly recommended: if you leave this unbound, a component that clears its alarm and then re-alarms in the same session will not play audio the second time** — the alarm identity is permanently cached for the lifetime of that session (see [Alarm audio logic](#alarm-audio-logic)). The visual still renders normally without it. Leave the cell blank (null) for non-alarm rows. |
 | **Last Seen** | — | Datetime | `last_seen_utc` | Timestamp of the last data receipt for this component. Shown in the component tooltip as a full local date and time. |
@@ -45,7 +45,9 @@ shows a fixed display label. Bind any of the accepted inputs below:
 | `Proximity Alarm` · `proximity` · `prox` | `prox` | Proximity Alarm | Yes — on transition |
 | `Movement Alarm` · `movement` · `move` | `move` | Movement Alarm | Yes — on transition |
 
-An unrecognised status string is treated as **No Data (1h)**.
+An unrecognised status string is a **validation error**: the row is reported ("Row N: status '…'
+is not supported.") and the whole visual renders the error state until the data is fixed. Make
+sure your source system only emits the accepted spellings above.
 
 Status **colours (hex), alarm precedence, and the component stroke rule** are defined once in the host
 contract — see [VISUAL_CONTRACT.md › Status Model](VISUAL_CONTRACT.md#status-model) — and are not
@@ -59,7 +61,7 @@ The bucket geometry adapts to the number of component rows you supply per machin
 | --- | --- | --- | --- |
 | `tooth` | 4 | 20 | Any count in this range |
 | `lipShroud` | 3 | 19 | Must equal teeth count − 1 |
-| `wingShroud` | 0 | 8 | Up to 4 per side; side is inferred from Order |
+| `wingShroud` | 0 | 8 | Total per machine (the only enforced wing limit); side is inferred from Order, and the geometry is designed for up to 4 per side |
 
 More teeth widen the bucket; more wing shrouds extend the bucket sides. The schematic always looks
 proportional because the body geometry recalculates from the counts.
@@ -94,12 +96,13 @@ Understanding this logic explains why **Comp. Alarm Time is strongly recommended
 **Why binding Comp. Alarm Time matters:**
 
 Without an alarm time, the identity for component `T1` on machine `EX-204` is always
-`EX-204::T1::` (empty timestamp). The first time it alarms, the identity is new and audio fires.
-But the identity is then cached. If the operator fixes the component (status returns to OK) and it
-later re-alarms, the identity is still `EX-204::T1::` — already cached — and no audio plays.
+`EX-204|#|T1|#|` (empty timestamp; `|#|` is the internal separator). The first time it alarms, the
+identity is new and audio fires. But the identity is then cached. If the operator fixes the
+component (status returns to OK) and it later re-alarms, the identity is still `EX-204|#|T1|#|` —
+already cached — and no audio plays.
 
-With an alarm time, the second alarm produces a different identity (`EX-204::T1::2026-06-24T10:30:00Z`)
-that was never cached, so audio fires correctly.
+With an alarm time, the second alarm produces a different identity
+(`EX-204|#|T1|#|2026-06-24T10:30:00Z`) that was never cached, so audio fires correctly.
 
 **Consequence if left empty:** the visual still renders and the *first* alarm on each component still
 plays audio. You only lose the audio cue for a **repeat** alarm on the **same** component within one
@@ -109,14 +112,19 @@ live dashboards.
 
 ## Validation rules
 
+Violating any of these puts the visual into its error state (with the row-level reason shown):
+
 - All required roles must be bound.
-- Status values must match one of the six accepted strings.
+- Status values must match one of the accepted spellings (see [Status values](#status-values)).
 - Component must be unique within each machine.
-- Order must be an integer ≥ 1 and unique within the same machine and category.
+- Order must be an integer ≥ 1.
 - Each machine must have 4–20 tooth rows.
 - Each machine must have exactly `teeth − 1` lip shroud rows.
 - Each machine may have 0–8 wing shroud rows.
-- The visual supports up to 20 machines per data update.
+
+Not validated, but recommended: unique Order values per machine+category (duplicates tie-break by
+row order), and ≤ 20 machines per update (the design/performance target; the host truncates data
+at 2000 rows).
 
 ## Fixture coverage
 

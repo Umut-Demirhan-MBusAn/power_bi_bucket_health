@@ -1,117 +1,168 @@
 # Architecture
 
-This file summarizes how the visual will be implemented. The detailed build architecture lives in
-[SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md).
-
-Design artifacts were removed after implementation was complete. Design decisions are captured in docs/DECISIONS.md.
+As-built implementation architecture for the Bucket Health Power BI custom visual. For the host
+contract (data roles, formatting objects, privileges, geometry constants) see
+[VISUAL_CONTRACT.md](VISUAL_CONTRACT.md); for user-visible behavior see [SPEC.md](SPEC.md).
 
 ## Principles
 
-- Spec first: do not implement behavior that is not described in the spec or backlog.
-- Host contract first: define `capabilities.json` before rendering code.
-- Typed parser boundary: convert Power BI `DataView` objects into an internal model before rendering.
-- Rendering code should not depend directly on raw host objects.
-- Performance-sensitive paths should be measurable.
-- The Claude Design handoff is the visual fidelity source of truth.
+- Host contract first: `capabilities.json` and [VISUAL_CONTRACT.md](VISUAL_CONTRACT.md) define the
+  boundary; rendering code never reads raw host objects.
+- Typed parser boundary: every Power BI `DataView` is converted into an internal model before
+  rendering.
+- Deterministic geometry: bucket shapes are computed from component counts by pure functions, so
+  they are testable without a DOM or host.
+- Alarm/audio state is isolated from rendering and testable on its own.
 
-## Proposed Structure
+## Runtime Layers
 
-As built:
+```text
+Power BI Host
+  |
+  v
+Visual entry point (src/visual.ts)
+  - IVisual.update(options), rendering events API
+  - Host services: selection manager, context menu, color palette (high contrast)
+  - Custom HTML tooltip, keyboard navigation, alarm audio wiring
+  |
+  v
+Data adapter (src/data/)
+  - Role validation, row parsing, status normalization
+  - Machine derivation and edge-state decision
+  |
+  v
+Domain model (src/data/types.ts, src/domain/)
+  - MachineBucketModel[] / ComponentRecord[]
+  - Status metadata & machine-status reduction, wing side assignment
+  |
+  v
+State services (src/audio/)
+  - AlarmController: alarm-identity dedup (machine + component + alarmTime)
+  - AlarmAudio: WebAudio two-tone beep, gesture arming, 60 s auto-stop
+  |
+  v
+Geometry (src/geometry/)
+  - Adaptive bucket geometry from GET counts (pure TypeScript)
+  |
+  v
+Renderer (src/rendering/)
+  - Fleet grid, machine card, bucket SVG, edge states
+```
+
+## Source Structure
 
 ```text
 src/
-  visual.ts                 # IVisual entry point; host services, selection, keyboard, context menu
+  visual.ts                 # IVisual entry point; host services, selection, keyboard,
+                            # context menu, custom HTML tooltip
   settings.ts               # Formatting model (layout, ordering, alarm)
-  data/                     # DataView parsing, validation, normalization, status mapping
-  domain/                   # Status metadata/colours and wing-side assignment
-  geometry/                 # Adaptive bucket and GET component SVG geometry
-  rendering/                # SVG/HTML rendering: fleet, machine card, bucket SVG, edge states, tooltip
-  audio/                    # AlarmController + WebAudio beep (AlarmAudio)
+  audio/
+    alarmController.ts      # Alarm-identity dedup (machine + component + alarmTime)
+    alarmAudio.ts           # WebAudio two-tone beep, gesture arming, 60 s auto-stop
+  data/
+    keys.ts                 # Composite key builder ("|#|" separator)
+    normalizeStatus.ts      # Source strings -> canonical status keys; alarm predicate
+    parseDataView.ts        # Role validation + row parsing + machine derivation
+    types.ts                # ComponentRecord, MachineBucketModel, data-state union
+  domain/
+    statusMeta.ts           # Status colours/labels, high-contrast colors, machine-status reduction
+    wingSideAssignment.ts   # Order -> left/right wing side (four modes)
+    settingsGuards.ts       # Enum guards for persisted formatting values
+  geometry/
+    bucketGeometry.ts       # Adaptive bucket + GET geometry engine (pure functions)
+    geometryTypes.ts
+  rendering/
+    renderBucketSvg.ts      # Bucket SVG from geometry + theme
+    renderEdgeStates.ts     # The five non-normal states
+    renderFleet.ts          # Flex-wrap fleet grid + truncation banner
+    renderMachineCard.ts    # Card frame, header, alarm banner
 
 capabilities.json           # Data roles, formatting objects, dataView mapping, privileges
 style/visual.less           # Stylesheet (incl. alarm flashing + reduced-motion media query)
-test/unit/                  # Node.js unit tests (no framework, no DOM)
+test/unit/                  # Node.js built-in test runner; jsdom for the rendering tests
+scripts/
+  gen-icon.js               # Regenerates assets/icon.png (pure Node.js, no deps)
+  validate-mock-data.ps1    # Schema-validates the CSV fixture
 ```
 
-Layout/card sizing and selection/tooltip wiring live inside `rendering/` and `visual.ts` rather than
-in separate `layout/` or `interactions/` directories.
+Selection and tooltip wiring live inside `visual.ts` (not `rendering/`): the custom HTML tooltip
+element, its positioning, and its content builder are all owned by the entry point.
 
 ## Data Flow
 
 1. Power BI calls `visual.update(options)`.
-2. Host options and `DataView` are parsed into an internal typed model.
-3. Formatting settings are parsed from metadata.
-4. Renderer receives viewport, model, settings, and interaction callbacks.
-5. Layout uses uniform fixed-height, flex-wrapped cards; each card's width tracks its bucket aspect
-   ratio (more teeth = wider), and there is no fixed column-count rule. Wrapped cards scroll on
-   overflow.
-6. Geometry engine computes the adaptive bucket body, cutting edge, side plates, teeth, lip shrouds,
-   and wing shroud shapes for each card once from its GET counts, and the resulting geometry is passed
-   to the SVG renderer.
-7. The alarm-id dedup controller compares previous and current alarms by stable alarm id
-   (machine + component + alarmTime) so each alarm fires audio at most once.
-8. Renderer updates DOM/SVG and cleans obsolete state.
+2. `parseDataView` validates roles and parses table rows into the typed model, returning one of the
+   data states: `noFields`, `invalidConfig`, `noData`, `error`, or `ready`. (A `loading` state
+   exists in the union and renderer as a reserved branch, but the current synchronous parse path
+   never produces it.)
+3. Formatting settings are parsed from metadata into a typed settings object (with enum guards for
+   persisted values).
+4. For non-`ready` states the edge-state renderer draws guidance and all audio is suppressed.
+5. For `ready` data, the geometry engine computes each machine's bucket once from its GET counts;
+   the renderer draws uniform fixed-height, flex-wrapped cards whose width tracks the bucket aspect
+   ratio (more teeth = wider). Wrapped cards scroll on overflow; there is no fixed column-count
+   rule.
+6. `AlarmController` compares previous and current alarms by stable alarm identity
+   (machine + component + alarmTime) so each identity fires audio at most once per session.
+7. The renderer replaces the DOM subtree and re-wires selection, keyboard, and tooltip handlers.
 
 ## Rendering Strategy
 
-- Primary renderer: SVG-first, matching the handoff prototypes. Canvas or WebGL/Three.js should be
-  considered only if SVG fails performance/fidelity tests.
-- Libraries: none for rendering — a minimal hand-written DOM/SVG renderer is used (D3 was removed).
-  Geometry math is pure TypeScript and framework-agnostic.
-- Resize strategy: uniform fixed-height cards flex-wrap to fill the available width, each card sized
-  to its bucket aspect ratio (more teeth = wider). Scroll overflow appears once the wrapped cards
-  exceed the available space; there is no fixed column-count rule.
+- SVG-first, hand-written DOM/SVG renderer — no rendering libraries (D3 was removed). Geometry math
+  is pure TypeScript and framework-agnostic.
+- Resize strategy: uniform fixed-height cards flex-wrap to fill the available width; scroll
+  overflow appears once the wrapped cards exceed the available space.
 - Animation strategy: CSS-driven flashing for alarm components, controlled by the **Alarm motion**
   setting (`always` / `auto` / `never`). `always` (default) flashes regardless of the OS
-  `prefers-reduced-motion` setting so a safety alarm is never silently suppressed; `auto` honors the
-  OS setting by rendering a solid, still-prominent alarm; `never` is always solid. The alarm is never
-  hidden and audio is independent.
-- Tooltip strategy: a custom themed HTML tooltip element is rendered by the visual itself rather than
-  calling the Power BI host tooltip service.
-- Geometry strategy: bucket shape is generated, not a static image. More GET components widen/extend
-  the bucket edge and sides; fewer GET components shrink/rebalance the bucket while maintaining a
-  polished front-on schematic with depth shading appearance.
+  `prefers-reduced-motion` setting so a safety alarm is never silently suppressed; `auto` honors
+  the OS setting by rendering a solid, still-prominent alarm; `never` is always solid. The alarm is
+  never hidden and audio is governed independently.
+- Tooltip strategy: a custom themed HTML tooltip element is rendered by the visual itself rather
+  than calling the Power BI host tooltip service (the host tooltip cannot be themed to match the
+  visual's design).
+- High contrast: when the host palette reports high-contrast mode, decorative gradients are
+  replaced by background fills with foreground outlines, and alarm components use the
+  selected-foreground accent with a heavier stroke.
+
+## Alarm And Audio Architecture
+
+**AlarmController (alarm-identity dedup):**
+
+- Builds a stable alarm identity per alarm from machine key + component key + alarmTime using the
+  `"|#|"` composite-key separator.
+- Caches every identity that has been seen; the same identity never fires audio twice, including
+  after dismissal.
+- Seeds the cache on the first render so pre-existing alarms do not beep when the report opens.
+- A new alarmTime produces a new identity, which fires again while audio is armed.
+
+**AlarmAudio (WebAudio beep):**
+
+- Requires an explicit user-gesture click to arm/resume the audio context (browser autoplay
+  policy).
+- Square-wave two-tone pattern: 880 Hz then 660 Hz, ~0.24 s each, repeating every 1.5 s.
+- Auto-stops after 60 s; stops on click anywhere inside the visual; stays armed after dismissal.
+- Suppressed entirely in edge states and when the **Enable audio alarm** setting is off.
 
 ## Key Runtime Concerns
 
-- Alarm audio is gated by an alarm-id dedup controller: each alarm id (machine + component +
-  alarmTime) fires audio at most once and never re-fires, including after dismissal. The first render
-  seeds known ids without firing, and the audio context is armed/resumed by a user click.
-- Audio dismissal is visual-session state and should not hide visual alarm indicators.
-- Alarm machine priority changes card ordering, so layout must be stable enough to avoid confusing
-  reorder churn.
-- Tooltip data should be derived from the component record and optional user-bound fields.
-- Every component should have a stable key so updates, animations, and alarm transitions are
-  deterministic.
-- Adaptive bucket geometry must be deterministic and testable from component counts, ordering,
-  viewpoint, and card dimensions.
+- Audio dismissal is visual-session state and never hides visual alarm indicators.
+- Alarm machines sort to the front (movement before proximity, then alarm count, then source
+  order), so layout stays stable enough to avoid reorder churn.
+- Every component has a stable composite key so updates, selection, and alarm transitions are
+  deterministic across machines with identical component names.
+- Adaptive bucket geometry is deterministic from component counts, ordering, and settings; the
+  geometry engine never touches the DOM.
 
-## Testing Strategy
+## Performance
 
-- Pre-scaffold schema validation for CSV fixtures, documented in [TESTING.md](TESTING.md).
-- Data parser unit tests.
-- Layout calculation tests for 1, 2, many, and overflow machine counts.
-- Geometry tests for minimum/maximum teeth, lip shrouds, and wing shrouds.
-- Component ordering tests for teeth, lip shrouds, and wing shrouds.
-- Alarm transition/dismissal tests.
-- Formatting model tests.
-- Interaction tests for selection/tooltips where practical.
-- `pbiviz lint`.
-- `pbiviz package`.
-- Manual Developer Visual smoke test in Power BI.
+- Worst expected data: 20 machines × (20 teeth + 19 lip shrouds + 8 wing shrouds) ≈ 940 rows,
+  comfortably under the 2000-row host cap declared in `capabilities.json` (see
+  [VISUAL_CONTRACT.md › Data Limits](VISUAL_CONTRACT.md#data-limits)).
+- Each update re-renders the subtree; geometry is computed once per machine per update. No
+  incremental DOM diffing has been needed at this scale.
 
-## Performance Strategy
+## Testing
 
-- Avoid full recompute when data/settings/viewport are unchanged.
-- Define high-cardinality limits in `VISUAL_CONTRACT.md`.
-- Measure representative render/update timings before release.
-- Test worst-case expected data: 20 machines and ~940 supplied GET component rows (the host row cap
-  is 2000; see [VISUAL_CONTRACT.md › Data Limits](VISUAL_CONTRACT.md#data-limits)).
-
-## Resolved Architecture Questions
-
-- Renderer: a minimal hand-written DOM/SVG renderer is used; D3 was removed as a dependency.
-- AppSource certification: yes — targeted; see [CERTIFICATION.md](CERTIFICATION.md).
-- Selection / cross-filter / context menu / keyboard navigation: implemented (PR #11).
-- Audio without a user gesture: not possible (browser autoplay policy); audio is armed on the first
-  user click inside the visual.
+See [TESTING.md](TESTING.md) for the test inventory and infrastructure (Node.js built-in runner,
+jsdom for rendering tests) and the manual Developer Visual checklist. Validation gates:
+`npm test`, `npm run eslint`, `pbiviz lint`, and `pbiviz package`.
