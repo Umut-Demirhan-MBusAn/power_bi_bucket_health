@@ -11,9 +11,18 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
       - run: npm ci
+      # pbiviz stays a global install (not a devDependency): its webpack-dev-server tree
+      # carries audit findings, and certification requires a clean `npm audit` for this repo.
+      - run: npm install -g powerbi-visuals-tools@7.1.0
       - run: npm run build:test
       - run: node --test test/unit/*.test.js
       - run: npm run eslint
+      - run: npm audit --audit-level=moderate
+      - run: npm run package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pbiviz-package
+          path: dist/*.pbiviz

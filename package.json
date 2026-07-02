@@ -7,6 +7,9 @@
     "url": "https://github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health"
   },
   "license": "MIT",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "pbiviz": "pbiviz",
     "start": "pbiviz start",
@@ -15,17 +18,18 @@
     "eslint": "npx eslint . --ext .js,.jsx,.ts,.tsx",
     "build:test": "tsc -p tsconfig.test.json",
     "test": "npm run build:test && node --test test/unit/*.test.js",
+    "test:coverage": "npm run build:test && node --test --experimental-test-coverage test/unit/*.test.js",
     "validate:fixtures": "pwsh -File scripts/validate-mock-data.ps1"
   },
   "dependencies": {
     "powerbi-visuals-api": "~5.11.0",
-    "powerbi-visuals-utils-formattingmodel": "6.0.4"
+    "powerbi-visuals-utils-formattingmodel": "^7.1.0"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.8.0",
-    "eslint": "^9.11.1",
-    "eslint-plugin-powerbi-visuals": "^1.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.62.1",
+    "eslint": "^10.6.0",
+    "eslint-plugin-powerbi-visuals": "^1.1.1",
     "jsdom": "^29.1.1",
-    "typescript": "5.5.4"
+    "typescript": "~5.9.3"
   }
 }
