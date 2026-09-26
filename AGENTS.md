@@ -20,8 +20,9 @@ only tool-specific deltas. Product and host docs: `docs/`.
   `origin/main`; rebase on it again before the PR and resolve conflicts locally. Parallel agents: one
   worktree each, never two agents in one working directory.
 - Conventional Commits; stage by path — **never `git add -A` / `git add .`**.
-- PR: `gh pr create --fill --base main`; the body carries `Closes #N`. Ruleset "Protect main": squash
-  only, required check `test`, no force-push, no deletion.
+- PR: `gh pr create --base main --title "<conventional title>" --body-file <file>`; the body carries
+  `Closes #N` (`--fill` cannot). Ruleset "Protect main": squash only, required check `test`, no
+  force-push, no deletion.
 - **Squash-merge only.** The agent squash-merges a PR once its review is approved and CI is green.
   Release tags, GitHub Releases and any publish need the owner's explicit word. Never force-push a
   shared branch; `--force-with-lease` only on your own feature branch.

@@ -41,7 +41,8 @@ with `git branch -m`.
 ## 5. PR and merge
 
 - `git push --force-with-lease origin HEAD` — your own feature branch only.
-- `gh pr create --fill --base main`; the body carries `Closes #N`.
+- `gh pr create --base main --title "<conventional title>" --body-file <file>`, the body file (outside
+  the worktree) carrying `Closes #N`; `--fill` takes the body from the commits and cannot carry it.
 - `gh pr edit --base <branch>` does not re-run checks against the new base: push a new commit.
 - Squash-and-merge only, once the PR's review is approved and CI is green:
   `BUCKET_HEALTH_MERGE_OK=1 gh pr merge <n> --squash --delete-branch`. `pr-finish` runs 4–5.

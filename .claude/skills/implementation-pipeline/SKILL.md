@@ -95,8 +95,8 @@ stalls another lane.
    - **round 2** goes to a fresh `implementer`, with both rounds' findings;
    - after each, back to step 4, then resume the same reviewer with a new package to verify those
      must-fixes. A must-fix after round 2 parks the slice.
-6. **Push + PR** — `git push --force-with-lease origin HEAD`, `gh pr create --base main` with
-   `Closes #N` in the body, and watch CI as `pr-finish` step 6 says. Red → one CI fix round, its
+6. **Push + PR** — `git push --force-with-lease origin HEAD`, then the PR as `pr-finish` step 5
+   says (`--body-file` carrying `Closes #N`), and watch CI as its step 6 says. Red → one CI fix round, its
    own budget, to the slice's implementer as in step 5; red twice → park.
 7. **Merge** — review approved and CI green:
    `BUCKET_HEALTH_MERGE_OK=1 gh pr merge <n> --squash --delete-branch`.

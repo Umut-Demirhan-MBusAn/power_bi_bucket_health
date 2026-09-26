@@ -49,7 +49,6 @@ These tests import compiled source directly and have no setup beyond `require`.
 | `statusMeta.test.js` | `src/domain/statusMeta` | `machineStatusKey` — alarm priority, all-nodata, ok paths |
 | `settingsGuards.test.js` | `src/domain/settingsGuards` | `asWingSideAssignment`, `asComponentOrderDirection`, `asAlarmMotion` — valid values pass through; unknown values return defaults |
 | `wingSideAssignment.test.js` | `src/domain/wingSideAssignment` | All four assignment modes; order-sort before assignment |
-| `gitGuard.test.js` | `scripts/git-guard.lib.mjs`, `.claude/hooks/git-guard.mjs`, `.claude/settings.json` | Blocked forms (push to main/master, `git add -A`/`.`, bare stash/pop/clear, `gh pr merge` without `BUCKET_HEALTH_MERGE_OK=1`) and their allowed look-alikes under Bash and PowerShell quoting, wrappers and nested shells; the hook exits 2 on a block and on every failure path; settings wire the hook, ask before destructive branch/switch forms, deny secret-file reads, and allow only real npm scripts |
 | `alarmController.test.js` | `src/audio/alarmController` | Alarm-id dedup: seeds on first render without firing; same id never re-fires; new alarm time fires again; dismissed alarm does not re-fire; `audioEnabled: false` suppresses all |
 | `alarmAudio.test.js` | `src/audio/alarmAudio` | Gesture arm/resume; two-tone oscillator scheduling; idempotent `start()`; `dismiss()` and `destroy()` close the context; `mock.timers`-driven beep cadence (3 beeps by 3000ms) and 60s auto-stop |
 | `capabilitiesContract.test.js` | `capabilities.json`, `src/settings`, `src/domain/settingsGuards` | Every `objects.<card>.properties.<prop>` in `capabilities.json` matches a card/slice name in `VisualFormattingSettingsModel`, and vice versa; every `ItemDropdown` item value is accepted unchanged by its `settingsGuards` guard, and each guard's default is one of its items |
@@ -67,6 +66,14 @@ changes were needed — the rendering modules call the global `document` directl
 | `renderFleet.test.js` | `src/rendering/renderFleet` | Truncation banner present/absent; single-machine `--single` grid modifier; multi-machine plain grid class; card count; empty machines array |
 | `renderBucketSvg.test.js` | `src/rendering/renderBucketSvg` | SVG root viewBox/role/aria-label; per-status component fills; component data attributes and keyboard/a11y attributes; center alarm shown for alarm machines and hidden otherwise; high-contrast fills/strokes for decorative shell and components (alarm vs non-alarm stroke); gradient ids sanitized from the machine key |
 | `visual.test.js` | `src/visual` (via `test/helpers/mockHost`) | Constructor adds `bucket-health-root`; empty `dataViews` renders the edge state and fires `renderingStarted`/`renderingFinished` once each; the CSV fixture renders one `.bucket-health-card` per distinct machine; a `colorPalette` read that throws on the ready path calls `renderingFailed` without an uncaught exception; clicking a component calls `selectionManager.select` with the id built for its row; `ArrowRight` moves focus to the next component and `Enter` selects it |
+
+### Agent tooling tests
+
+These cover the repo's agent guardrails, not the visual; they need no compiled source.
+
+| File | Module under test | What is covered |
+|---|---|---|
+| `gitGuard.test.js` | `scripts/git-guard.lib.mjs`, `.claude/hooks/git-guard.mjs`, `.claude/settings.json` | Blocked forms (push to main/master, `git add -A`/`.`, bare stash/save/pop/clear, `gh pr merge` without `BUCKET_HEALTH_MERGE_OK=1`) and their allowed look-alikes under Bash and PowerShell quoting, assignments and casts, wrappers and nested shells (`bash -c`, `pwsh -Command`, `cmd /c`); the hook exits 2 on a block and on every failure path; settings wire the hook to fail closed, ask before destructive branch/switch forms, deny secret-file reads, prompt for browser input, and allow only real npm scripts and read-only `npm audit` |
 
 ---
 
