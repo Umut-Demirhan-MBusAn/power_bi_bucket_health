@@ -297,3 +297,85 @@ test("an open tooltip closes when its component disappears", () => {
 
     assert.equal(element.querySelector(".bh-tooltip").hidden, true);
 });
+
+function switchableHost() {
+    const state = { throwNext: false, highContrast: false };
+    const host = createMockHost({
+        get colorPalette() {
+            if (state.throwNext) {
+                state.throwNext = false;
+                throw new Error("colorPalette unavailable");
+            }
+            return {
+                isHighContrast: state.highContrast,
+                foreground: { value: "#ffffff" },
+                background: { value: "#000000" },
+                foregroundSelected: { value: "#ff0000" }
+            };
+        }
+    });
+    return { host, state };
+}
+
+function withAlarmMotion(dataView, alarmMotion) {
+    return { ...dataView, metadata: { ...dataView.metadata, objects: { alarm: { alarmMotion } } } };
+}
+
+test("an update that throws stops a sounding alarm", () => {
+    const { host, state } = switchableHost();
+    const { visual } = makeVisual(host);
+    visual.update({ dataViews: [fixtureDataView()], type: 2 });
+    visual.update({ dataViews: [setStatus(fixtureDataView(), "EX-041-T02", "Movement alarm")], type: 2 });
+    assert.equal(visual.alarmController.audio.isPlaying(), true, "new alarm is sounding");
+
+    state.throwNext = true;
+    visual.update({ dataViews: [fixtureDataView()], type: 2 });
+
+    assert.equal(host.eventService.renderingFailed.mock.calls.length, 1);
+    assert.equal(visual.alarmController.audio.isPlaying(), false);
+});
+
+test("the first update after a failed one renders even when it is flagged resize-only", () => {
+    const { host, state } = switchableHost();
+    const { visual, element } = makeVisual(host);
+    visual.update({ dataViews: [fixtureDataView()], type: 2 });
+    state.throwNext = true;
+    visual.update({ dataViews: [fixtureDataView()], type: 2 });
+    assert.equal(element.querySelectorAll(".bucket-health-card").length, 0, "error state shown");
+
+    visual.update({ dataViews: [fixtureDataView()], type: 4 });
+
+    assert.ok(element.querySelectorAll(".bucket-health-card").length > 0);
+});
+
+test("a style-only update (high contrast on) rebuilds every card", () => {
+    const { host, state } = switchableHost();
+    const { visual, element } = makeVisual(host);
+    visual.update({ dataViews: [fixtureDataView()], type: 2 });
+    const before = cardsByKey(element);
+
+    state.highContrast = true;
+    visual.update({ dataViews: [fixtureDataView()], type: 16 });
+
+    const after = cardsByKey(element);
+    before.forEach((card, key) => assert.notEqual(after.get(key), card, `${key} card rebuilt`));
+});
+
+test("changing Alarm motion puts every card on the same flash phase", (t) => {
+    let now = 100;
+    t.mock.method(performance, "now", () => now);
+    const host = createMockHost();
+    const { visual, element } = makeVisual(host);
+    visual.update({ dataViews: [withAlarmMotion(fixtureDataView(), "never")], type: 2 });
+    now = 450;
+    visual.update({ dataViews: [withAlarmMotion(setStatus(fixtureDataView(), "EX-041-T02", "Lockout"), "never")], type: 2 });
+    const phases = () => new Set(Array.from(element.querySelectorAll(".bucket-health-card"))
+        .map((card) => card.style.getPropertyValue("--bh-sync-700")));
+    assert.equal(phases().size, 2, "the rebuilt card was synced at a later time");
+
+    now = 1000;
+    visual.update({ dataViews: [withAlarmMotion(setStatus(fixtureDataView(), "EX-041-T02", "Lockout"), "always")], type: 2 });
+
+    assert.deepEqual(Array.from(phases()), ["-300ms"]);
+    assert.ok(element.classList.contains("bucket-health-root--flash-always"));
+});

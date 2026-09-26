@@ -11,7 +11,7 @@ import { BucketHealthDataModel, ComponentRecord, MachineBucketModel } from "./da
 import { asAlarmMotion, asComponentOrderDirection, asWingSideAssignment } from "./domain/settingsGuards";
 import { statusColors, statusLabels, VisualTheme } from "./domain/statusMeta";
 import { renderEdgeState } from "./rendering/renderEdgeStates";
-import { renderFleet, updateFleet } from "./rendering/renderFleet";
+import { renderFleet, resyncFleetAnimations, updateFleet } from "./rendering/renderFleet";
 import { VisualFormattingSettingsModel } from "./settings";
 
 import IVisual = powerbi.extensibility.visual.IVisual;
@@ -41,6 +41,11 @@ export class Visual implements IVisual {
     private tooltipKey: string | null = null;
     private fleet: HTMLElement | null = null;
     private hasRendered = false;
+    private alarmMotion: ReturnType<typeof asAlarmMotion> | null = null;
+    private readonly reducedMotionQuery: MediaQueryList | null;
+    private readonly onReducedMotionChange = (): void => {
+        if (this.fleet) resyncFleetAnimations(this.fleet);
+    };
     private hideTooltipTimer: ReturnType<typeof setTimeout> | null = null;
     private readonly host: IVisualHost;
     private readonly selectionManager: ISelectionManager;
@@ -63,6 +68,12 @@ export class Visual implements IVisual {
         this.target.addEventListener("keydown", (event) => this.handleKeyDown(event));
         this.target.addEventListener("mousemove", (event) => this.handlePointerMove(event));
         this.target.addEventListener("mouseleave", () => this.hideTooltipNow());
+
+        // Flipping the OS setting restarts every alarm animation at once; re-align their phases.
+        this.reducedMotionQuery = typeof window.matchMedia === "function"
+            ? window.matchMedia("(prefers-reduced-motion: reduce)")
+            : null;
+        this.reducedMotionQuery?.addEventListener("change", this.onReducedMotionChange);
 
         try {
             this.selectionManager.registerOnSelectCallback(() => this.applyDimming());
@@ -97,6 +108,8 @@ export class Visual implements IVisual {
             this.minCardWidth = minCardWidth;
             this.target.classList.toggle("bucket-health-root--flash-always", alarmMotion === "always");
             this.target.classList.toggle("bucket-health-root--flash-never", alarmMotion === "never");
+            const motionChanged = this.alarmMotion !== null && this.alarmMotion !== alarmMotion;
+            this.alarmMotion = alarmMotion;
 
             const model = parseDataView(dataView, wingSideAssignment, componentOrder);
             this.alarmController.update(model, audioEnabled);
@@ -105,6 +118,10 @@ export class Visual implements IVisual {
             this.buildSelectionIdLookup(model, dataView?.table);
 
             this.render(model, theme);
+            // A motion change restarts the kept cards' animations together; re-align their phases.
+            if (motionChanged && this.fleet) {
+                resyncFleetAnimations(this.fleet);
+            }
             this.hasRendered = true;
             this.events.renderingFinished(options);
         } catch (error) {
@@ -117,6 +134,7 @@ export class Visual implements IVisual {
                 truncated: false,
                 warnings: []
             };
+            this.alarmController.update(errorModel, false);
             this.render(errorModel, this.readTheme());
             this.events.renderingFailed(options, String(error));
         }
@@ -128,6 +146,7 @@ export class Visual implements IVisual {
 
     public destroy(): void {
         this.alarmController.destroy();
+        this.reducedMotionQuery?.removeEventListener("change", this.onReducedMotionChange);
         this.hideTooltipNow();
         this.tooltip = null;
         this.fleet = null;
@@ -193,7 +212,7 @@ export class Visual implements IVisual {
             ? Array.from(card.querySelectorAll<HTMLElement>("[data-component-key]"))
                 .find((el) => el.getAttribute("data-component-key") === focused.componentKey)
             : undefined;
-        component?.focus();
+        component?.focus({ preventScroll: true });
     }
 
     // An open tooltip shows the hovered component's latest data, or closes if it is gone.

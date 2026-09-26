@@ -130,7 +130,8 @@ element, its positioning, and its content builder are all owned by the entry poi
   closed when its component is gone.
 - Flash phase: every card sets `--bh-sync-<period>` to minus (timeline time mod period) when it is
   inserted, and each alarm animation uses it as its delay, so a rebuilt card flashes in step with
-  the cards around it.
+  the cards around it. A change of Alarm motion or of the OS reduced-motion setting restarts every
+  animation at once, so all cards are re-synced then.
 - High contrast: when the host palette reports high-contrast mode, decorative gradients are
   replaced by background fills with foreground outlines, and alarm components use the
   selected-foreground accent with a heavier stroke.
@@ -154,7 +155,8 @@ element, its positioning, and its content builder are all owned by the entry poi
 - Auto-stops after 60 s; stops on click anywhere inside the visual. Stopping closes the audio
   context, so the next alarm creates a new one.
 - Suppressed in edge states and when the **Enable audio alarm** setting is off; a sounding alarm
-  stops on the first update that turns the setting off or leaves the `ready` state.
+  stops on the first update that turns the setting off or leaves the `ready` state, including an
+  update that throws and shows the error state.
 
 ## Key Runtime Concerns
 
