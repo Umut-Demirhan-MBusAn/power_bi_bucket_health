@@ -220,5 +220,6 @@ module.exports = {
     installFakeAudioContext,
     buildTableDataView,
     fixtureDataView,
-    createMockHost
+    createMockHost,
+    ROLE_BY_HEADER
 };
