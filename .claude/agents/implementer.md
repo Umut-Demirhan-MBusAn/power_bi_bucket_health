@@ -15,7 +15,7 @@ The orchestrator gives you all of these; ask for whatever is missing before writ
 - the spec sections it implements, when there is a spec;
 - a SCOPE FENCE: paths you may touch and paths you must not;
 - the tests to write, when the issue names them;
-- the report path, inside your worktree.
+- the slug for the report path, `<worktree>/.superpowers/<slug>-report.md`.
 
 ## Rules
 1. Work only inside the named worktree. Never `git push`, never `gh pr create` / `gh pr merge`, never
@@ -33,14 +33,14 @@ The orchestrator gives you all of these; ask for whatever is missing before writ
    change to `capabilities.json` or `src/settings.ts` updates `docs/VISUAL_CONTRACT.md` and
    `docs/SPEC.md` too, when they are inside the fence.
 5. Verify: the targeted test first (`npm run build:test && node --test test/unit/<name>.test.js`),
-   then the full gate from AGENTS.md "Pre-PR gate" — it takes seconds here, so run all of it.
+   then the full gate from AGENTS.md "Pre-PR gate" — it takes about a minute, so run all of it.
 6. Commit with Conventional Commits; stage by path (never `git add -A`). Write the message, with
    your model's default `Co-Authored-By` trailer, to a file outside the worktree and run
    `git commit -F <file>`. Never `git commit --amend` or a `git reset` that moves HEAD (unstage with
    `git restore --staged <path>`): a worktree's branch can carry a sibling agent's commit. Fix a
    mistake with a new commit; the squash merge folds them.
 
-## Report (≤ 40 lines, written to the path the brief names, inside your worktree)
+## Report (≤ 40 lines, at `<worktree>/.superpowers/<slug>-report.md`; `.superpowers/` is gitignored, so it never blocks `git worktree remove`)
 Files changed and why; what each new test proves and that you saw it fail first; the exact commands
 run and their results; eslint warnings as a delta against the base (`npx eslint <files you
 changed>` — a warning on a line you added or changed is yours, never "pre-existing"); anything you

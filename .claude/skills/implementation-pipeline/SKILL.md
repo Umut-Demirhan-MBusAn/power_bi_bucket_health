@@ -76,7 +76,7 @@ stalls another lane.
 3. **Implement** — background `implementer` agent. The brief is: worktree + branch + base SHA; the
    issue body verbatim; the spec sections it cites (paths + headings); a scope fence; the tests the
    issue names, to be written first; the pre-flight rulings that touch the slice; the report path
-   inside its worktree.
+   `<worktree>/.superpowers/<slug>-report.md` (gitignored, so it never blocks `git worktree remove`).
 4. **Gate** — the orchestrator, on the branch rebased onto fresh `origin/main`: `pr-finish` "Gate".
    An implementer's "green" is a claim; this gate is the evidence. Never rebase or edit a worktree
    while its gate runs.
