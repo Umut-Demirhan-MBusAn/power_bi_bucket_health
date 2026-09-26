@@ -1,9 +1,11 @@
-const fs = require("node:fs");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const { parseDataView } = require("../../.tmp/test-build/src/data/parseDataView");
+const { fixtureDataView: csvFixtureDataView } = require("../helpers/mockHost");
 
+// Role map for the synthetic (non-CSV) rows built below. Kept in sync with, but separate from,
+// the CSV fixture loader's own copy in test/helpers/mockHost.js.
 const roleByHeader = {
     machine_key: "machine",
     machine_type: "machineType",
@@ -15,24 +17,6 @@ const roleByHeader = {
     tag_id: "tooltipFields",
     alarm_time: "alarmTime"
 };
-
-function csvFixtureDataView() {
-    const text = fs.readFileSync("test/fixtures/bucket_health_components.csv", "utf8").trim();
-    const [headerLine, ...lines] = text.split(/\r?\n/);
-    const headers = headerLine.split(",");
-    const columns = headers.map((header) => ({
-        displayName: header,
-        roles: roleByHeader[header] ? { [roleByHeader[header]]: true } : {}
-    }));
-    const rows = lines.map((line) => line.split(","));
-
-    return {
-        table: {
-            columns,
-            rows
-        }
-    };
-}
 
 function componentRow(machine, component, category, order, status) {
     return [machine, "Hydraulic Excavator", component, category, order, status, "2026-06-21T11:00:00Z", `TAG-${component}`];
