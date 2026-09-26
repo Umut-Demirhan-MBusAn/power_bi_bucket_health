@@ -5,65 +5,84 @@ on:
     tags: ["v*.*.*.*"]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "22"
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       # pbiviz stays a global install (not a devDependency): its webpack-dev-server tree
       # carries audit findings, and this repo keeps its audit clean regardless.
       - run: npm install -g powerbi-visuals-tools@7.1.0
-      - run: npm run build:test
-      - run: node --test test/unit/*.test.js
+      - run: npm run check:version
+      - run: npm test
       - run: npm run eslint
+      - run: npm run validate:fixtures
       - run: npm audit --audit-level=moderate
       - run: npm run package
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: pbiviz-package
           path: dist/*.pbiviz
 
-  # Publishes the .pbiviz to Azure Artifacts on version tags (vMAJOR.MINOR.PATCH.0).
+  # Publishes a GitHub Release with the tested .pbiviz on version tags (vMAJOR.MINOR.PATCH.0).
+  # Azure Artifacts publish is best-effort and only runs when its repo variables are set.
   # Release process and required secrets/variables: docs/MAINTENANCE.md.
   release:
     needs: test
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
       - name: Validate tag matches vMAJOR.MINOR.PATCH.0
         run: |
-          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+\.0$ ]]; then
             echo "Malformed tag: $GITHUB_REF_NAME (expected vMAJOR.MINOR.PATCH.0)"
             exit 1
           fi
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Verify version consistency against the tag
+        run: node scripts/check-version.js --tag "$GITHUB_REF_NAME"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          node-version: "22"
-          cache: npm
-      - run: npm ci
-      - run: npm install -g powerbi-visuals-tools@7.1.0
-      - run: npm run build:test
-      - run: node --test test/unit/*.test.js
-      - run: npm run eslint
-      - run: npm audit --audit-level=moderate
-      - run: npm run package
+          name: pbiviz-package
+          path: dist
+      - name: Write release notes from CHANGELOG.md
+        run: node scripts/check-version.js --notes > release-notes.md
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/*.pbiviz --title "Bucket Health $GITHUB_REF_NAME" --notes-file release-notes.md
       - name: Stage package for Universal Packages publish
+        if: vars.AZURE_DEVOPS_ORG != ''
         run: |
           mkdir -p release-artifact
           cp dist/*.pbiviz release-artifact/
       - name: Derive Universal Packages version (3-part SemVer) from the tag
         id: version
+        if: vars.AZURE_DEVOPS_ORG != ''
         run: |
           TAG="${GITHUB_REF_NAME#v}"     # e.g. 1.1.0.0
           SEMVER="${TAG%.*}"              # drop the trailing .0 -> 1.1.0
           echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
       - name: Publish to Azure Artifacts
+        if: vars.AZURE_DEVOPS_ORG != ''
         env:
           AZURE_DEVOPS_EXT_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
         run: |

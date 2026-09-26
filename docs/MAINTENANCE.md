@@ -36,27 +36,38 @@ beyond re-uploading the previous build. Therefore:
 
 ## Release
 
-1. PR: bump `pbiviz.json` version + add a `CHANGELOG.md` entry.
-2. After merge: `git tag vX.Y.Z.0 && git push origin vX.Y.Z.0`.
-3. The CI `release` job builds the `.pbiviz` and publishes it to Azure Artifacts
-   (Universal Packages, versioned `X.Y.Z`).
-4. Tenant admin uploads it: Admin portal → Organizational visuals → Bucket Health → Settings →
-   Update. Manual step — there is no API for it.
-5. Verify in a non-production report and inside the embedded product (re-check the audio-arming
+1. Bump `pbiviz.json` (both `version` and `visual.version`), `package.json` `version`
+   (first three parts, no trailing `.0`), and add a `CHANGELOG.md` entry.
+2. `npm run check:version` — verifies the three files agree before you open the PR.
+3. PR → merge.
+4. `git tag vX.Y.Z.0 && git push origin vX.Y.Z.0`.
+5. CI's `release` job runs automatically on the tag: it re-verifies the version against the
+   tag, downloads the `.pbiviz` built and tested by the `test` job, and creates a GitHub
+   Release (`vX.Y.Z.0`) with that file attached and the CHANGELOG section as release notes.
+6. Tenant admin uploads the release asset: Admin portal → Organizational visuals →
+   Bucket Health → Settings → Update. Manual step — there is no API for it.
+7. Verify in a non-production report and inside the embedded product (re-check the audio-arming
    click in the host page).
 
-### One-time Azure DevOps setup (release job prerequisites)
+### Azure Artifacts publish (optional)
 
-- Universal Packages feed (Azure DevOps → Artifacts → Create feed).
-- PAT scoped **Packaging: Read, write, & manage** → GitHub secret `AZURE_DEVOPS_PAT`.
-- Repo variables: `AZURE_DEVOPS_ORG`, `AZURE_DEVOPS_PROJECT`, `AZURE_ARTIFACTS_FEED`.
+The `release` job also publishes the `.pbiviz` to Azure Artifacts (Universal Packages,
+versioned `X.Y.Z`), but only when `vars.AZURE_DEVOPS_ORG` is set — the GitHub Release step
+always runs regardless. One-time setup:
 
-Until configured, only the tag-triggered `release` job fails; normal CI is unaffected.
+| Item | Where |
+| --- | --- |
+| Universal Packages feed | Azure DevOps → Artifacts → Create feed |
+| PAT scoped **Packaging: Read, write, & manage** | GitHub secret `AZURE_DEVOPS_PAT` |
+| Org / project / feed name | GitHub repo variables `AZURE_DEVOPS_ORG`, `AZURE_DEVOPS_PROJECT`, `AZURE_ARTIFACTS_FEED` |
+
+Rotate `AZURE_DEVOPS_PAT` before it expires — an expired PAT only fails the Azure Artifacts
+publish step; the GitHub Release still succeeds.
 
 ## Pre-release checks
 
 ```bash
-npm ci && npm test && npm run eslint && npm run lint && npm run package
+npm ci && npm run check:version && npm test && npm run eslint && npm run lint && npm run package
 pbiviz package --certification-audit   # security lint (flags eval/innerHTML/fetch)
 ```
 

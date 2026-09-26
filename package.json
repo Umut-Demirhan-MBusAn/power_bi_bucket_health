@@ -1,14 +1,15 @@
 {
   "name": "power-bi-bucket-health",
   "description": "Power BI custom visual for mining bucket GET component health.",
-  "version": "1.0.0.0",
+  "version": "1.0.0",
+  "private": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health"
   },
   "license": "MIT",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.13"
   },
   "scripts": {
     "pbiviz": "pbiviz",
@@ -19,7 +20,8 @@
     "build:test": "tsc -p tsconfig.test.json",
     "test": "npm run build:test && node --test test/unit/*.test.js",
     "test:coverage": "npm run build:test && node --test --experimental-test-coverage test/unit/*.test.js",
-    "validate:fixtures": "pwsh -File scripts/validate-mock-data.ps1"
+    "validate:fixtures": "pwsh -File scripts/validate-mock-data.ps1",
+    "check:version": "node scripts/check-version.js"
   },
   "dependencies": {
     "powerbi-visuals-api": "~5.11.0",
