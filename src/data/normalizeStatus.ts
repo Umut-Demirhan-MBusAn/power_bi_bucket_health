@@ -22,7 +22,21 @@ export function normalizeStatus(value: unknown): BucketStatusKey | undefined {
         return undefined;
     }
 
-    return statusMap.get(String(value).trim().toLowerCase());
+    return statusMap.get(normalizeStatusText(String(value)));
+}
+
+// Tolerates common source-system formatting drift before the exact-match lookup: collapses runs
+// of whitespace to one space, normalizes spacing around "+" (e.g. "Lockout +No Data"), and
+// inserts a space before "(" (e.g. "No Data(1h)" -> "no data (1h)"). Existing accepted spellings
+// (already spaced this way) are unaffected.
+function normalizeStatusText(raw: string): string {
+    return raw
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .replace(/\s*\+\s*/g, " + ")
+        .replace(/\s*\(/g, " (")
+        .trim();
 }
 
 export function isAlarmStatus(status: BucketStatusKey): boolean {

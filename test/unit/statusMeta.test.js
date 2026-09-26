@@ -1,7 +1,21 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { machineStatusKey } = require("../../.tmp/test-build/src/domain/statusMeta");
+const { dominantAlarm, machineStatusKey } = require("../../.tmp/test-build/src/domain/statusMeta");
+
+test("dominantAlarm returns move when any status is move", () => {
+    assert.equal(dominantAlarm(["ok", "prox", "move"]), "move");
+    assert.equal(dominantAlarm(["move"]), "move");
+});
+
+test("dominantAlarm returns prox when prox is present without move", () => {
+    assert.equal(dominantAlarm(["ok", "nodata", "prox"]), "prox");
+});
+
+test("dominantAlarm returns undefined when no status alarms", () => {
+    assert.equal(dominantAlarm(["ok", "nodata", "lockout", "lockoutnd"]), undefined);
+    assert.equal(dominantAlarm([]), undefined);
+});
 
 test("machineStatusKey returns alarm when any component alarms", () => {
     assert.equal(machineStatusKey(["ok", "nodata", "prox"]), "prox");
