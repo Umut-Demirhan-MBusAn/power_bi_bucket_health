@@ -41,7 +41,11 @@ export class Visual implements IVisual {
     private minCardWidth = 220;
     private rowCount = 0;
 
-    constructor(options: VisualConstructorOptions) {
+    // powerbi-visuals-api's IVisualPlugin.create types this parameter as optional (it forwards
+    // whatever pbiviz's generated plugin wrapper receives); the real Power BI host always
+    // supplies it when constructing a working visual.
+    constructor(rawOptions: VisualConstructorOptions | undefined) {
+        const options = rawOptions!;
         this.host = options.host;
         this.events = options.host.eventService;
         this.selectionManager = options.host.createSelectionManager();
