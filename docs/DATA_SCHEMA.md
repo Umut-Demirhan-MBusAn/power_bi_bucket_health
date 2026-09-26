@@ -158,9 +158,11 @@ Machine-level checks (run only on that machine's valid rows):
 - Lip shroud count must equal `teeth − 1` — checked only when the teeth count is itself in range.
 - Each wing side (after applying **Wing side assignment**) must have at most 4 wing shrouds.
 
-The three count checks run only when none of the machine's rows was rejected: counting without the
-rejected row would blame a category that is actually fine (a bad tooth status would otherwise also
-report "4 lip shrouds; expected 3."). The card header counts the valid components only.
+While any of the machine's rows is rejected, the "fewer than 4 teeth" and lip-shroud checks are
+skipped: counting without the rejected row would blame a category that is actually fine (a bad
+tooth status would otherwise also report "4 lip shrouds; expected 3."). The "more than 20 teeth"
+and per-side wing limits always run, because a rejected row can only lower a count. The card
+header counts the valid components only.
 
 Each machine's issue list is capped at 20 entries, with a final "…and N more." summary when there
 are more.

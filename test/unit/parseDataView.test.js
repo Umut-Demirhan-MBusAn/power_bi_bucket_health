@@ -439,20 +439,58 @@ test("one blank-machine row uses the singular warning", () => {
     assert.deepEqual(parseDataView(dataViewFromRows(rows)).warnings, ["1 row has no machine and is not shown."]);
 });
 
-test("a rejected row is reported on its own, without a count issue blaming a valid category", () => {
-    // 5 teeth, 4 lip shrouds and 5 odd-order wings (all on the left) would otherwise also report
-    // "4 lip shrouds; expected 3." and "5 wing shrouds on the left side" once the bad tooth is dropped.
-    const rows = [
+const BROKEN_T04 = "Tooth 4 (EX-107-T04): status 'Broken' is not recognised. Use OK, No Data, Lockout, Lockout + No Data, Proximity Alarm or Movement Alarm.";
+
+function ex107Rows(t04Status, lipCount = 4) {
+    return [
         ...[1, 2, 3, 5].map((order) => componentRow("EX-107", `EX-107-T0${order}`, "tooth", order, "OK")),
-        componentRow("EX-107", "EX-107-T04", "tooth", 4, "Broken"),
-        ...[1, 2, 3, 4].map((order) => componentRow("EX-107", `EX-107-L0${order}`, "lipShroud", order, "OK")),
-        ...[1, 3, 5, 7, 9].map((order) => componentRow("EX-107", `EX-107-W0${order}`, "wingShroud", order, "OK"))
+        componentRow("EX-107", "EX-107-T04", "tooth", 4, t04Status),
+        ...Array.from({ length: lipCount }, (_, i) => componentRow("EX-107", `EX-107-L0${i + 1}`, "lipShroud", i + 1, "OK"))
+    ];
+}
+
+test("a rejected row is reported on its own, without a lip-count issue blaming valid lip shrouds", () => {
+    const machine = parseDataView(dataViewFromRows(ex107Rows("Broken"))).machines.find((m) => m.key === "EX-107");
+
+    assert.deepEqual(machine.issues, [BROKEN_T04]);
+    assert.equal(machine.teeth.length, 4, "the header counts only the valid components");
+});
+
+test("without a rejected row the same machine still gets its lip-count issue", () => {
+    const machine = parseDataView(dataViewFromRows(ex107Rows("OK", 3))).machines.find((m) => m.key === "EX-107");
+
+    assert.deepEqual(machine.issues, ["3 lip shrouds; expected 4."]);
+});
+
+test("a rejected row does not hide the teeth or wing upper limits, which it can only lower", () => {
+    const rows = [
+        ...Array.from({ length: 21 }, (_, i) => componentRow("EX-BIG", `T${i + 1}`, "tooth", i + 1, "OK")),
+        ...[1, 3, 5, 7, 9].map((order) => componentRow("EX-BIG", `W${order}`, "wingShroud", order, "OK")),
+        componentRow("EX-BIG", "T22", "tooth", 22, "Broken")
     ];
 
-    const machine = parseDataView(dataViewFromRows(rows)).machines.find((m) => m.key === "EX-107");
+    const machine = parseDataView(dataViewFromRows(rows)).machines.find((m) => m.key === "EX-BIG");
 
-    assert.deepEqual(machine.issues, ["Tooth 4 (EX-107-T04): status 'Broken' is not recognised. Use OK, No Data, Lockout, Lockout + No Data, Proximity Alarm or Movement Alarm."]);
-    assert.equal(machine.teeth.length, 4, "the header counts only the valid components");
+    assert.deepEqual(machine.issues, [
+        "21 teeth; supported range is 4–20.",
+        "5 wing shrouds on the left side; maximum is 4 per side.",
+        "Tooth 22 (T22): status 'Broken' is not recognised. Use OK, No Data, Lockout, Lockout + No Data, Proximity Alarm or Movement Alarm."
+    ]);
+});
+
+test("an incomplete machine with a rejected row shows the Incomplete issue and the row issue only", () => {
+    const rows = [
+        componentRow("EX-1", "T1", "tooth", 1, "OK"),
+        componentRow("EX-2", "T1", "tooth", 1, "OK"),
+        componentRow("EX-2", "T2", "tooth", 2, "Broken")
+    ];
+
+    const ex2 = parseDataView(dataViewFromRows(rows, undefined, {})).machines.find((m) => m.key === "EX-2");
+
+    assert.deepEqual(ex2.issues, [
+        "Incomplete — the 2,000-row limit was reached.",
+        "Tooth 2 (T2): status 'Broken' is not recognised. Use OK, No Data, Lockout, Lockout + No Data, Proximity Alarm or Movement Alarm."
+    ]);
 });
 
 test("row issues name the component instead of a row position", () => {

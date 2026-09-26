@@ -231,8 +231,6 @@ function collectMachineDrafts(
     return { machineDrafts, blankMachineRowCount };
 }
 
-// Names a row the way the report author knows it: "Tooth 4 (EX-107-T04)" when category and order
-// are usable, else the component key, else a generic "A tooth row" / "A row".
 function rowSubject(componentKey: string, category: ComponentCategory | undefined, order: number | undefined): string {
     if (category && order !== undefined) {
         const label = `${CATEGORY_LABELS[category]} ${order}`;
@@ -309,19 +307,19 @@ function buildMachineModels(
             machineIssues.push(`Duplicate component '${componentKey}'.`);
         });
 
-        // Count checks run only on complete, fully valid data: a rejected row is already reported
-        // on its own, and counting without it would blame a category that is actually fine.
-        const countable = !incomplete && draft.rejectedRowCount === 0;
-
         if (incomplete) {
             machineIssues.push("Incomplete — the 2,000-row limit was reached.");
-        }
-
-        if (countable) {
-            if (teeth.length < 4 || teeth.length > 20) {
+        } else {
+            // A rejected row can only lower a count, so the upper limits are always real problems,
+            // while "too few teeth" and the lip-shroud check would blame a category that is fine.
+            if (teeth.length > 20) {
                 machineIssues.push(`${teeth.length} teeth; supported range is 4–20.`);
-            } else if (lipShrouds.length !== teeth.length - 1) {
-                machineIssues.push(`${lipShrouds.length} lip shrouds; expected ${teeth.length - 1}.`);
+            } else if (draft.rejectedRowCount === 0) {
+                if (teeth.length < 4) {
+                    machineIssues.push(`${teeth.length} teeth; supported range is 4–20.`);
+                } else if (lipShrouds.length !== teeth.length - 1) {
+                    machineIssues.push(`${lipShrouds.length} lip shrouds; expected ${teeth.length - 1}.`);
+                }
             }
             if (wingShroudsLeft.length > 4) {
                 machineIssues.push(`${wingShroudsLeft.length} wing shrouds on the left side; maximum is 4 per side.`);
