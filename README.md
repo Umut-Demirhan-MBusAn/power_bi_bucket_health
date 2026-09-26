@@ -103,7 +103,7 @@ Bugs and feature requests → Azure DevOps work items. Developer/maintainer: **U
 
 ## Development
 
-Requires Node.js ≥ 20.19 (see `.nvmrc`) and the `pbiviz` CLI:
+Requires Node.js ≥ 22.13 (see `.nvmrc`) and the `pbiviz` CLI:
 `npm install -g powerbi-visuals-tools@7.1.0` (kept global, not a devDependency — its dependency
 tree fails `npm audit`).
 
