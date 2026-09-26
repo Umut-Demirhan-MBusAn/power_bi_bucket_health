@@ -77,7 +77,7 @@ Accepted status strings (case-insensitive; alternate spellings such as `prox` or
 
 ### Component counts & layout
 
-Each machine's bucket geometry adapts to the rows you supply: **4–20 teeth**, **lip shrouds = teeth − 1**, and **0–8 wing shrouds** (up to 4 per side). Wing shrouds have no left/right column — the side is derived from **Order** via the **Wing side assignment** setting.
+Each machine's bucket geometry adapts to the rows you supply: **4–20 teeth**, **lip shrouds = teeth − 1**, and **0–4 wing shrouds per side** (0–8 total). Wing shrouds have no left/right column — the side is derived from **Order** via the **Wing side assignment** setting. A machine outside these counts still renders — as its own invalid card listing the problem — without affecting any other machine.
 
 See **[`docs/DATA_SCHEMA.md`](docs/DATA_SCHEMA.md)** for the full schema: exact count rules, all four wing-assignment modes, accepted status spellings, and the alarm-audio logic.
 

@@ -19,7 +19,8 @@ function machine(key = "EX-1") {
         teeth: Array.from({ length: 5 }, (_, i) => component("tooth", i + 1)),
         lipShrouds: Array.from({ length: 4 }, (_, i) => component("lipShroud", i + 1)),
         wingShroudsLeft: [], wingShroudsRight: [],
-        alarmCount: 0, hasAlarm: false, sourceOrder: 0
+        alarmCount: 0, hasAlarm: false, sourceOrder: 0,
+        issues: [], incomplete: false
     };
 }
 
@@ -33,12 +34,24 @@ test("renderFleet shows truncation banner when truncated=true", () => {
     const el = renderFleet([machine()], THEME, 220, true);
     const banner = el.querySelector(".bh-truncation-warning");
     assert.ok(banner, "truncation banner present");
-    assert.match(banner.textContent, /2 000 rows/);
+    assert.match(banner.textContent, /Row limit reached \(2,000 rows\)/);
 });
 
 test("renderFleet omits truncation banner when truncated=false", () => {
     const el = renderFleet([machine()], THEME, 220, false);
     assert.equal(el.querySelector(".bh-truncation-warning"), null);
+});
+
+test("renderFleet renders a banner per fleet-level warning", () => {
+    const el = renderFleet([machine()], THEME, 220, false, ["2 row(s) skipped: machine is blank."]);
+    const banners = el.querySelectorAll(".bh-fleet-warning");
+    assert.equal(banners.length, 1);
+    assert.match(banners[0].textContent, /2 row\(s\) skipped: machine is blank\./);
+});
+
+test("renderFleet omits fleet-warning banners when warnings is empty", () => {
+    const el = renderFleet([machine()], THEME, 220);
+    assert.equal(el.querySelector(".bh-fleet-warning"), null);
 });
 
 test("renderFleet applies --single modifier for one machine", () => {

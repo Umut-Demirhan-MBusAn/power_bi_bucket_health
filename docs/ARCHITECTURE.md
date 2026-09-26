@@ -60,7 +60,7 @@ src/
     alarmController.ts      # Alarm-identity dedup (machine + component + alarmTime)
     alarmAudio.ts           # WebAudio two-tone beep, gesture arming, 60 s auto-stop
   data/
-    keys.ts                 # Composite key builder ("|#|" separator)
+    keys.ts                 # Composite key builder (JSON-encodes the parts array)
     normalizeStatus.ts      # Source strings -> canonical status keys; alarm predicate
     parseDataView.ts        # Role validation + row parsing + machine derivation
     types.ts                # ComponentRecord, MachineBucketModel, data-state union
@@ -128,8 +128,8 @@ element, its positioning, and its content builder are all owned by the entry poi
 
 **AlarmController (alarm-identity dedup):**
 
-- Builds a stable alarm identity per alarm from machine key + component key + alarmTime using the
-  `"|#|"` composite-key separator.
+- Builds a stable alarm identity per alarm from machine key + component key + alarmTime, JSON-encoded
+  by `buildCompositeKey`.
 - Caches every identity that has been seen; the same identity never fires audio twice, including
   after dismissal.
 - Seeds the cache on the first render so pre-existing alarms do not beep when the report opens.

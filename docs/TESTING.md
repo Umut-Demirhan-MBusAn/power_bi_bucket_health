@@ -44,7 +44,7 @@ These tests import compiled source directly and have no setup beyond `require`.
 |---|---|---|
 | `normalizeStatus.test.js` | `src/data/normalizeStatus` | Source strings → canonical status keys; case/whitespace tolerance; rejection of unknown values; `isAlarmStatus` only treats prox/move as alarms |
 | `parseDataView.test.js` | `src/data/parseDataView` | DataView → `MachineBucketModel`; missing roles; CSV fixture round-trip; wing-side modes; component-order direction; alarm sorting; error cases |
-| `keys.test.js` | `src/data/keys` | `COMPOSITE_KEY_SEPARATOR` value; `buildCompositeKey` with 1, 2, 3 parts and empty-string parts |
+| `keys.test.js` | `src/data/keys` | `buildCompositeKey` with 1, 2, 3 parts, empty-string parts, and delimiter-colliding parts |
 | `bucketGeometry.test.js` | `src/geometry/bucketGeometry` | Handoff constants; min/max viewBox dimensions; fixed component sizes; asymmetric wing counts; wing ordering; dominant alarm label |
 | `statusMeta.test.js` | `src/domain/statusMeta` | `machineStatusKey` — alarm priority, all-nodata, ok paths |
 | `settingsGuards.test.js` | `src/domain/settingsGuards` | `asWingSideAssignment`, `asComponentOrderDirection`, `asAlarmMotion` — valid values pass through; unknown values return defaults |

@@ -20,15 +20,15 @@ function fakeAudio() {
 }
 
 test("buildAlarmId combines machine, component, and time", () => {
-    assert.equal(buildAlarmId("M1", "C1", "2026-06-23T10:00:00Z"), "M1|#|C1|#|2026-06-23T10:00:00Z");
-    assert.equal(buildAlarmId("M1", "C1", undefined), "M1|#|C1|#|");
+    assert.equal(buildAlarmId("M1", "C1", "2026-06-23T10:00:00Z"), JSON.stringify(["M1", "C1", "2026-06-23T10:00:00Z"]));
+    assert.equal(buildAlarmId("M1", "C1", undefined), JSON.stringify(["M1", "C1", ""]));
 });
 
 test("collectAlarmIds only includes alarm-status components", () => {
     const ids = collectAlarmIds([machine("M", [comp("T1", "ok", "t"), comp("T2", "prox", "t1"), comp("T3", "move", "t2")])]);
     assert.equal(ids.size, 2);
-    assert.ok(ids.has("M|#|T2|#|t1"));
-    assert.ok(ids.has("M|#|T3|#|t2"));
+    assert.ok(ids.has(JSON.stringify(["M", "T2", "t1"])));
+    assert.ok(ids.has(JSON.stringify(["M", "T3", "t2"])));
 });
 
 test("first update seeds without firing audio", () => {

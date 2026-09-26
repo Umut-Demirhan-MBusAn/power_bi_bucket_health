@@ -6,10 +6,20 @@ import { machineStatusKey, statusColors, statusLabels, VisualTheme } from "../do
 const BUCKET_TARGET_HEIGHT = 220; // paired with .bucket-health-card height in style/visual.less
 
 export function renderMachineCard(machine: MachineBucketModel, theme: VisualTheme, minCardWidth: number): HTMLElement {
+    const isInvalid = machine.issues.length > 0;
+    const isIncomplete = machine.incomplete;
+
     const card = document.createElement("article");
-    card.className = machine.hasAlarm
-        ? "bucket-health-card bucket-health-card--alarm"
-        : "bucket-health-card";
+    const cardClasses = ["bucket-health-card"];
+    if (machine.hasAlarm) {
+        cardClasses.push("bucket-health-card--alarm");
+    }
+    if (isIncomplete) {
+        cardClasses.push("bucket-health-card--incomplete");
+    } else if (isInvalid) {
+        cardClasses.push("bucket-health-card--invalid");
+    }
+    card.className = cardClasses.join(" ");
     card.setAttribute("data-machine-key", machine.key);
 
     const all = [
@@ -20,17 +30,24 @@ export function renderMachineCard(machine: MachineBucketModel, theme: VisualThem
     ];
 
     // Frame color reflects the machine's overall status: alarm if any component alarms,
-    // "no data" if every component is no-data/lockout+no-data, otherwise OK.
+    // "no data" if every component is no-data/lockout+no-data, otherwise OK. A machine with
+    // issues (and not alarming) always shows the neutral grey rather than a status color, since
+    // its component counts/statuses may be incomplete or unreliable.
     // In high contrast, the host foreground colors take over (selected accent when alarming).
     const statusKey = machineStatusKey(all.map(c => c.status));
+    const normalBorderColor = isInvalid && !machine.hasAlarm ? "#9AA4B1" : statusColors[statusKey];
     card.style.borderColor = theme.isHighContrast
         ? (machine.hasAlarm ? theme.foregroundSelected : theme.foreground)
-        : statusColors[statusKey];
+        : normalBorderColor;
 
     // Accessible name for the whole card: machine plus its overall status.
     const cardStatusLabel = machine.hasAlarm
         ? statusLabels[statusKey]
-        : statusKey === "nodata" ? statusLabels["nodata"] : statusLabels["ok"];
+        : isIncomplete
+            ? "Incomplete"
+            : isInvalid
+                ? "Data error"
+                : statusKey === "nodata" ? statusLabels["nodata"] : statusLabels["ok"];
     card.setAttribute("aria-label", `${machine.name}: ${cardStatusLabel}`);
 
     // Card height is uniform across the fleet; width tracks the bucket's aspect ratio so the
@@ -62,14 +79,22 @@ export function renderMachineCard(machine: MachineBucketModel, theme: VisualThem
     ].filter(Boolean).join(" · ");
 
     const statusBadge = document.createElement("span");
-    statusBadge.className = machine.hasAlarm
-        ? "bucket-health-card__status bucket-health-card__status--alarm"
-        : statusKey === "nodata"
-            ? "bucket-health-card__status bucket-health-card__status--nodata"
-            : "bucket-health-card__status";
+    const badgeClasses = ["bucket-health-card__status"];
+    if (machine.hasAlarm) {
+        badgeClasses.push("bucket-health-card__status--alarm");
+    } else if (isIncomplete || isInvalid) {
+        badgeClasses.push("bucket-health-card__status--invalid");
+    } else if (statusKey === "nodata") {
+        badgeClasses.push("bucket-health-card__status--nodata");
+    }
+    statusBadge.className = badgeClasses.join(" ");
     statusBadge.textContent = machine.hasAlarm
         ? "ALARM!"
-        : statusKey === "nodata" ? "NO DATA" : "OK";
+        : isIncomplete
+            ? "INCOMPLETE"
+            : isInvalid
+                ? "DATA ERROR"
+                : statusKey === "nodata" ? "NO DATA" : "OK";
 
     headerText.append(title, meta);
     cardHeader.append(headerText, statusBadge);
@@ -113,6 +138,18 @@ export function renderMachineCard(machine: MachineBucketModel, theme: VisualThem
         card.append(alarmBanner);
     }
 
-    card.append(renderBucketSvg(machine, geometry, theme));
+    if (isInvalid) {
+        const issuesList = document.createElement("ul");
+        issuesList.className = "bucket-health-card__issues";
+        machine.issues.forEach((issue) => {
+            const item = document.createElement("li");
+            item.textContent = issue;
+            issuesList.appendChild(item);
+        });
+        card.append(issuesList);
+    } else {
+        card.append(renderBucketSvg(machine, geometry, theme));
+    }
+
     return card;
 }

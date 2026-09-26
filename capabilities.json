@@ -90,6 +90,18 @@
     },
     "dataViewMappings": [
         {
+            "conditions": [
+                {
+                    "machine": { "max": 1 },
+                    "machineType": { "max": 1 },
+                    "component": { "max": 1 },
+                    "category": { "max": 1 },
+                    "order": { "max": 1 },
+                    "status": { "max": 1 },
+                    "alarmTime": { "max": 1 },
+                    "lastSeen": { "max": 1 }
+                }
+            ],
             "table": {
                 "rows": {
                     "select": [

@@ -39,7 +39,6 @@ export class Visual implements IVisual {
     private readonly host: IVisualHost;
     private readonly selectionManager: ISelectionManager;
     private minCardWidth = 220;
-    private rowCount = 0;
 
     // powerbi-visuals-api's IVisualPlugin.create types this parameter as optional (it forwards
     // whatever pbiviz's generated plugin wrapper receives); the real Power BI host always
@@ -87,7 +86,6 @@ export class Visual implements IVisual {
             this.target.classList.toggle("bucket-health-root--flash-always", alarmMotion === "always");
             this.target.classList.toggle("bucket-health-root--flash-never", alarmMotion === "never");
 
-            this.rowCount = dataView?.table?.rows?.length ?? 0;
             const model = parseDataView(dataView, wingSideAssignment, componentOrder);
             this.alarmController.update(model, audioEnabled);
 
@@ -101,7 +99,9 @@ export class Visual implements IVisual {
                 state: "error",
                 machines: [],
                 missingRoles: [],
-                errors: [error instanceof Error ? error.message : String(error)]
+                errors: [error instanceof Error ? error.message : String(error)],
+                truncated: false,
+                warnings: []
             };
             this.render(errorModel, this.readTheme());
             this.events.renderingFailed(options, String(error));
@@ -137,7 +137,7 @@ export class Visual implements IVisual {
         }
 
         this.componentLookup = buildComponentLookup(model.machines);
-        const fleet = renderFleet(model.machines, theme, this.minCardWidth, this.rowCount >= 2000);
+        const fleet = renderFleet(model.machines, theme, this.minCardWidth, model.truncated, model.warnings);
         this.target.appendChild(fleet);
         fleet.scrollTop = previousScroll;
 
