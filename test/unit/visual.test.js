@@ -142,3 +142,158 @@ test("ArrowRight moves focus to the next component and Enter selects the focused
     );
     assert.equal(host.selectionManager.select.mock.calls.length, 1);
 });
+
+function editRows(dataView, edit) {
+    const headers = dataView.table.columns.map((c) => c.displayName);
+    const col = (name) => headers.indexOf(name);
+    const rows = dataView.table.rows.map((row) => row.slice());
+    edit(rows, col);
+    return { ...dataView, table: { ...dataView.table, rows } };
+}
+
+function setStatus(dataView, componentKey, status) {
+    return editRows(dataView, (rows, col) => {
+        rows.filter((row) => row[col("component_key")] === componentKey)
+            .forEach((row) => { row[col("status")] = status; });
+    });
+}
+
+function cardsByKey(element) {
+    return new Map(Array.from(element.querySelectorAll(".bucket-health-card"))
+        .map((card) => [card.getAttribute("data-machine-key"), card]));
+}
+
+function componentEl(element, machineKey, componentKey) {
+    const card = cardsByKey(element).get(machineKey);
+    return Array.from(card.querySelectorAll("[data-component-key]"))
+        .find((el) => el.getAttribute("data-component-key") === componentKey);
+}
+
+test("a resize-only update re-renders nothing", () => {
+    const host = createMockHost();
+    const { visual, element } = makeVisual(host);
+    visual.update({ dataViews: [fixtureDataView()], type: 2 });
+    const before = cardsByKey(element);
+
+    // An empty dataViews array would render the landing page if this update were processed.
+    visual.update({ dataViews: [], type: 4 | 32 });
+
+    const after = cardsByKey(element);
+    assert.equal(after.size, before.size);
+    before.forEach((card, key) => assert.equal(after.get(key), card, `${key} card kept`));
+    assert.equal(host.eventService.renderingStarted.mock.calls.length, 2);
+    assert.equal(host.eventService.renderingFinished.mock.calls.length, 2);
+});
+
+test("the first update renders even when it is flagged resize-only", () => {
+    const host = createMockHost();
+    const { visual, element } = makeVisual(host);
+
+    visual.update({ dataViews: [fixtureDataView()], type: 4 });
+
+    assert.ok(element.querySelectorAll(".bucket-health-card").length > 0);
+});
+
+test("a data update with the same statuses keeps every card node, even when tooltip data changes", () => {
+    const host = createMockHost();
+    const { visual, element } = makeVisual(host);
+    visual.update({ dataViews: [fixtureDataView()], type: 2 });
+    const before = cardsByKey(element);
+
+    const refreshed = editRows(fixtureDataView(), (rows, col) => {
+        rows.forEach((row) => { row[col("last_seen_utc")] = "2026-06-21T12:00:00Z"; });
+    });
+    visual.update({ dataViews: [refreshed], type: 2 });
+
+    const after = cardsByKey(element);
+    before.forEach((card, key) => assert.equal(after.get(key), card, `${key} card kept`));
+});
+
+test("a status change rebuilds only that machine's card", () => {
+    const host = createMockHost();
+    const { visual, element } = makeVisual(host);
+    visual.update({ dataViews: [fixtureDataView()], type: 2 });
+    const before = cardsByKey(element);
+    const order = Array.from(before.keys());
+
+    visual.update({ dataViews: [setStatus(fixtureDataView(), "EX-041-T02", "Lockout")], type: 2 });
+
+    const after = cardsByKey(element);
+    assert.deepEqual(Array.from(after.keys()), order, "card order unchanged");
+    before.forEach((card, key) => {
+        if (key === "EX-041") {
+            assert.notEqual(after.get(key), card, "changed card rebuilt");
+        } else {
+            assert.equal(after.get(key), card, `${key} card kept`);
+        }
+    });
+    assert.equal(componentEl(element, "EX-041", "EX-041-T02").getAttribute("data-status"), "lockout");
+});
+
+test("a new alarm moves its card forward and removed machines lose their card", () => {
+    const host = createMockHost();
+    const { visual, element } = makeVisual(host);
+    visual.update({ dataViews: [fixtureDataView()], type: 2 });
+    const before = cardsByKey(element);
+
+    const next = editRows(setStatus(fixtureDataView(), "EX-041-T02", "Movement alarm"), (rows, col) => {
+        for (let index = rows.length - 1; index >= 0; index--) {
+            if (rows[index][col("machine_key")] === "LD-031") rows.splice(index, 1);
+        }
+    });
+    visual.update({ dataViews: [next], type: 2 });
+
+    const after = cardsByKey(element);
+    const position = (cards) => Array.from(cards.keys()).indexOf("EX-041");
+    assert.ok(position(after) < position(before), "alarming card sorted ahead of its old place");
+    assert.ok(cardsByKey(element).get("EX-041").classList.contains("bucket-health-card--alarm"));
+    assert.equal(after.has("LD-031"), false);
+    ["EX-204", "EX-988"].forEach((key) => assert.equal(after.get(key), before.get(key), `${key} card kept`));
+});
+
+test("focus stays on the same component when its card is rebuilt", () => {
+    const host = createMockHost();
+    const { visual, element } = makeVisual(host);
+    visual.update({ dataViews: [fixtureDataView()], type: 2 });
+    const focused = componentEl(element, "EX-041", "EX-041-T01");
+    focused.focus();
+
+    visual.update({ dataViews: [setStatus(fixtureDataView(), "EX-041-T02", "Movement alarm")], type: 2 });
+
+    const replacement = componentEl(element, "EX-041", "EX-041-T01");
+    assert.notEqual(replacement, focused, "card was rebuilt");
+    assert.equal(document.activeElement, replacement);
+});
+
+test("an open tooltip stays open across an update and shows the new status", () => {
+    const host = createMockHost();
+    const { visual, element } = makeVisual(host);
+    visual.update({ dataViews: [fixtureDataView()], type: 2 });
+    componentEl(element, "EX-041", "EX-041-T02")
+        .dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: 10, clientY: 10 }));
+    const tooltip = element.querySelector(".bh-tooltip");
+    assert.equal(tooltip.hidden, false);
+
+    visual.update({ dataViews: [setStatus(fixtureDataView(), "EX-041-T02", "Lockout")], type: 2 });
+
+    assert.equal(element.querySelector(".bh-tooltip"), tooltip, "same tooltip element");
+    assert.equal(tooltip.hidden, false);
+    assert.match(tooltip.textContent, /Lockout/);
+});
+
+test("an open tooltip closes when its component disappears", () => {
+    const host = createMockHost();
+    const { visual, element } = makeVisual(host);
+    visual.update({ dataViews: [fixtureDataView()], type: 2 });
+    componentEl(element, "LD-031", "LD-031-T01")
+        .dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: 10, clientY: 10 }));
+
+    const withoutLoader = editRows(fixtureDataView(), (rows, col) => {
+        for (let index = rows.length - 1; index >= 0; index--) {
+            if (rows[index][col("machine_key")] === "LD-031") rows.splice(index, 1);
+        }
+    });
+    visual.update({ dataViews: [withoutLoader], type: 2 });
+
+    assert.equal(element.querySelector(".bh-tooltip").hidden, true);
+});
