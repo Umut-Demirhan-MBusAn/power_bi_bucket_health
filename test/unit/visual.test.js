@@ -503,4 +503,26 @@ test("a data refresh neither restarts the 8 s count nor reopens a hidden tooltip
 
     visual.update({ dataViews: [fixtureDataView()], type: 2 });
     assert.equal(tooltip().hidden, true);
+    move(componentEl(element, "EX-041", "EX-041-T02"), 14);
+    assert.equal(tooltip().hidden, true, "still expired after the rebuilt card");
+});
+
+test("mouseout closes only when the pointer leaves the component, whatever the related target", (t) => {
+    const { element, move, tooltip } = hoverSetup(t);
+    const tooth = componentEl(element, "EX-041", "EX-041-T02");
+    const out = (relatedTarget) => tooth.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget }));
+
+    move(tooth);
+    out(cardsByKey(element).get("EX-041"));
+    assert.equal(tooltip().hidden, true, "to the card");
+
+    move(tooth);
+    out(componentEl(element, "EX-041", "EX-041-T03"));
+    move(componentEl(element, "EX-041", "EX-041-T03"));
+    assert.equal(tooltip().hidden, false, "to another component, which then shows");
+    assert.match(tooltip().textContent, /EX-041-T03/);
+
+    move(tooth);
+    assert.doesNotThrow(() => out(document.createTextNode("x")));
+    assert.equal(tooltip().hidden, true, "to a text node");
 });
