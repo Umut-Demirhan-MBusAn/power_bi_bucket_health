@@ -13,7 +13,7 @@ import {
 
 import DataView = powerbi.DataView;
 import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
-import DataViewTable = powerbi.DataViewTable;
+import DataViewTableRow = powerbi.DataViewTableRow;
 import PrimitiveValue = powerbi.PrimitiveValue;
 
 const requiredRoles = ["machine", "component", "category", "order", "status"];
@@ -276,7 +276,7 @@ function findDuplicateComponentKeys(components: ComponentRecord[]): string[] {
     return [...duplicates];
 }
 
-function getTooltipFields(row: DataViewTable["rows"][number], columns: DataViewMetadataColumn[], indexes: number[]): TooltipField[] {
+function getTooltipFields(row: DataViewTableRow, columns: DataViewMetadataColumn[], indexes: number[]): TooltipField[] {
     return indexes.map((index) => ({
         label: columns[index].displayName,
         value: row[index]
@@ -287,7 +287,7 @@ function textValue(value: PrimitiveValue): string {
     return value === null || value === undefined ? "" : String(value).trim();
 }
 
-function optionalTextValue(row: DataViewTable["rows"][number], index: number | undefined): string | undefined {
+function optionalTextValue(row: DataViewTableRow, index: number | undefined): string | undefined {
     if (index === undefined) {
         return undefined;
     }
@@ -295,7 +295,7 @@ function optionalTextValue(row: DataViewTable["rows"][number], index: number | u
     return textValue(row[index]) || undefined;
 }
 
-function optionalValue(row: DataViewTable["rows"][number], index: number | undefined): PrimitiveValue | undefined {
+function optionalValue(row: DataViewTableRow, index: number | undefined): PrimitiveValue | undefined {
     return index === undefined ? undefined : row[index];
 }
 

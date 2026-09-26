@@ -16,8 +16,6 @@ npm run build:test && node --test test/unit/*.test.js
 `npm run test:coverage` runs the same suite with Node's built-in coverage reporter
 (`--experimental-test-coverage`).
 
-**Current count: 99 tests, 0 failures.**
-
 ---
 
 ## Infrastructure
@@ -28,7 +26,8 @@ npm run build:test && node --test test/unit/*.test.js
 | Language | Test files are plain `.js` (CommonJS); source is TypeScript compiled before each run |
 | DOM environment | [`jsdom`](https://github.com/jsdom/jsdom) — patches `globalThis.document` and `globalThis.DOMParser` for rendering tests only |
 | Assertions | `node:assert/strict` |
-| Fixtures | `test/fixtures/bucket_health_components.csv` — canonical mock data used by `parseDataView` tests |
+| Fixtures | `test/fixtures/bucket_health_components.csv` — canonical mock data used by `parseDataView` and `visual` tests |
+| Shared test helpers | `test/helpers/mockHost.js` — `createMockHost`, `buildTableDataView`, `fixtureDataView`, `installDom`, `installFakeAudioContext` |
 
 No test framework (Jest, Vitest, Mocha, etc.) is used. The Node built-in runner keeps the
 dependency surface minimal.
@@ -43,16 +42,16 @@ These tests import compiled source directly and have no setup beyond `require`.
 
 | File | Module under test | What is covered |
 |---|---|---|
-| `normalizeStatus.test.js` | `src/data/normalizeStatus` | Source strings → canonical status keys; case/whitespace tolerance; rejection of unknown values |
+| `normalizeStatus.test.js` | `src/data/normalizeStatus` | Source strings → canonical status keys; case/whitespace tolerance; rejection of unknown values; `isAlarmStatus` only treats prox/move as alarms |
 | `parseDataView.test.js` | `src/data/parseDataView` | DataView → `MachineBucketModel`; missing roles; CSV fixture round-trip; wing-side modes; component-order direction; alarm sorting; error cases |
 | `keys.test.js` | `src/data/keys` | `COMPOSITE_KEY_SEPARATOR` value; `buildCompositeKey` with 1, 2, 3 parts and empty-string parts |
-| `normalizeStatus.test.js` | `src/data/normalizeStatus` | `isAlarmStatus` only treats prox/move as alarms |
 | `bucketGeometry.test.js` | `src/geometry/bucketGeometry` | Handoff constants; min/max viewBox dimensions; fixed component sizes; asymmetric wing counts; wing ordering; dominant alarm label |
 | `statusMeta.test.js` | `src/domain/statusMeta` | `machineStatusKey` — alarm priority, all-nodata, ok paths |
 | `settingsGuards.test.js` | `src/domain/settingsGuards` | `asWingSideAssignment`, `asComponentOrderDirection`, `asAlarmMotion` — valid values pass through; unknown values return defaults |
 | `wingSideAssignment.test.js` | `src/domain/wingSideAssignment` | All four assignment modes; order-sort before assignment |
 | `alarmController.test.js` | `src/audio/alarmController` | Alarm-id dedup: seeds on first render without firing; same id never re-fires; new alarm time fires again; dismissed alarm does not re-fire; `audioEnabled: false` suppresses all |
-| `alarmAudio.test.js` | `src/audio/alarmAudio` | Gesture arm/resume; two-tone oscillator scheduling; idempotent `start()`; `dismiss()` and `destroy()` close the context |
+| `alarmAudio.test.js` | `src/audio/alarmAudio` | Gesture arm/resume; two-tone oscillator scheduling; idempotent `start()`; `dismiss()` and `destroy()` close the context; `mock.timers`-driven beep cadence (3 beeps by 3000ms) and 60s auto-stop |
+| `capabilitiesContract.test.js` | `capabilities.json`, `src/settings`, `src/domain/settingsGuards` | Every `objects.<card>.properties.<prop>` in `capabilities.json` matches a card/slice name in `VisualFormattingSettingsModel`, and vice versa; every `ItemDropdown` item value is accepted unchanged by its `settingsGuards` guard, and each guard's default is one of its items |
 
 ### DOM tests (jsdom)
 
@@ -66,6 +65,7 @@ changes were needed — the rendering modules call the global `document` directl
 | `renderMachineCard.test.js` | `src/rendering/renderMachineCard` | OK / alarm / no-data card classes and badges; alarm banner move-only, prox-only, and both; `Lip` and `Wing` component label prefixes; tooth/lip/wing meta text counts; no-data `aria-label` (`"No Data (1h)"`); min-width style; high-contrast foreground vs foregroundSelected border color (exact `rgb()` values) |
 | `renderFleet.test.js` | `src/rendering/renderFleet` | Truncation banner present/absent; single-machine `--single` grid modifier; multi-machine plain grid class; card count; empty machines array |
 | `renderBucketSvg.test.js` | `src/rendering/renderBucketSvg` | SVG root viewBox/role/aria-label; per-status component fills; component data attributes and keyboard/a11y attributes; center alarm shown for alarm machines and hidden otherwise; high-contrast fills/strokes for decorative shell and components (alarm vs non-alarm stroke); gradient ids sanitized from the machine key |
+| `visual.test.js` | `src/visual` (via `test/helpers/mockHost`) | Constructor adds `bucket-health-root`; empty `dataViews` renders the edge state and fires `renderingStarted`/`renderingFinished` once each; the CSV fixture renders one `.bucket-health-card` per distinct machine; a `colorPalette` read that throws on the ready path calls `renderingFailed` without an uncaught exception; clicking a component calls `selectionManager.select` with the id built for its row; `ArrowRight` moves focus to the next component and `Enter` selects it |
 
 ---
 
@@ -80,15 +80,6 @@ The fixture can be schema-validated with `scripts/validate-mock-data.ps1` (Power
 expected column set: `machine_key`, `machine_name`, `machine_type`, `component_key`,
 `component_name`, `component_category`, `component_order`, `status`, `last_seen_utc`, `tag_id`,
 `alarm_time` — and errors on missing or unexpected columns.
-
----
-
-## What is not unit-tested
-
-| Module | Reason |
-|---|---|
-| `src/visual.ts` | Power BI host entry point — tightly coupled to the `IVisual` host interface; no practical way to unit-test without a full PBI host |
-| `src/settings.ts` | Purely declarative Power BI formatting-model configuration; no logic to exercise |
 
 ---
 
