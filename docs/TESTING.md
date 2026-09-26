@@ -67,6 +67,14 @@ changes were needed — the rendering modules call the global `document` directl
 | `renderBucketSvg.test.js` | `src/rendering/renderBucketSvg` | SVG root viewBox/role/aria-label; per-status component fills; component data attributes and keyboard/a11y attributes; center alarm shown for alarm machines and hidden otherwise; high-contrast fills/strokes for decorative shell and components (alarm vs non-alarm stroke); gradient ids sanitized from the machine key |
 | `visual.test.js` | `src/visual` (via `test/helpers/mockHost`) | Constructor adds `bucket-health-root`; empty `dataViews` renders the edge state and fires `renderingStarted`/`renderingFinished` once each; the CSV fixture renders one `.bucket-health-card` per distinct machine; a `colorPalette` read that throws on the ready path calls `renderingFailed` without an uncaught exception; clicking a component calls `selectionManager.select` with the id built for its row; `ArrowRight` moves focus to the next component and `Enter` selects it |
 
+### Agent tooling tests
+
+These cover the repo's agent guardrails, not the visual; they need no compiled source.
+
+| File | Module under test | What is covered |
+|---|---|---|
+| `gitGuard.test.js` | `scripts/git-guard.lib.mjs`, `.claude/hooks/git-guard.mjs`, `.claude/settings.json` | Blocked forms (push to main/master, `git add -A`/`.`, bare stash/save/pop/clear, `gh pr merge` without `BUCKET_HEALTH_MERGE_OK=1`) and their allowed look-alikes under Bash and PowerShell quoting, assignments and casts, wrappers and nested shells (`bash -c`, `pwsh -Command`, `cmd /c`); the hook exits 2 on a block and on every failure path; settings wire the hook to fail closed, ask before destructive branch/switch forms, deny secret-file reads, prompt for browser input, and allow only real npm scripts and read-only `npm audit` |
+
 ---
 
 ## Fixtures
