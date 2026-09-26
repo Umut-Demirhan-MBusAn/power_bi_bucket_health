@@ -266,6 +266,125 @@ for (const payload of [
     });
 }
 
+// The settings tests run the shipped rules through this model of Claude Code's matcher, not
+// through Claude Code itself: a trailing `:*` is a prefix match; any other `*` matches any run of
+// characters, case-sensitively.
+function ruleMatches(rule, command) {
+    if (rule.endsWith(":*")) return command.startsWith(rule.slice(0, -2));
+    const source = rule
+        .split("*")
+        .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+        .join(".*");
+    return new RegExp(`^${source}$`, "s").test(command);
+}
+
+// Gitignore-style path glob, as Claude Code reads a Read() rule.
+function pathMatches(glob, file) {
+    const source = glob
+        .replace(/^\.\//, "")
+        .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+        .replace(/\*\*\//g, "\u0000")
+        .replace(/\*/g, "[^/]*")
+        .replaceAll("\u0000", "(?:.*/)?");
+    return new RegExp(`^${source}$`).test(file);
+}
+
+function loadSettings() {
+    return JSON.parse(fs.readFileSync(path.join(ROOT, ".claude", "settings.json"), "utf8"));
+}
+
+function bashRules(list, prefix) {
+    return list
+        .filter((rule) => rule.startsWith("Bash("))
+        .map((rule) => rule.slice(5, -1))
+        .filter((rule) => rule.startsWith(prefix));
+}
+
+test("settings: git-guard runs for both the Bash and the PowerShell tool", () => {
+    const matchers = loadSettings()
+        .hooks.PreToolUse.filter((entry) => entry.hooks.some((h) => h.command.includes("git-guard.mjs")))
+        .map((entry) => entry.matcher);
+    assert.deepEqual(matchers, ["Bash|PowerShell"]);
+});
+
+test("settings: the graphify hooks stay wired for Bash and Read|Glob", () => {
+    const matchers = loadSettings()
+        .hooks.PreToolUse.filter((entry) => entry.hooks.some((h) => h.command.includes("graphify-out/graph.json")))
+        .map((entry) => entry.matcher);
+    assert.deepEqual(matchers, ["Bash", "Read|Glob"]);
+});
+
+for (const command of [
+    "git branch -D feat/x",
+    "git branch --force feat/x origin/main",
+    "git branch -f main origin/feat/x",
+    "git branch -a -D feat/x",
+    "git switch --discard-changes main",
+    "git switch -f main",
+    "git switch feat/x --discard-changes",
+    "git switch --force-create feat/x",
+]) {
+    test(`settings: asks before ${JSON.stringify(command)}`, () => {
+        const { ask } = loadSettings().permissions;
+        assert.ok(bashRules(ask, "git ").some((rule) => ruleMatches(rule, command)));
+    });
+}
+
+for (const command of [
+    "git branch",
+    "git branch -d merged",
+    "git branch --show-current",
+    "git switch -c feat/x",
+    "git status --short",
+    "git worktree list",
+]) {
+    test(`settings: allows ${JSON.stringify(command)} without asking`, () => {
+        const { allow, ask } = loadSettings().permissions;
+        assert.equal(bashRules(ask, "git ").some((rule) => ruleMatches(rule, command)), false);
+        assert.ok(bashRules(allow, "git ").some((rule) => ruleMatches(rule, command)));
+    });
+}
+
+for (const command of ["git add -A", "git add .", "git push origin main", "git push --force origin feat/x", "git push -f origin feat/x"]) {
+    test(`settings: denies ${JSON.stringify(command)}`, () => {
+        const { deny } = loadSettings().permissions;
+        assert.ok(bashRules(deny, "git ").some((rule) => ruleMatches(rule, command)));
+    });
+}
+
+test("settings: every allowed npm run names a script in package.json", () => {
+    const { scripts } = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+    const named = bashRules(loadSettings().permissions.allow, "npm run ").map((rule) =>
+        rule.replace(/^npm run /, "").replace(/:\*$/, "")
+    );
+    assert.ok(named.length > 0);
+    for (const name of named) assert.ok(name in scripts, `npm run ${name} is not a package.json script`);
+});
+
+for (const file of [
+    ".env",
+    ".env.local",
+    "sub/.env",
+    "sub/.env.production",
+    "cert.pfx",
+    "certs/dev.pfx",
+    "key.pem",
+    "certs/server.key",
+    "a/b.p12",
+]) {
+    test(`settings: denies reading the secret file ${JSON.stringify(file)}`, () => {
+        const { deny } = loadSettings().permissions;
+        assert.ok(deny.filter((r) => r.startsWith("Read(")).some((r) => pathMatches(r.slice(5, -1), file)));
+    });
+}
+
+for (const file of ["src/visual.ts", "capabilities.json", "docs/MAINTENANCE.md", "test/fixtures/bucket_health_components.csv"]) {
+    test(`settings: lets ${JSON.stringify(file)} be read`, () => {
+        const { deny } = loadSettings().permissions;
+        assert.equal(deny.filter((r) => r.startsWith("Read(")).some((r) => pathMatches(r.slice(5, -1), file)), false);
+    });
+}
+
 test("git-guard hook fails closed with exit 2 when its decision logic cannot load", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "git-guard-"));
     try {

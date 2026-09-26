@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pbiviz-start",
+      "runtimeExecutable": "pbiviz",
+      "runtimeArgs": ["start"],
+      "port": 8080,
+      "url": "https://localhost:8080"
+    }
+  ]
+}

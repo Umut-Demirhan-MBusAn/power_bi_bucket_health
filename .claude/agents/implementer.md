@@ -34,7 +34,7 @@ The orchestrator gives you all of these; ask for whatever is missing before writ
    `docs/SPEC.md` too, when they are inside the fence.
 5. Verify: the targeted test first (`npm run build:test && node --test test/unit/<name>.test.js`),
    then the full gate from AGENTS.md "Pre-PR gate" — it takes seconds here, so run all of it.
-6. Commit with Conventional Commits, staging by path (never `git add -A`): write the message, with
+6. Commit with Conventional Commits; stage by path (never `git add -A`). Write the message, with
    your model's default `Co-Authored-By` trailer, to a file outside the worktree and run
    `git commit -F <file>`. Never `git commit --amend` or a `git reset` that moves HEAD (unstage with
    `git restore --staged <path>`): a worktree's branch can carry a sibling agent's commit. Fix a
