@@ -20,6 +20,7 @@ test("normalizeStatus tolerates casing and surrounding spaces", () => {
 test("normalizeStatus tolerates missing/extra space around '+'", () => {
     assert.equal(normalizeStatus("Lockout +No Data"), "lockoutnd");
     assert.equal(normalizeStatus("Lockout+ No Data"), "lockoutnd");
+    assert.equal(normalizeStatus("Lockout+No Data"), "lockoutnd");
 });
 
 test("normalizeStatus inserts a space before '(' when the source omits it", () => {

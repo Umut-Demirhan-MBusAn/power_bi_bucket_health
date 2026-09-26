@@ -7,7 +7,6 @@ const statusMap = new Map<string, BucketStatusKey>([
     ["no data", "nodata"],
     ["lockout", "lockout"],
     ["lockout + no data", "lockoutnd"],
-    ["lockout+no data", "lockoutnd"],
     ["lockoutnd", "lockoutnd"],
     ["proximity alarm", "prox"],
     ["proximity", "prox"],
