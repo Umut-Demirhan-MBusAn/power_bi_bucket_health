@@ -142,6 +142,9 @@ Each machine card frame and badge reflect the worst status across its components
   silent (see [DATA_SCHEMA.md › Alarm audio logic](DATA_SCHEMA.md#alarm-audio-logic)).
 - Dismissal rule: clicking anywhere on the visual dismisses current audio. Dismissing does not
   re-arm the already-heard alarm id; only a genuinely new alarm id plays audio.
+- Stop rule: a sounding alarm stops at once when **Enable audio alarm** is turned off or the data
+  drops to an edge state (landing page, invalid configuration, no data, error). An alarm id first
+  seen while audio is off never plays later.
 - Audio gesture rule: browser autoplay policies require a user gesture, so audio is armed/resumed
   by a user click inside the visual before it can play.
 - Audio pattern: WebAudio two-tone square-wave beep, 880 Hz then 660 Hz, ~0.24 seconds each,

@@ -159,3 +159,19 @@ test("start() auto-stops at 60000ms (interval cleared); a later start() schedule
 
     audio.dismiss();
 });
+
+test("isPlaying() is true from start() until dismiss() or the 60000ms auto-stop", (t) => {
+    t.mock.timers.enable({ apis: ["setInterval", "setTimeout"] });
+    const { createContext } = fakeContextFactory("running");
+    const audio = new AlarmAudio(createContext);
+
+    assert.equal(audio.isPlaying(), false);
+    audio.start();
+    assert.equal(audio.isPlaying(), true);
+    audio.dismiss();
+    assert.equal(audio.isPlaying(), false);
+
+    audio.start();
+    t.mock.timers.tick(60000);
+    assert.equal(audio.isPlaying(), false);
+});

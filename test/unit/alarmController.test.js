@@ -11,12 +11,30 @@ function machine(key, components) {
     return { key, name: key, teeth: components, lipShrouds: [], wingShroudsLeft: [], wingShroudsRight: [], alarmCount: 0, hasAlarm: false, sourceOrder: 0 };
 }
 
-function model(machines) {
-    return { state: "ready", machines, missingRoles: [], errors: [] };
+function model(machines, state = "ready") {
+    return { state, machines, missingRoles: [], errors: [] };
+}
+
+function playingController() {
+    const audio = fakeAudio();
+    const c = new AlarmController(audio);
+    c.update(model([machine("M", [comp("T1", "ok", "t")])]), true);
+    c.update(model([machine("M", [comp("T1", "prox", "t1")])]), true);
+    assert.equal(audio.isPlaying(), true);
+    return { audio, c };
 }
 
 function fakeAudio() {
-    return { starts: 0, dismisses: 0, start() { this.starts++; }, dismiss() { this.dismisses++; }, destroy() {}, arm() {} };
+    return {
+        starts: 0,
+        dismisses: 0,
+        playing: false,
+        start() { this.starts++; this.playing = true; },
+        dismiss() { this.dismisses++; this.playing = false; },
+        isPlaying() { return this.playing; },
+        destroy() {},
+        arm() {}
+    };
 }
 
 test("buildAlarmId combines machine, component, and time", () => {
@@ -71,5 +89,38 @@ test("audioEnabled false never fires", () => {
     const c = new AlarmController(audio);
     c.update(model([machine("M", [comp("T1", "ok", "t")])]), false);
     c.update(model([machine("M", [comp("T1", "prox", "t1")])]), false);
+    assert.equal(audio.starts, 0);
+});
+
+test("turning audio off while the alarm sounds stops it", () => {
+    const { audio, c } = playingController();
+    c.update(model([machine("M", [comp("T1", "prox", "t1")])]), false);
+    assert.equal(audio.dismisses, 1);
+    assert.equal(audio.isPlaying(), false);
+});
+
+["noData", "error", "invalidConfig", "noFields"].forEach((state) => {
+    test(`an edge state (${state}) while the alarm sounds stops it`, () => {
+        const { audio, c } = playingController();
+        c.update(model([], state), true);
+        assert.equal(audio.dismisses, 1);
+    });
+});
+
+test("nothing is stopped while no alarm is sounding", () => {
+    const audio = fakeAudio();
+    const c = new AlarmController(audio);
+    c.update(model([machine("M", [comp("T1", "ok", "t")])]), false);
+    c.update(model([], "noData"), true);
+    c.update(model([machine("M", [comp("T1", "prox", "t1")])]), false);
+    assert.equal(audio.dismisses, 0);
+});
+
+test("an alarm that arrived while audio was off does not beep once audio is back on", () => {
+    const audio = fakeAudio();
+    const c = new AlarmController(audio);
+    c.update(model([machine("M", [comp("T1", "ok", "t")])]), true);
+    c.update(model([machine("M", [comp("T1", "prox", "t1")])]), false);
+    c.update(model([machine("M", [comp("T1", "prox", "t1")])]), true);
     assert.equal(audio.starts, 0);
 });

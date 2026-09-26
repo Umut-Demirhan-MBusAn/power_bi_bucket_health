@@ -108,7 +108,7 @@ element, its positioning, and its content builder are all owned by the entry poi
 
 ## Rendering Strategy
 
-- SVG-first, hand-written DOM/SVG renderer — no rendering libraries (D3 was removed). Geometry math
+- SVG-first, hand-written DOM/SVG renderer — no rendering libraries. Geometry math
   is pure TypeScript and framework-agnostic.
 - Resize strategy: uniform fixed-height cards flex-wrap to fill the available width; scroll
   overflow appears once the wrapped cards exceed the available space.
@@ -140,8 +140,10 @@ element, its positioning, and its content builder are all owned by the entry poi
 - Requires an explicit user-gesture click to arm/resume the audio context (browser autoplay
   policy).
 - Square-wave two-tone pattern: 880 Hz then 660 Hz, ~0.24 s each, repeating every 1.5 s.
-- Auto-stops after 60 s; stops on click anywhere inside the visual; stays armed after dismissal.
-- Suppressed entirely in edge states and when the **Enable audio alarm** setting is off.
+- Auto-stops after 60 s; stops on click anywhere inside the visual. Stopping closes the audio
+  context, so the next alarm creates a new one.
+- Suppressed in edge states and when the **Enable audio alarm** setting is off; a sounding alarm
+  stops on the first update that turns the setting off or leaves the `ready` state.
 
 ## Key Runtime Concerns
 
