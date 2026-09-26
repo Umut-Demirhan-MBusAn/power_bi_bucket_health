@@ -28,6 +28,7 @@ const DIMMED_CLASS = "bucket-health-svg__component--dimmed";
 // VisualUpdateType.Data | VisualUpdateType.Style. The API declares a const enum, which has no
 // runtime object in the packaged visual, so the flag values are spelled out.
 const DATA_OR_STYLE_UPDATE = 2 | 16;
+const TOOLTIP_IDLE_MS = 8000;
 
 export class Visual implements IVisual {
     private readonly events: IVisualEventService;
@@ -39,6 +40,9 @@ export class Visual implements IVisual {
     private selectionIdLookup = new Map<string, ISelectionId>();
     private tooltip: HTMLElement | null = null;
     private tooltipKey: string | null = null;
+    // Set when the idle timeout closed the tooltip while the pointer was still on its component:
+    // further moves on that component must not reopen it until the pointer leaves.
+    private tooltipExpired = false;
     private fleet: HTMLElement | null = null;
     private hasRendered = false;
     private alarmMotion: ReturnType<typeof asAlarmMotion> = "always";
@@ -66,6 +70,7 @@ export class Visual implements IVisual {
         this.target.addEventListener("contextmenu", (event) => this.handleContextMenu(event));
         this.target.addEventListener("keydown", (event) => this.handleKeyDown(event));
         this.target.addEventListener("mousemove", (event) => this.handlePointerMove(event));
+        this.target.addEventListener("mouseout", (event) => this.handlePointerOut(event));
         this.target.addEventListener("mouseleave", () => this.hideTooltipNow());
 
         this.reducedMotionQuery = typeof window.matchMedia === "function"
@@ -378,21 +383,42 @@ export class Visual implements IVisual {
         const machineEl = target?.closest("[data-machine-key]");
 
         if (!componentEl || !machineEl) {
-            this.hideTooltip();
+            this.hideTooltipNow();
             return;
         }
 
-        const componentKey = componentEl.getAttribute("data-component-key") ?? "";
-        const machineKey = machineEl.getAttribute("data-machine-key") ?? "";
-        const record = this.componentLookup.get(buildCompositeKey(machineKey, componentKey));
+        const key = buildCompositeKey(
+            machineEl.getAttribute("data-machine-key") ?? "",
+            componentEl.getAttribute("data-component-key") ?? ""
+        );
+        const record = this.componentLookup.get(key);
 
         if (!record) {
-            this.hideTooltip();
+            this.hideTooltipNow();
             return;
         }
 
-        this.tooltipKey = buildCompositeKey(machineKey, componentKey);
+        if (key !== this.tooltipKey) {
+            this.tooltipKey = key;
+            this.tooltipExpired = false;
+        } else if (this.tooltipExpired) {
+            return;
+        }
         this.showTooltip(record, event);
+    }
+
+    // The host does not always deliver a later mousemove (the pointer can leave the report in one
+    // jump), so leaving a component closes its tooltip on the boundary event itself.
+    private handlePointerOut(event: MouseEvent): void {
+        const from = (event.target as Element | null)?.closest?.("[data-component-key]");
+        if (!from) {
+            return;
+        }
+        const related = event.relatedTarget as Element | null;
+        const to = typeof related?.closest === "function" ? related.closest("[data-component-key]") : null;
+        if (to !== from) {
+            this.hideTooltipNow();
+        }
     }
 
     private ensureTooltip(): HTMLElement {
@@ -409,8 +435,12 @@ export class Visual implements IVisual {
     private showTooltip(component: ComponentRecord, event: MouseEvent): void {
         if (this.hideTooltipTimer !== null) {
             clearTimeout(this.hideTooltipTimer);
-            this.hideTooltipTimer = null;
         }
+        this.hideTooltipTimer = setTimeout(() => {
+            this.hideTooltipTimer = null;
+            this.tooltipExpired = true;
+            if (this.tooltip) this.tooltip.hidden = true;
+        }, TOOLTIP_IDLE_MS);
         const tooltip = this.ensureTooltip();
         tooltip.replaceChildren(...buildTooltipContent(component));
         tooltip.hidden = false;
@@ -434,19 +464,13 @@ export class Visual implements IVisual {
         tooltip.style.top = `${Math.max(margin, y)}px`;
     }
 
-    private hideTooltip(): void {
-        if (this.hideTooltipTimer !== null) return;
-        this.hideTooltipTimer = setTimeout(() => {
-            this.hideTooltipTimer = null;
-            if (this.tooltip) this.tooltip.hidden = true;
-        }, 8000);
-    }
-
     private hideTooltipNow(): void {
         if (this.hideTooltipTimer !== null) {
             clearTimeout(this.hideTooltipTimer);
             this.hideTooltipTimer = null;
         }
+        this.tooltipKey = null;
+        this.tooltipExpired = false;
         if (this.tooltip) this.tooltip.hidden = true;
     }
 }

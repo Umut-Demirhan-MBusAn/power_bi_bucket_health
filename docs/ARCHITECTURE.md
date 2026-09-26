@@ -127,7 +127,9 @@ element, its positioning, and its content builder are all owned by the entry poi
 - Tooltip strategy: a custom themed HTML tooltip element is rendered by the visual itself rather
   than calling the Power BI host tooltip service (the host tooltip cannot be themed to match the
   visual's design). It survives updates: an open tooltip is refreshed from the new model, or
-  closed when its component is gone.
+  closed when its component is gone; an update never restarts its idle timeout or reopens it. It
+  closes on the component's `mouseout` as well as on the next `mousemove`, because the host does
+  not always deliver a later move when the pointer leaves the report in one jump.
 - Flash phase: every card sets `--bh-sync-<period>` to minus (timeline time mod period) when it is
   inserted, and each alarm animation uses it as its delay, so a rebuilt card flashes in step with
   the cards around it. When flashing switches back on (Alarm motion or the OS reduced-motion

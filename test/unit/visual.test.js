@@ -398,3 +398,109 @@ test("switching Alarm motion between Auto and Always leaves running flash phases
     assert.deepEqual(phases(), before);
     assert.equal(new Set(before).size, 2);
 });
+
+// Tooltip timing: hides as soon as the pointer leaves the component; while the pointer stays on
+// it, hides after 8 s without movement and stays hidden until the pointer leaves and returns.
+function hoverSetup(t) {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    const host = createMockHost();
+    const { visual, element } = makeVisual(host);
+    visual.update({ dataViews: [fixtureDataView()], type: 2 });
+    const move = (el, x = 10) => el.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: x, clientY: 10 }));
+    const tooltip = () => element.querySelector(".bh-tooltip");
+    return { visual, element, move, tooltip };
+}
+
+test("tooltip hides immediately when the pointer moves off the component onto the card", (t) => {
+    const { element, move, tooltip } = hoverSetup(t);
+    move(componentEl(element, "EX-041", "EX-041-T02"));
+    assert.equal(tooltip().hidden, false);
+
+    move(cardsByKey(element).get("EX-041"));
+
+    assert.equal(tooltip().hidden, true);
+});
+
+test("tooltip hides immediately when the pointer leaves the component without another move", (t) => {
+    const { element, move, tooltip } = hoverSetup(t);
+    const tooth = componentEl(element, "EX-041", "EX-041-T02");
+    move(tooth);
+
+    tooth.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: null }));
+
+    assert.equal(tooltip().hidden, true);
+});
+
+test("tooltip hides immediately when the pointer leaves the visual", (t) => {
+    const { element, move, tooltip } = hoverSetup(t);
+    move(componentEl(element, "EX-041", "EX-041-T02"));
+
+    element.dispatchEvent(new MouseEvent("mouseleave"));
+
+    assert.equal(tooltip().hidden, true);
+});
+
+test("tooltip hides after the pointer rests on the component for 8 s", (t) => {
+    const { element, move, tooltip } = hoverSetup(t);
+    move(componentEl(element, "EX-041", "EX-041-T02"));
+
+    t.mock.timers.tick(7999);
+    assert.equal(tooltip().hidden, false);
+    t.mock.timers.tick(1);
+    assert.equal(tooltip().hidden, true);
+});
+
+test("moving within the component restarts the 8 s count", (t) => {
+    const { element, move, tooltip } = hoverSetup(t);
+    const tooth = componentEl(element, "EX-041", "EX-041-T02");
+    move(tooth, 10);
+    t.mock.timers.tick(5000);
+    move(tooth, 12);
+
+    t.mock.timers.tick(7999);
+    assert.equal(tooltip().hidden, false);
+    t.mock.timers.tick(1);
+    assert.equal(tooltip().hidden, true);
+});
+
+test("after the 8 s hide, moving on the same component keeps it hidden until the pointer leaves and returns", (t) => {
+    const { element, move, tooltip } = hoverSetup(t);
+    const tooth = componentEl(element, "EX-041", "EX-041-T02");
+    move(tooth);
+    t.mock.timers.tick(8000);
+
+    move(tooth, 14);
+    assert.equal(tooltip().hidden, true, "a small move does not bring it back");
+
+    move(cardsByKey(element).get("EX-041"));
+    move(tooth);
+    assert.equal(tooltip().hidden, false, "leaving and returning shows it again");
+});
+
+test("moving to another component shows that component with a fresh 8 s", (t) => {
+    const { element, move, tooltip } = hoverSetup(t);
+    move(componentEl(element, "EX-041", "EX-041-T02"));
+    t.mock.timers.tick(6000);
+
+    move(componentEl(element, "EX-041", "EX-041-T03"));
+    assert.match(tooltip().textContent, /EX-041-T03/);
+    t.mock.timers.tick(7999);
+    assert.equal(tooltip().hidden, false);
+    t.mock.timers.tick(1);
+    assert.equal(tooltip().hidden, true);
+});
+
+test("a data refresh neither restarts the 8 s count nor reopens a hidden tooltip", (t) => {
+    const { visual, element, move, tooltip } = hoverSetup(t);
+    move(componentEl(element, "EX-041", "EX-041-T02"));
+    t.mock.timers.tick(5000);
+
+    visual.update({ dataViews: [setStatus(fixtureDataView(), "EX-041-T02", "Lockout")], type: 2 });
+    assert.equal(tooltip().hidden, false);
+    assert.match(tooltip().textContent, /Lockout/);
+    t.mock.timers.tick(3000);
+    assert.equal(tooltip().hidden, true);
+
+    visual.update({ dataViews: [fixtureDataView()], type: 2 });
+    assert.equal(tooltip().hidden, true);
+});

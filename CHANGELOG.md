@@ -18,6 +18,7 @@ First release.
 - Two-tone audio alarm (880/660 Hz, 60 s auto-stop) fired once per alarm identity (machine +
   component + alarm time), armed by a click inside the visual. A click dismisses it; turning audio
   off or losing valid data stops it.
-- Custom themed component tooltips, cross-filter selection, context menu, keyboard navigation,
+- Custom themed component tooltips that close as soon as the pointer leaves the component, or
+  after 8 s without movement on it; cross-filter selection, context menu, keyboard navigation,
   high-contrast support, and a tri-state Alarm motion accessibility setting.
 - Five guided edge states (landing page, loading, invalid configuration, no data, error).
