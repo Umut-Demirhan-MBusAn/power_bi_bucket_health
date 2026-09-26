@@ -158,7 +158,11 @@ Each machine card frame and badge reflect the worst status across its components
 - Selection/cross-filter: clicking a component selects it and cross-filters other visuals on the
   page.
 - Tooltips: component-level custom themed HTML tooltips (not the Power BI host tooltip service)
-  with component metadata and user-added fields.
+  with component metadata and user-added fields. A tooltip closes as soon as the pointer leaves its
+  component or the visual. While the pointer stays on the component it closes after 8 seconds
+  without pointer movement (each move restarts the count) and stays closed until the pointer leaves
+  that component and returns. Moving onto another component opens that component's tooltip. A data
+  refresh updates an open tooltip's content without restarting its count or reopening a closed one.
 - Sorting: alarm priority overrides base order in fleet view (movement before proximity, then
   alarm count); ties keep source order.
 - Drill: not used — the visual auto-renders the single-machine detail view when one machine is
