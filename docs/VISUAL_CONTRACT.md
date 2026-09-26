@@ -26,7 +26,7 @@ Counts are derived from component rows, per machine:
   issue on that machine's own card — the geometry engine's 4-20 clamp exists only as
   defense-in-depth behind that validation.
 - Lip shrouds = count of `category = lipShroud` rows; count must equal `teeth - 1`, checked only
-  when the tooth count is itself in range.
+  when the tooth count is in range and none of the machine's rows was rejected.
 - Wing shrouds = count of `category = wingShroud` rows. Left/right side is derived from `order`
   using a visual formatting setting, not from a source data column; each side is validated
   independently and may not exceed 4, for a maximum of 8 per machine.
@@ -148,20 +148,28 @@ is fully adaptive (not author-configurable), and status strings/colours are fixe
 
 ## Host Interactions
 
-- Selection / cross-filter: clicking a component selects it via the host `ISelectionManager` and
-  cross-filters other visuals on the page.
-- Highlight: alarm highlight is visual-owned; alarming machines flash/solid and sort to the front.
+- Selection / cross-filter: clicking a component selects it via the host `ISelectionManager`
+  (`select(id, ctrlKey)`, so Ctrl+click is multi-select) and cross-filters other visuals on the
+  page; clicking elsewhere in the visual calls `clear()`. Selection ids come from
+  `withTable(table, rowIndex)`. Unselected components dim, re-applied on every render and on
+  `registerOnSelectCallback`.
+- Highlight: `supportsHighlight` is not declared, so another visual's selection filters this one's
+  rows. Alarm emphasis is visual-owned; alarming machines flash/solid and sort to the front.
+- `hostCapabilities.allowInteractions`: when false, click, context-menu and keyboard handlers do
+  nothing (no selection, no audio arming or dismissal).
 - Tooltip: the visual renders its own custom themed HTML tooltip rather than calling the Power BI
-  host tooltip service. It shows the component label, a human-readable status, the machine, the full
-  local Last seen date and time, and the bound tooltip fields. The host tooltip service was
+  host tooltip service. It shows the component label, a human-readable status, the machine, the
+  machine type (when bound), the component key, the local Last seen date and time (to the minute),
+  and the bound tooltip fields. The host tooltip service was
   deliberately rejected because its styling cannot be themed to match the visual's design, so the
   visual owns tooltip positioning, theming, and content; report-page tooltips are not used.
 - Sorting: alarm priority overrides base order in fleet view (movement before proximity, then alarm
   count, then source order). Ties keep source order.
 - Context menu: right-click opens the Power BI default context menu via
-  `ISelectionManager.showContextMenu`.
-- Keyboard: components are focusable (`supportsKeyboardFocus`); arrow keys move focus, Enter/Space
-  selects.
+  `ISelectionManager.showContextMenu`, with the component's selection id or, off a component, an
+  empty one.
+- Keyboard: components are focusable (`supportsKeyboardFocus`); Right/Down and Left/Up move focus
+  through every component in document order, wrapping; Enter/Space selects (Ctrl adds).
 - Fetch more data: not needed under the 20-machine / 2000-row cap.
 - Persist properties: formatting-pane settings persist via the formatting model.
 
@@ -185,7 +193,8 @@ visual distributed outside AppSource, regardless of certification status.
 - Machines: 20 is the design/performance target. The machine count itself is not validated — the
   effective ceiling is the 2000-row host cap below.
 - Teeth per machine: 4 to 20; a machine outside this range is invalid.
-- Lip shrouds per machine: supplied rows equal to `teeth - 1`, checked only when teeth is in range.
+- Lip shrouds per machine: supplied rows equal to `teeth - 1`, checked only when teeth is in range
+  and no row of that machine was rejected.
 - Wing shrouds per machine: 0 to 4 per side (0 to 8 total), assigned to sides by visual settings; a
   side over 4 makes that machine invalid.
 - Data role fields: each role in `capabilities.json`'s `dataViewMappings[0].conditions` allows at

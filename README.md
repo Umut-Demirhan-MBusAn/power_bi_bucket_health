@@ -18,8 +18,8 @@ Developed by **Umut Demirhan**. Not on AppSource: download the `.pbiviz` from
 - **Status colour coding** — six component health states, each with a distinct colour and alarm/no-alarm behaviour (table under [Data schema](#data-schema))
 - **Fleet grid** — up to 20 machines in a responsive flex grid; alarm machines sort to the front with a pulsing red border
 - **Audio alert** — two-tone beep triggered on fresh alarm transitions (enabled by default; toggle in the Formatting pane), with auto-stop at 60 s. **Requires DirectQuery or Live Connection** — Import mode data is a static snapshot and does not push updates to the visual automatically, so audio alarms will not fire until a manual refresh.
-- **Rich tooltips** — component name, status, machine, last-seen time, and any extra tooltip columns from your data
-- **Cross-filter & selection** — click a component to cross-filter other visuals on the report page
+- **Rich tooltips** — component, status, machine, machine type, last-seen time, and any extra tooltip columns from your data; they close when the pointer leaves the component or rests on it for 8 s
+- **Cross-filter & selection** — click a component to cross-filter other visuals on the report page; Ctrl+click selects several
 - **Context menu** — right-click a component for Power BI's standard drill/filter context menu
 - **Keyboard navigation** — Arrow keys move focus between components; Enter/Space selects
 - **High-contrast mode** — automatically adapts fills, strokes, and outlines when Power BI's high-contrast theme is active
@@ -69,7 +69,7 @@ Each row must represent **one component on one machine**. Bind these roles in th
 | **Machine** | ✓ | The machine's name and its unique identifier. Every row must belong to a machine. Each unique value becomes one card in the fleet view and is shown as the card header. | `EX-204`, `CAT-01` |
 | Machine Type | — | Human-readable label for the machine class or model. Shown in the card header below the machine name. If omitted, only the machine name is shown. | `Hydraulic Excavator` |
 | **Component** | ✓ | The component's name, unique within its machine. Identifies a single tooth, lip shroud, or wing shroud on that machine. Used for rendering, tooltips, selection, and alarm detection. | `T1`, `L3`, `W2R` |
-| **Category** | ✓ | The component type. Determines where on the bucket schematic the component is drawn. Must be one of three exact values. | `tooth`, `lipShroud`, `wingShroud` |
+| **Category** | ✓ | The component type. Determines where on the bucket schematic the component is drawn. Matched ignoring case, spaces, underscores and hyphens (`Lip Shroud`, `teeth` work). | `tooth`, `lipShroud`, `wingShroud` |
 | **Order** | ✓ | Integer position of the component within its category (1 = leftmost for teeth and lip shrouds). For wing shrouds, left/right side is inferred from this value by the **Wing side assignment** Formatting pane setting — there is no left/right column in the data. | `1`, `2`, `3`, … |
 | **Component Status** | ✓ | The current health status of this component. Matched case-insensitively against the accepted status strings (see table below). Non-alarm statuses leave the Alarm Time cell blank. | `OK`, `No Data (1h)`, `Lockout`, `Lockout + No Data`, `Proximity Alarm`, `Movement Alarm` |
 | Comp. Alarm Time | Recommended | Timestamp when this component entered its current alarm state. The visual builds an alarm identity from machine + component + alarm time; audio fires exactly once per unique identity. **If left unbound the visual still renders, but a component that clears and then re-alarms in the same session won't beep the second time** (see [Alarm audio logic](docs/DATA_SCHEMA.md#alarm-audio-logic)). Leave the cell blank (null) for non-alarm rows. | `2026-06-22T08:14:00Z` |
@@ -140,6 +140,10 @@ npm run lint         # pbiviz lint
 
 # Package for distribution
 npm run package      # produces dist/*.pbiviz
+
+# QA against live SQL Server data (docs/QA_TEST_CASES.md)
+sqlcmd -S localhost -E -C -i qa/bucket_health_qa.sql
+node qa/test-page/server.cjs   # http://127.0.0.1:8766/
 ```
 
 ### Repository structure
@@ -155,8 +159,9 @@ src/           TypeScript source
   visual.ts    IVisual host contract entry point
 style/         LESS stylesheet
 test/unit/     Node.js unit tests (built-in runner; jsdom for rendering tests)
-docs/          Product spec, architecture, visual contract, data schema, testing, maintenance
-scripts/       gen-icon.js (regenerates assets/icon.png), validate-mock-data.ps1
+docs/          Product spec, architecture, visual contract, data schema, testing, QA test cases, maintenance
+qa/            QA sample data (SQL Server), showcase script, local test page
+scripts/       check-version.js, gen-icon.js (regenerates assets/icon.png), git-guard.lib.mjs, validate-mock-data.ps1
 assets/        icon.png (generated — run `node scripts/gen-icon.js`, don't hand-edit),
                icon.svg (hand-maintained vector, not an input to the script)
 ```

@@ -25,13 +25,13 @@ the visual only reads the one value bound to the role.
 | Role | Required | Type | Fixture column | Description |
 | --- | --- | --- | --- | --- |
 | **Machine** | ✓ | Text | `machine_key` | The machine's name and its unique identifier. Every row must belong to a machine. Each unique value becomes one card in the fleet view and is also shown as the card header label. Must be stable across data refreshes — changing this value resets alarm state for that machine. |
-| **Machine Type** | — | Text | `machine_type` | Human-readable machine class or model (e.g. "Hydraulic Excavator"). Shown in the card header below the machine name. If omitted, only the machine name is shown. |
+| **Machine Type** | — | Text | `machine_type` | Human-readable machine class or model (e.g. "Hydraulic Excavator"). Shown in the card header below the machine name (the first non-blank value among the machine's valid rows) and in each component's tooltip. If omitted, only the machine name is shown. |
 | **Component** | ✓ | Text | `component_key` | The component's name, unique within its machine. Identifies a single tooth, lip shroud, or wing shroud on that machine. Used for status rendering, the component tooltip, cross-filter selection, and alarm transition detection. Must be stable across refreshes — changing this value resets alarm history for that component. |
 | **Category** | ✓ | Text | `component_category` | The component type. Determines where on the bucket schematic the component is drawn. Matched leniently — see [Category matching](#category-matching) — against `tooth`, `lipShroud`, `wingShroud`. |
 | **Order** | ✓ | Integer | `component_order` | Position of this component within its category, starting at 1 (accepted as a number or a digit-only string — see [Validation rules](#validation-rules)). For teeth and lip shrouds, 1 is the leftmost position under the default **Teeth & lip order** setting (choose *Right to left* to flip it). For wing shrouds, left/right side is inferred from this value by the **Wing side assignment** Formatting pane setting — there is no left/right column in the data. Use unique values within each machine and category: duplicates are not rejected, but they tie-break by source row order, which makes the layout depend on row order. |
 | **Component Status** | ✓ | Text | `status` | The current health status of this component. Matched case-insensitively against the accepted status strings (see [Status values](#status-values) below). Non-alarm rows should have a blank Comp. Alarm Time. |
 | **Comp. Alarm Time** | Recommended | Datetime | `alarm_time` | Timestamp when this component entered its current alarm state. The visual constructs an alarm identity from machine + component + alarm time; audio fires exactly once per unique identity. **Strongly recommended: if you leave this unbound, a component that clears its alarm and then re-alarms in the same session will not play audio the second time** — the alarm identity is permanently cached for the lifetime of that session (see [Alarm audio logic](#alarm-audio-logic)). The visual still renders normally without it. Leave the cell blank (null) for non-alarm rows. |
-| **Last Seen** | — | Datetime | `last_seen_utc` | Timestamp of the last data receipt for this component. Shown in the component tooltip as a full local date and time. |
+| **Last Seen** | — | Datetime | `last_seen_utc` | Timestamp of the last data receipt for this component. Shown in the component tooltip as a local date and time, to the minute. |
 | **Tooltip Fields** | — | Any, multiple | `tag_id` (example) | Additional columns to include in the component tooltip after the standard fields. You can bind multiple columns here. |
 
 ## Status values
@@ -75,7 +75,7 @@ The bucket geometry adapts to the number of component rows you supply per machin
 | Category | Min | Max | Rule |
 | --- | --- | --- | --- |
 | `tooth` | 4 | 20 | Any count in this range |
-| `lipShroud` | 3 | 19 | Must equal teeth count − 1 (checked only when the tooth count is itself in range) |
+| `lipShroud` | 3 | 19 | Must equal teeth count − 1 (checked only when the tooth count is in range and none of the machine's rows was rejected) |
 | `wingShroud` | 0 | 8 | 0–4 per side; side is inferred from Order. More than 4 on either side is a validation issue on that machine's card. |
 
 More teeth widen the bucket; more wing shrouds extend the bucket sides. The schematic always looks
@@ -90,10 +90,12 @@ value using the **Wing side assignment** Formatting pane setting:
 | --- | --- |
 | Odd left / Even right *(default)* | Odd Order → left side; even Order → right side |
 | Odd right / Even left | Odd Order → right side; even Order → left side |
-| First half left / Second half right | Lower half of order values → left; remainder → right |
-| First half right / Second half left | Lower half of order values → right; remainder → left |
+| First half left / Second half right | The machine's wing shrouds sorted by Order: the first half → left, the rest → right |
+| First half right / Second half left | The first half → right, the rest → left |
 
-Choose the mode that matches how your source system numbers wing shrouds.
+With an odd count, the half split gives the extra wing to the first side (3 wings: 2 and 1). On
+each side the lowest Order is drawn at the top. Choose the mode that matches how your source
+system numbers wing shrouds.
 
 ## Alarm audio logic
 
@@ -162,7 +164,7 @@ While any of the machine's rows is rejected, the "fewer than 4 teeth" and lip-sh
 skipped: counting without the rejected row would blame a category that is actually fine (a bad
 tooth status would otherwise also report "4 lip shrouds; expected 3."). The "more than 20 teeth"
 and per-side wing limits always run, because a rejected row can only lower a count. The card
-header counts the valid components only.
+header's machine type and counts come from the valid rows only.
 
 Each machine's issue list is capped at 20 entries, with a final "…and N more." summary when there
 are more.

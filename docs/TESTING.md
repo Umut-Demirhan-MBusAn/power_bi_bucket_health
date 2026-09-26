@@ -106,15 +106,10 @@ Setup notes for `pbiviz start`:
   localhost connection error, open `https://localhost:8080/assets` in the same browser and
   accept/trust the certificate (on Windows the cert can be trusted in `Cert:\CurrentUser\Root`).
 
-Behaviors to verify manually:
-
-- Audio alarm arm, fire, and auto-stop at 60 s
-- Alarm dismissal and re-alarm within a session
-- Cross-filter selection and context menu
-- Tooltip content and positioning
-- Resize / responsive layout behavior
-- High-contrast theme rendering
-- Alarm motion setting (Always / Auto / Never)
+Release QA: [QA_TEST_CASES.md](QA_TEST_CASES.md) — test cases with SQL Server sample data
+(`qa/bucket_health_qa.sql`), run on the local test page (`qa/test-page/`, the packaged visual with a
+host double) or in Power BI Desktop over DirectQuery. It covers audio, alarm dismissal and
+re-alarm, selection and context menu, tooltips, layout, high contrast and Alarm motion.
 
 See [`docs/SPEC.md`](SPEC.md) for the full acceptance criteria and
 [`docs/MAINTENANCE.md`](MAINTENANCE.md) for the release process and version-bump checklist.

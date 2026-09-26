@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bucket Health test page</title>
+<style>
+  :root { --bg: #f3f2f1; --panel: #ffffff; --text: #252423; --muted: #605e5c; --line: #c8c6c4; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.4 "Segoe UI", system-ui, sans-serif; }
+  header { display: flex; flex-direction: column; gap: 8px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .row { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
+  .row b { min-width: 86px; }
+  h1 { font-size: 15px; margin: 0 8px 0 0; }
+  label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); }
+  #status { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+  main { padding: 16px; }
+  /* The iframe mirrors Power BI: the visual runs inside its own frame on the report canvas. */
+  #frame { display: block; width: 1400px; max-width: 100%; height: 640px; border: 1px solid var(--line); background: #0b0f14; }
+  #log { margin-top: 10px; max-height: 180px; overflow: auto; font: 12px/1.35 Consolas, monospace; color: var(--muted); white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<header>
+  <div class="row">
+    <h1>Bucket Health test page</h1>
+    <label>Refresh every <input id="interval" type="number" min="1" value="5" style="width:48px"> s</label>
+    <label><input id="always" type="checkbox" checked> send an update even when the data is unchanged</label>
+    <button id="refresh" type="button">Refresh now</button>
+    <label>Size <select id="size">
+      <option value="1400x640">1400×640</option><option value="900x640">900×640</option>
+      <option value="600x500">600×500</option><option value="360x420">360×420</option>
+    </select></label>
+    <label>Filter machines <input id="filter" type="text" placeholder="EX-101, EX-103" style="width:150px"></label>
+    <span id="status">starting…</span>
+  </div>
+  <div class="row" id="bindings">
+    <b>Fields</b>
+    <label><input type="checkbox" data-role="machine" checked> Machine</label>
+    <label><input type="checkbox" data-role="machineType" checked> Machine Type</label>
+    <label><input type="checkbox" data-role="component" checked> Component</label>
+    <label><input type="checkbox" data-role="category" checked> Category</label>
+    <label><input type="checkbox" data-role="order" checked> Order</label>
+    <label><input type="checkbox" data-role="status" checked> Component Status</label>
+    <label><input type="checkbox" data-role="alarmTime" checked> Comp. Alarm Time</label>
+    <label><input type="checkbox" data-role="lastSeen" checked> Last Seen</label>
+    <label><input type="checkbox" data-role="tooltipFields" checked> Tooltip Fields (tag_id, wear_pct)</label>
+  </div>
+  <div class="row">
+    <b>Format</b>
+    <label>Minimum card width <input id="minCardWidth" type="number" min="0" value="220" style="width:60px"></label>
+    <label>Wing side assignment <select id="wingSideAssignment">
+      <option value="OddLeftEvenRight">Odd Left / Even Right</option>
+      <option value="OddRightEvenLeft">Odd Right / Even Left</option>
+      <option value="FirstHalfLeftSecondHalfRight">First Half Left / Second Half Right</option>
+      <option value="FirstHalfRightSecondHalfLeft">First Half Right / Second Half Left</option>
+    </select></label>
+    <label>Teeth &amp; lip order <select id="componentOrder">
+      <option value="leftToRight">Left to right</option><option value="rightToLeft">Right to left</option>
+    </select></label>
+    <label><input id="audioEnabled" type="checkbox" checked> Enable audio alarm</label>
+    <label>Alarm motion <select id="alarmMotion">
+      <option value="always">Always flash</option><option value="auto">Auto</option><option value="never">Never (solid)</option>
+    </select></label>
+  </div>
+  <div class="row">
+    <b>Host</b>
+    <label><input id="highContrast" type="checkbox"> High contrast</label>
+    <label><input id="allowInteractions" type="checkbox" checked> Allow interactions</label>
+  </div>
+</header>
+<main>
+  <iframe id="frame" src="/frame.html" title="Bucket Health visual"></iframe>
+  <div id="log"></div>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const frame = $("frame");
+  const logEl = $("log");
+  function log(line) {
+    logEl.textContent = `${new Date().toLocaleTimeString()}  ${line}\n` + logEl.textContent.slice(0, 8000);
+  }
+  // Read by frame.html on every update: what the host would send.
+  function controls() {
+    const bound = {};
+    document.querySelectorAll("#bindings input").forEach((input) => { bound[input.dataset.role] = input.checked; });
+    return {
+      interval: Math.max(1, Number($("interval").value) || 5),
+      always: $("always").checked,
+      filter: $("filter").value,
+      bound,
+      settings: {
+        minCardWidth: Number($("minCardWidth").value),
+        wingSideAssignment: $("wingSideAssignment").value,
+        componentOrder: $("componentOrder").value,
+        audioEnabled: $("audioEnabled").checked,
+        alarmMotion: $("alarmMotion").value
+      },
+      highContrast: $("highContrast").checked,
+      allowInteractions: $("allowInteractions").checked
+    };
+  }
+  window.harnessLog = log;
+  window.harnessStatus = (text) => { $("status").textContent = text; };
+  window.harnessControls = controls;
+  const changed = (kind) => frame.contentWindow.harness?.controlsChanged(kind);
+  $("size").addEventListener("change", (e) => {
+    const [w, h] = e.target.value.split("x");
+    frame.style.width = `${w}px`;
+    frame.style.height = `${h}px`;
+  });
+  $("refresh").addEventListener("click", () => frame.contentWindow.harness?.refreshNow());
+  ["filter", "minCardWidth", "wingSideAssignment", "componentOrder", "audioEnabled", "alarmMotion", "allowInteractions"]
+    .forEach((id) => $(id).addEventListener("change", () => changed("data")));
+  document.querySelectorAll("#bindings input").forEach((input) => input.addEventListener("change", () => changed("data")));
+  $("highContrast").addEventListener("change", () => changed("style"));
+</script>
+</body>
+</html>

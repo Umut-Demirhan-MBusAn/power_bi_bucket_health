@@ -81,8 +81,14 @@ capabilities.json           # Data roles, formatting objects, dataView mapping, 
 style/visual.less           # Stylesheet (incl. alarm flashing + reduced-motion media query)
 test/unit/                  # Node.js built-in test runner; jsdom for the rendering tests
 scripts/
+  check-version.js          # pbiviz.json, package.json and CHANGELOG versions agree
   gen-icon.js               # Regenerates assets/icon.png (pure Node.js, no deps)
+  git-guard.lib.mjs         # Agent git-safety rules (used by .claude/hooks/git-guard.mjs)
   validate-mock-data.ps1    # Schema-validates the CSV fixture
+qa/
+  bucket_health_qa.sql      # SQL Server QA database, sample fleet and helper procedures
+  showcase.sql              # Screenshot and demo-video steps
+  test-page/                # Local test page: packaged visual + host double + live SQL data
 ```
 
 Selection and tooltip wiring live inside `visual.ts` (not `rendering/`): the custom HTML tooltip
@@ -156,7 +162,8 @@ element, its positioning, and its content builder are all owned by the entry poi
   policy).
 - Square-wave two-tone pattern: 880 Hz then 660 Hz, ~0.24 s each, repeating every 1.5 s.
 - Auto-stops after 60 s; stops on click anywhere inside the visual. Stopping closes the audio
-  context, so the next alarm creates a new one.
+  context, so the next alarm creates a new one. `start()` while sounding does nothing, so a second
+  new alarm neither restarts the beep nor extends its 60 s.
 - Suppressed in edge states and when the **Enable audio alarm** setting is off; a sounding alarm
   stops on the first update that turns the setting off or leaves the `ready` state, including an
   update that throws and shows the error state.

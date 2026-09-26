@@ -58,7 +58,8 @@ machine.
 - Teeth and lip shrouds lay out by their Order value, left-to-right by default; the
   **Teeth & lip order** setting can flip the direction.
 - Wing shrouds are assigned to left/right sides from their Order value: odd/even or
-  first-half/second-half split, each with either side direction (four modes).
+  first-half/second-half split, each with either side direction (four modes). A half split puts
+  the extra wing of an odd count on the first side. On each side the lowest Order is at the top.
 
 ### Core workflows
 
@@ -69,8 +70,10 @@ readable, status colors are clear, and hover tooltips expose component metadata.
 reflow on resize without overlapping or breaking bucket geometry.
 
 **Inspect a component** — hovering a tooth, lip shroud, or wing shroud shows a custom themed
-tooltip with the component label, human-readable status, machine, full local Last seen date/time,
-and any additional bound tooltip fields.
+tooltip: a heading with the component label ("Tooth 3", "Lip shroud 2", "Wing shroud 1") and a
+status dot, then Status (in the status colour), Machine, Type (when Machine Type is bound),
+Component (its key), Last seen (local date and time to the minute, when bound), and any bound
+tooltip fields.
 
 **Respond to an alarm** — when a component newly transitions into an alarm status: the component
 flashes red/dark red with a glow, the card frame flashes, a flashing "ALARM!" chip and an animated
@@ -87,11 +90,11 @@ suppressed:
 
 | State | Title | Trigger |
 | --- | --- | --- |
-| No fields | Add data to get started. | No data view / no roles bound (landing page; lists the required fields) |
-| Loading | Loading machine data. | Reserved: implemented in the renderer but not produced by the current synchronous parse path |
-| Invalid configuration | Configuration incomplete. | Required roles missing (lists which) or inconsistent |
-| No data | No machines to show. | Roles bound but zero rows after filters |
-| Error | Couldn't render the visual. | A failure not attributable to one machine — every row's machine is blank, or an unexpected render exception — with audio suppressed |
+| No fields | Add data to get started | No data view / no roles bound (landing page; lists the required fields and the Comp. Alarm Time tip) |
+| Loading | Loading machine data | Reserved: implemented in the renderer but not produced by the current synchronous parse path |
+| Invalid configuration | Configuration incomplete | One or more required roles not bound (lists each as "not bound") |
+| No data | No machines to show | Roles bound but zero rows after filters |
+| Error | Couldn’t render the visual | A failure not attributable to one machine — every row's machine is blank, or an unexpected render exception — shown as an `ERR · <detail>` line, with audio suppressed |
 
 Normal data renders responsive machine cards; high-cardinality data renders up to the host row cap
 with a truncation banner and scrolling.
@@ -108,6 +111,9 @@ position. While a row is rejected, only count problems it cannot have caused are
 | --- | --- | --- |
 | Invalid machine | ALARM! (if alarming), else DATA ERROR | The machine has one or more row-level or count validation issues |
 | Incomplete machine | ALARM! (if alarming), else INCOMPLETE | The host's 2,000-row cap cut this machine's data short; its count checks are replaced by one "row limit reached" issue |
+
+Both have a grey frame unless alarming, and the header's type and counts come from the valid rows
+only.
 
 ## Status Model
 
@@ -133,6 +139,8 @@ Each machine card frame and badge reflect the worst status across its components
 - NO DATA (yellow frame): no alarm present, and every component is either no-data or
   lockout + no-data.
 - OK (green frame): otherwise.
+- DATA ERROR / INCOMPLETE (grey frame): the machine has issues and no alarm (see
+  [Visual States](#visual-states)).
 
 ### Alarm identity and audio
 
@@ -152,11 +160,19 @@ Each machine card frame and badge reflect the worst status across its components
   by a user click inside the visual before it can play.
 - Audio pattern: WebAudio two-tone square-wave beep, 880 Hz then 660 Hz, ~0.24 seconds each,
   repeating every 1.5 seconds, with auto-stop after 60 seconds.
+- A new alarm id while the beep is sounding does not restart it or its 60 seconds. Clearing an
+  alarm does not stop a sounding beep; only a click, turning audio off, an edge state or the
+  60-second limit does.
 
 ## Interactions
 
 - Selection/cross-filter: clicking a component selects it and cross-filters other visuals on the
-  page.
+  page; Ctrl+click adds or removes a component. Components outside the selection dim to 40 %
+  opacity, and the dimming survives data refreshes. Clicking empty space in the visual clears the
+  selection. Every click inside the visual also arms audio and stops a sounding alarm.
+- Highlight: not supported, so a selection in another visual filters this one. A machine left
+  with a few components then shows count issues; set Edit interactions to None on visuals that
+  should not filter it.
 - Tooltips: component-level custom themed HTML tooltips (not the Power BI host tooltip service)
   with component metadata and user-added fields. A tooltip closes as soon as the pointer leaves its
   component or the visual. While the pointer stays on the component it closes after 8 seconds
@@ -167,11 +183,16 @@ Each machine card frame and badge reflect the worst status across its components
   alarm count); ties keep source order.
 - Drill: not used — the visual auto-renders the single-machine detail view when one machine is
   present and the fleet view otherwise.
-- Context menu: right-click opens Power BI's default context menu.
+- Context menu: right-click opens Power BI's default context menu, for the component under the
+  pointer or, elsewhere, with no data point.
+- Hosts that disallow interactions (`allowInteractions` false): clicks, the context menu and
+  keyboard navigation do nothing, so audio can be neither armed nor stopped by a click.
 - Formatting pane: minimum card width (Layout); wing side assignment and teeth/lip order
   (Ordering); audio toggle and alarm motion (Alarm). Status strings and colours are fixed and
   bucket geometry is adaptive — neither is author-configurable.
-- Keyboard/focus: components are focusable; arrow keys move focus and Enter/Space selects.
+- Keyboard/focus: components are focusable. Right/Down moves focus to the next component and
+  Left/Up to the previous one, card by card (wing shrouds, lip shrouds, teeth), wrapping at the
+  ends; Enter/Space selects (Ctrl adds).
 
 ## Accessibility
 
