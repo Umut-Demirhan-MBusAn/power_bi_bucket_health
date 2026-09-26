@@ -19,6 +19,12 @@ import PrimitiveValue = powerbi.PrimitiveValue;
 
 const requiredRoles = ["machine", "component", "category", "order", "status"];
 const MAX_ISSUES_PER_MACHINE = 20;
+const ACCEPTED_STATUSES = "OK, No Data, Lockout, Lockout + No Data, Proximity Alarm or Movement Alarm";
+const CATEGORY_LABELS: Record<ComponentCategory, string> = {
+    tooth: "Tooth",
+    lipShroud: "Lip shroud",
+    wingShroud: "Wing shroud"
+};
 
 interface RoleIndexes {
     machine: number;
@@ -42,6 +48,7 @@ interface MachineDraft {
     sourceOrder: number;
     validComponents: ComponentRecord[];
     issues: string[];
+    rejectedRowCount: number;
 }
 
 export function parseDataView(
@@ -70,7 +77,9 @@ export function parseDataView(
 
     const warnings: string[] = [];
     if (blankMachineRowCount > 0) {
-        warnings.push(`${blankMachineRowCount} row(s) skipped: machine is blank.`);
+        warnings.push(blankMachineRowCount === 1
+            ? "1 row has no machine and is not shown."
+            : `${blankMachineRowCount} rows have no machine and are not shown.`);
     }
 
     if (machineDrafts.size === 0) {
@@ -156,7 +165,6 @@ function collectMachineDrafts(
     let blankMachineRowCount = 0;
 
     rows.forEach((row, rowIndex) => {
-        const line = rowIndex + 1;
         const machineKey = textValue(row[indexes.machine]);
 
         if (!machineKey) {
@@ -166,7 +174,7 @@ function collectMachineDrafts(
 
         let draft = machineDrafts.get(machineKey);
         if (!draft) {
-            draft = { key: machineKey, sourceOrder: rowIndex, validComponents: [], issues: [] };
+            draft = { key: machineKey, sourceOrder: rowIndex, validComponents: [], issues: [], rejectedRowCount: 0 };
             machineDrafts.set(machineKey, draft);
         }
 
@@ -178,20 +186,26 @@ function collectMachineDrafts(
         const orderRaw = textValue(row[indexes.order]);
         const order = parseOrder(row[indexes.order]);
 
+        // Row positions are never shown: they index the host's DataView, which the report author
+        // cannot see and which changes with filters and sorting.
+        const subject = rowSubject(componentKey, category, order);
         if (!componentKey) {
-            draft.issues.push(`Row ${line}: component is required.`);
+            draft.issues.push(`${genericRow(category)} has no component name.`);
         }
         if (!category) {
-            draft.issues.push(`Row ${line}: category '${categoryRaw}' is not supported; use tooth, lipShroud, or wingShroud.`);
+            draft.issues.push(`${subject}: ${describeValue("category", categoryRaw)}. Use tooth, lip shroud or wing shroud.`);
         }
         if (!status) {
-            draft.issues.push(`Row ${line}: status '${statusRaw}' is not supported.`);
+            draft.issues.push(`${subject}: ${describeValue("status", statusRaw)}. Use ${ACCEPTED_STATUSES}.`);
         }
         if (order === undefined) {
-            draft.issues.push(`Row ${line}: order '${orderRaw}' is not a whole number ≥ 1.`);
+            draft.issues.push(orderRaw
+                ? `${subject}: order '${orderRaw}' must be a whole number, starting at 1.`
+                : `${subject}: order is blank; it must be a whole number, starting at 1.`);
         }
 
         if (!componentKey || !category || !status || order === undefined) {
+            draft.rejectedRowCount += 1;
             return;
         }
 
@@ -215,6 +229,24 @@ function collectMachineDrafts(
     });
 
     return { machineDrafts, blankMachineRowCount };
+}
+
+// Names a row the way the report author knows it: "Tooth 4 (EX-107-T04)" when category and order
+// are usable, else the component key, else a generic "A tooth row" / "A row".
+function rowSubject(componentKey: string, category: ComponentCategory | undefined, order: number | undefined): string {
+    if (category && order !== undefined) {
+        const label = `${CATEGORY_LABELS[category]} ${order}`;
+        return componentKey ? `${label} (${componentKey})` : label;
+    }
+    return componentKey || genericRow(category);
+}
+
+function genericRow(category: ComponentCategory | undefined): string {
+    return category ? `A ${CATEGORY_LABELS[category].toLowerCase()} row` : "A row";
+}
+
+function describeValue(field: string, raw: string): string {
+    return raw ? `${field} '${raw}' is not recognised` : `${field} is blank`;
 }
 
 // Category matching: lower-case, strip spaces/underscores/hyphens, then match. A real type guard
@@ -277,19 +309,26 @@ function buildMachineModels(
             machineIssues.push(`Duplicate component '${componentKey}'.`);
         });
 
+        // Count checks run only on complete, fully valid data: a rejected row is already reported
+        // on its own, and counting without it would blame a category that is actually fine.
+        const countable = !incomplete && draft.rejectedRowCount === 0;
+
         if (incomplete) {
             machineIssues.push("Incomplete — the 2,000-row limit was reached.");
-        } else if (teeth.length < 4 || teeth.length > 20) {
-            machineIssues.push(`${teeth.length} teeth; supported range is 4–20.`);
-        } else if (lipShrouds.length !== teeth.length - 1) {
-            machineIssues.push(`${lipShrouds.length} lip shrouds; expected ${teeth.length - 1}.`);
         }
 
-        if (!incomplete && wingShroudsLeft.length > 4) {
-            machineIssues.push(`${wingShroudsLeft.length} wing shrouds on the left side; maximum is 4 per side.`);
-        }
-        if (!incomplete && wingShroudsRight.length > 4) {
-            machineIssues.push(`${wingShroudsRight.length} wing shrouds on the right side; maximum is 4 per side.`);
+        if (countable) {
+            if (teeth.length < 4 || teeth.length > 20) {
+                machineIssues.push(`${teeth.length} teeth; supported range is 4–20.`);
+            } else if (lipShrouds.length !== teeth.length - 1) {
+                machineIssues.push(`${lipShrouds.length} lip shrouds; expected ${teeth.length - 1}.`);
+            }
+            if (wingShroudsLeft.length > 4) {
+                machineIssues.push(`${wingShroudsLeft.length} wing shrouds on the left side; maximum is 4 per side.`);
+            }
+            if (wingShroudsRight.length > 4) {
+                machineIssues.push(`${wingShroudsRight.length} wing shrouds on the right side; maximum is 4 per side.`);
+            }
         }
 
         const issues = [...machineIssues, ...draft.issues];

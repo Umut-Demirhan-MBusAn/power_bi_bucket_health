@@ -43,7 +43,7 @@ These tests import compiled source directly and have no setup beyond `require`.
 | File | Module under test | What is covered |
 |---|---|---|
 | `normalizeStatus.test.js` | `src/data/normalizeStatus` | Source strings → canonical status keys; case/whitespace tolerance; rejection of unknown values; `isAlarmStatus` only treats prox/move as alarms |
-| `parseDataView.test.js` | `src/data/parseDataView` | DataView → `MachineBucketModel`; missing roles; CSV fixture round-trip; wing-side modes; component-order direction; alarm sorting; error cases |
+| `parseDataView.test.js` | `src/data/parseDataView` | DataView → `MachineBucketModel`; missing roles; CSV fixture round-trip; wing-side modes; component-order direction; alarm sorting; error cases; issue wording (component names, no row numbers; count checks skipped after a rejected row) |
 | `keys.test.js` | `src/data/keys` | `buildCompositeKey` with 1, 2, 3 parts, empty-string parts, and delimiter-colliding parts |
 | `bucketGeometry.test.js` | `src/geometry/bucketGeometry` | Handoff constants; min/max viewBox dimensions; fixed component sizes; asymmetric wing counts; wing ordering; dominant alarm label; sweep of 4–20 teeth × 0–4 wings per side: finite points inside the viewBox, every lip shroud clears its teeth by ≥ 2 units, same-side wings never overlap |
 | `statusMeta.test.js` | `src/domain/statusMeta` | `machineStatusKey` — alarm priority, all-nodata, ok paths |

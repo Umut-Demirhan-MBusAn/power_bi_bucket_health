@@ -150,7 +150,7 @@ test("alarm banner: lip and wing components use correct label prefixes", () => {
 });
 
 test("invalid machine: --invalid class, DATA ERROR badge, issues list instead of svg", () => {
-    const m = okMachine({ issues: ["Row 3: status 'Offline' is not supported."] });
+    const m = okMachine({ issues: ["Tooth 3 (T3): status 'Offline' is not recognised."] });
     const card = renderMachineCard(m, THEME, MIN_WIDTH);
 
     assert.ok(card.className.includes("bucket-health-card--invalid"));
@@ -158,7 +158,7 @@ test("invalid machine: --invalid class, DATA ERROR badge, issues list instead of
 
     const items = card.querySelectorAll(".bucket-health-card__issues li");
     assert.equal(items.length, 1);
-    assert.equal(items[0].textContent, "Row 3: status 'Offline' is not supported.");
+    assert.equal(items[0].textContent, "Tooth 3 (T3): status 'Offline' is not recognised.");
     assert.equal(card.querySelector("svg"), null, "no bucket svg for an invalid card");
 });
 

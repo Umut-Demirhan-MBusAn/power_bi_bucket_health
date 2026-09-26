@@ -99,7 +99,9 @@ with a truncation banner and scrolling.
 Row/count problems that **are** attributable to a machine (bad category, out-of-range counts,
 unknown status, duplicate component, the row cap splitting a machine's data) never fail the whole
 visual: that machine renders its own card instead, with the bucket schematic replaced by a capped
-problem list. It still sorts, alarms, and beeps like any other machine.
+problem list. It still sorts, alarms, and beeps like any other machine. Each problem names the
+component it concerns ("Tooth 4 (EX-107-T04): status 'Broken' is not recognised. …"), never a row
+position, and count problems are listed only when none of the machine's rows was rejected.
 
 | Card state | Badge | Trigger |
 | --- | --- | --- |

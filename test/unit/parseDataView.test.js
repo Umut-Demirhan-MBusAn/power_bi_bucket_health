@@ -118,12 +118,11 @@ test("parseDataView reports per-row issues for unsupported statuses and categori
 
     assert.equal(model.state, "ready");
     const machine = model.machines.find((item) => item.key === "EX-1");
-    const issueText = machine.issues.join("\n");
-    assert.match(issueText, /Row 1: status 'Offline' is not supported\./);
-    assert.match(issueText, /Row 2: category 'adapter' is not supported/);
-    // Both rows are excluded from geometry, leaving zero valid teeth -- a count issue, not a
-    // bogus "expected -1" lip issue.
-    assert.match(issueText, /0 teeth; supported range is 4–20\./);
+    // Both rows are rejected, so no count issue is added on top of their own issues.
+    assert.deepEqual(machine.issues, [
+        "Tooth 1 (T1): status 'Offline' is not recognised. Use OK, No Data, Lockout, Lockout + No Data, Proximity Alarm or Movement Alarm.",
+        "X1: category 'adapter' is not recognised. Use tooth, lip shroud or wing shroud."
+    ]);
 });
 
 test("parseDataView sorts alarm machines before non-alarm machines", () => {
@@ -181,7 +180,7 @@ test("EX-1 (valid, with a Movement Alarm) sorts before EX-2 (one bad-status row,
     const ex2 = model.machines.find((m) => m.key === "EX-2");
 
     assert.deepEqual(ex1.issues, []);
-    assert.deepEqual(ex2.issues, ["Row 12: status 'Offline' is not supported."]);
+    assert.deepEqual(ex2.issues, ["Tooth 5 (T5): status 'Offline' is not recognised. Use OK, No Data, Lockout, Lockout + No Data, Proximity Alarm or Movement Alarm."]);
     assert.equal(ex2.teeth.length, 4);
     assert.equal(ex2.lipShrouds.length, 3);
 
@@ -225,7 +224,7 @@ test("a machine with one invalid row and a Movement Alarm elsewhere still alarms
 
     assert.equal(machine.hasAlarm, true);
     assert.equal(machine.dominantAlarm, "move");
-    assert.deepEqual(machine.issues, ["Row 5: status 'Offline' is not supported."]);
+    assert.deepEqual(machine.issues, ["Tooth 5 (T5): status 'Offline' is not recognised. Use OK, No Data, Lockout, Lockout + No Data, Proximity Alarm or Movement Alarm."]);
 
     const ids = collectAlarmIds(model.machines);
     assert.ok(ids.has(buildAlarmId("EX-MIX", "T4", undefined)));
@@ -359,7 +358,7 @@ test("category matching accepts spacing/case/synonym variants and rejects unknow
     assert.equal(machine.wingShroudsLeft.length + machine.wingShroudsRight.length, 1);
 
     const issueText = machine.issues.join("\n");
-    assert.match(issueText, /category 'bucket' is not supported/);
+    assert.match(issueText, /^X1: category 'bucket' is not recognised\. Use tooth, lip shroud or wing shroud\.$/m);
     assert.doesNotMatch(issueText, /category 'Tooth'/);
     assert.doesNotMatch(issueText, /category 'TEETH'/);
     assert.doesNotMatch(issueText, /category ' lip shroud '/);
@@ -387,13 +386,13 @@ test("order accepts finite integers (numeric or numeric-string) >= 1 and rejects
     assert.equal(machine.teeth[0].componentKey, "T7");
     assert.equal(machine.teeth[0].order, 3);
 
-    const orderIssues = machine.issues.filter((issue) => issue.includes("is not a whole number"));
+    const orderIssues = machine.issues.filter((issue) => issue.includes("must be a whole number"));
     assert.equal(orderIssues.length, 6);
-    assert.ok(orderIssues.includes("Row 1: order 'true' is not a whole number ≥ 1."));
-    assert.ok(orderIssues.includes("Row 3: order '0x3' is not a whole number ≥ 1."));
-    assert.ok(orderIssues.includes("Row 4: order '1.5' is not a whole number ≥ 1."));
-    assert.ok(orderIssues.includes("Row 5: order '0' is not a whole number ≥ 1."));
-    assert.ok(orderIssues.includes("Row 6: order '-1' is not a whole number ≥ 1."));
+    assert.ok(orderIssues.includes("T1: order 'true' must be a whole number, starting at 1."));
+    assert.ok(orderIssues.includes("T3: order '0x3' must be a whole number, starting at 1."));
+    assert.ok(orderIssues.includes("T4: order '1.5' must be a whole number, starting at 1."));
+    assert.ok(orderIssues.includes("T5: order '0' must be a whole number, starting at 1."));
+    assert.ok(orderIssues.includes("T6: order '-1' must be a whole number, starting at 1."));
 });
 
 test("rows with a blank machine are skipped and counted into one fleet warning; other machines still render", () => {
@@ -412,7 +411,7 @@ test("rows with a blank machine are skipped and counted into one fleet warning; 
     const model = parseDataView(dataViewFromRows(rows));
 
     assert.equal(model.state, "ready");
-    assert.deepEqual(model.warnings, ["2 row(s) skipped: machine is blank."]);
+    assert.deepEqual(model.warnings, ["2 rows have no machine and are not shown."]);
     const ex1 = model.machines.find((m) => m.key === "EX-1");
     assert.ok(ex1);
     assert.deepEqual(ex1.issues, []);
@@ -427,6 +426,55 @@ test("when every row has a blank machine, the model errors using the fleet warni
     const model = parseDataView(dataViewFromRows(rows));
 
     assert.equal(model.state, "error");
-    assert.deepEqual(model.errors, ["2 row(s) skipped: machine is blank."]);
+    assert.deepEqual(model.errors, ["2 rows have no machine and are not shown."]);
     assert.deepEqual(model.machines, []);
+});
+
+test("one blank-machine row uses the singular warning", () => {
+    const rows = [
+        ["", "Hydraulic Excavator", "T1", "tooth", 1, "OK", "2026-06-21T11:00:00Z", "TAG-T1"],
+        componentRow("EX-1", "T1", "tooth", 1, "OK")
+    ];
+
+    assert.deepEqual(parseDataView(dataViewFromRows(rows)).warnings, ["1 row has no machine and is not shown."]);
+});
+
+test("a rejected row is reported on its own, without a count issue blaming a valid category", () => {
+    // 5 teeth, 4 lip shrouds and 5 odd-order wings (all on the left) would otherwise also report
+    // "4 lip shrouds; expected 3." and "5 wing shrouds on the left side" once the bad tooth is dropped.
+    const rows = [
+        ...[1, 2, 3, 5].map((order) => componentRow("EX-107", `EX-107-T0${order}`, "tooth", order, "OK")),
+        componentRow("EX-107", "EX-107-T04", "tooth", 4, "Broken"),
+        ...[1, 2, 3, 4].map((order) => componentRow("EX-107", `EX-107-L0${order}`, "lipShroud", order, "OK")),
+        ...[1, 3, 5, 7, 9].map((order) => componentRow("EX-107", `EX-107-W0${order}`, "wingShroud", order, "OK"))
+    ];
+
+    const machine = parseDataView(dataViewFromRows(rows)).machines.find((m) => m.key === "EX-107");
+
+    assert.deepEqual(machine.issues, ["Tooth 4 (EX-107-T04): status 'Broken' is not recognised. Use OK, No Data, Lockout, Lockout + No Data, Proximity Alarm or Movement Alarm."]);
+    assert.equal(machine.teeth.length, 4, "the header counts only the valid components");
+});
+
+test("row issues name the component instead of a row position", () => {
+    const rows = [
+        componentRow("EX-N", "", "tooth", 1, "OK"),
+        componentRow("EX-N", "", "adapter", 2, "OK"),
+        componentRow("EX-N", "T2", "tooth", 2, ""),
+        componentRow("EX-N", "T3", "tooth", "", "OK"),
+        componentRow("EX-N", "", "lip shroud", "x", "Offline")
+    ];
+
+    const machine = parseDataView(dataViewFromRows(rows)).machines.find((m) => m.key === "EX-N");
+
+    assert.deepEqual(machine.issues, [
+        "A tooth row has no component name.",
+        "A row has no component name.",
+        "A row: category 'adapter' is not recognised. Use tooth, lip shroud or wing shroud.",
+        "Tooth 2 (T2): status is blank. Use OK, No Data, Lockout, Lockout + No Data, Proximity Alarm or Movement Alarm.",
+        "T3: order is blank; it must be a whole number, starting at 1.",
+        "A lip shroud row has no component name.",
+        "A lip shroud row: status 'Offline' is not recognised. Use OK, No Data, Lockout, Lockout + No Data, Proximity Alarm or Movement Alarm.",
+        "A lip shroud row: order 'x' must be a whole number, starting at 1."
+    ]);
+    assert.ok(machine.issues.every((issue) => !/\bRow \d/.test(issue)));
 });
