@@ -86,3 +86,11 @@ test("error without detail: no error code element rendered", () => {
     const el = renderEdgeState("error");
     assert.equal(el.querySelector(".bucket-health-state__error-detail"), null);
 });
+
+test("error: the subtitle only promises what the visual does (audio suppressed)", () => {
+    const el = renderEdgeState("error");
+    assert.equal(
+        el.querySelector(".bucket-health-state__subtitle").textContent,
+        "An unexpected data error occurred. New audio alarms are suppressed until valid data returns."
+    );
+});
