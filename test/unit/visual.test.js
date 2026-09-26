@@ -513,6 +513,9 @@ test("mouseout closes only when the pointer leaves the component, whatever the r
     const out = (relatedTarget) => tooth.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget }));
 
     move(tooth);
+    out(tooth);
+    assert.equal(tooltip().hidden, false, "within the same component");
+
     out(cardsByKey(element).get("EX-041"));
     assert.equal(tooltip().hidden, true, "to the card");
 
