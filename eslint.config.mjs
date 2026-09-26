@@ -13,6 +13,6 @@ export default [
     powerbiVisualsConfigs.configs.recommended,
     ...typescriptEslintRecommended,
     {
-        ignores: ["node_modules/**", "dist/**", ".vscode/**", ".tmp/**", "scripts/**", ".claude/**", "graphify-out/**", "coverage/**"],
+        ignores: ["node_modules/**", "dist/**", ".vscode/**", ".tmp/**", "scripts/**", ".claude/**", "coverage/**"],
     },
 ];

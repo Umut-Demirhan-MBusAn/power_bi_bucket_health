@@ -46,7 +46,7 @@ replaces it. **Stop** until the owner has reviewed the plan.
 
 ## 5. Repo checks while slicing
 
-- **Ask-first:** a slice touching AGENTS.md's "Ask first" list says so in its column.
+- **Ask-first:** a slice touching CLAUDE.md's "Ask first" list says so in its column.
 - **Host contract:** a slice that changes `capabilities.json` carries its `src/settings.ts`,
   `docs/VISUAL_CONTRACT.md` and `docs/SPEC.md` changes with it. Data roles are only ever added, never
   renamed, removed or retyped, and `privileges` stays `[]` (`docs/MAINTENANCE.md`).

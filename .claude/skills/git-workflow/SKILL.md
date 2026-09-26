@@ -5,7 +5,7 @@ description: Use at the start of any power_bi_bucket_health task that will commi
 
 # Git workflow (power_bi_bucket_health)
 
-AGENTS.md "Git workflow" is the rule; these are its commands. Windows, port and certificate detail:
+CLAUDE.md "Git workflow" is the rule; these are its commands. Windows, port and certificate detail:
 [worktree-setup.md](worktree-setup.md).
 
 ## 1. Branch from fresh `origin/main`, in a worktree
@@ -30,7 +30,7 @@ with `git branch -m`.
 ## 3. Commit
 
 - Stage by path: `git add <path> …` — never `git add -A` or `git add .`.
-- Conventional Commits; the trailer per AGENTS.md "Code style". A multi-line message goes through
+- Conventional Commits; the trailer per CLAUDE.md "Code style". A multi-line message goes through
   `git commit -F <file>`.
 - A fix-up is a new commit; the squash merge folds it. Never `--amend` a commit someone else made.
 

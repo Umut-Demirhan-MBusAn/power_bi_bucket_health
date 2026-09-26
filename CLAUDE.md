@@ -1,9 +1,9 @@
-# power_bi_bucket_health — Agent Instructions
+# power_bi_bucket_health — agent instructions
 
 Bucket Health, a Power BI custom visual (TypeScript, powerbi-visuals-api ~5.11, formattingmodel 7,
-MIT; developer Umut Demirhan). **This file is the single source of truth for all coding agents**
-(Claude Code, Codex, GitHub Copilot); `.claude/CLAUDE.md` and `.github/copilot-instructions.md` add
-only tool-specific deltas. Product and host docs: `docs/`.
+MIT; developer Umut Demirhan). **This file is the single source of truth for coding agents**;
+`.github/copilot-instructions.md` only points here. Product and host docs: `docs/`. Task status =
+GitHub Issues, never a doc.
 
 ## Commands  (npm · Node ≥ 22.13, `.nvmrc` 22 · repo root)
 - Install `npm ci`. `pbiviz` is a GLOBAL install, never a dependency:
@@ -13,7 +13,9 @@ only tool-specific deltas. Product and host docs: `docs/`.
 - Lint `npm run eslint` · `npm run lint` (pbiviz lint) · Versions agree `npm run check:version`
 - Fixture schema `npm run validate:fixtures` (needs `pwsh`) · Package `npm run package` → `dist/*.pbiviz`
 - Dev server `pbiviz start` → https://localhost:8080, loaded by the Power BI Service Developer Visual
-  (the owner signs in); trust the cert once with `pbiviz install-cert`.
+  (the owner signs in); trust the cert once with `pbiviz install-cert`. Claude Code starts it through
+  `.claude/launch.json` (`pbiviz-start`), never a foreground `pbiviz start`; it serves one visual at
+  a time, machine-wide.
 
 ## Git workflow  (non-negotiable — commands: `.claude/skills/git-workflow`)
 - **Never commit or push to `main`.** Branch `feat/` `fix/` `chore/` `docs/<slug>` off FRESH
@@ -62,7 +64,35 @@ only tool-specific deltas. Product and host docs: `docs/`.
 - Claude Code enforces the lists above in `.claude/settings.json` and `.claude/hooks/git-guard.mjs`
   (logic `scripts/git-guard.lib.mjs`, contract `test/unit/gitGuard.test.js`); those files are the
   source of truth, not prose.
+- git-guard blocks only pushes to `main`/`master`, `git add -A`/`--all`/`.`, bare
+  `git stash`/`pop`/`clear`/`save`, and `gh pr merge` without the opt-in, so autonomous runs never
+  stall on a false positive. Once review is approved and CI is green, merge through the Bash tool as
+  `BUCKET_HEALTH_MERGE_OK=1 gh pr merge <n> --squash --delete-branch` (the PowerShell tool never
+  honours the variable).
 - Full permission-skip ONLY inside a sandboxed worktree or container with no publish credentials.
+- Account plugins this repo does not use are switched off in `.claude/settings.json`; don't
+  re-enable them here — they load skills into every session for nothing.
+
+## Agents and skills
+- **Every subagent call names a model** (never the session model); never above high effort. One
+  `code-reviewer` per change, resumed to verify a fix round, is the review ceiling
+  (`implementation-pipeline` adds one per finished plan piece); the `adversarial-review` workflow
+  runs only when the owner asks in this session.
+- The global `agentic-development` skill is the operating manual for subagents, workflows and hooks.
+- Where a superpowers skill and a repo skill cover the same step, the repo skill wins:
+
+| superpowers | here |
+| --- | --- |
+| brainstorming, writing-plans | through `plan-epic`: specs and plans in `docs/specs/`, never `docs/superpowers/` |
+| subagent-driven-development, executing-plans | `implementation-pipeline` (an epic) or `ship-feature` (one change) |
+| using-git-worktrees | manual work: `git-workflow`'s `git worktree add ../<repo>-<slug>`; Agent-tool isolation worktrees under `.claude/worktrees/` keep their place and are removed after merge |
+| finishing-a-development-branch | `pr-finish`; never a local merge |
+| requesting-code-review | the `code-reviewer` agent, one pass |
+| dispatching-parallel-agents | one worktree per agent, a named model |
+| test-driven-development | red-green as written; the full `npm test` is cheap, so implementers run it |
+
+verification-before-completion, systematic-debugging (inside `debugger`) and receiving-code-review
+apply as written.
 
 ## Project structure
 - `src/visual.ts` IVisual entry (host services, selection, keyboard, tooltip) · `src/settings.ts`
@@ -82,8 +112,3 @@ only tool-specific deltas. Product and host docs: `docs/`.
   ("was X, now Y", "previously", "replaces PR #N"). Never cite an issue/PR number as the reason
   something is true — state the rule on its own merits; git blame is the provenance trail.
 - LF line endings. Commit trailer: your tool's default `Co-Authored-By`.
-
-## graphify
-- When `graphify-out/graph.json` exists, orient with `graphify query "<question>" --graph
-  graphify-out/graph.json` (or `path` / `explain`) before grepping raw files.
-- After changing code run `graphify update .`; `graphify-out/` is gitignored. No CLI: say so.

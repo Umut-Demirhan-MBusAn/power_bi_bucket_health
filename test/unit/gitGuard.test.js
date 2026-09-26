@@ -347,13 +347,6 @@ test("settings: the git-guard hook command fails closed when node or the hook fi
     assert.deepEqual(commands, ['node "$CLAUDE_PROJECT_DIR/.claude/hooks/git-guard.mjs" || exit 2']);
 });
 
-test("settings: the graphify hooks stay wired for Bash and Read|Glob", () => {
-    const matchers = loadSettings()
-        .hooks.PreToolUse.filter((entry) => entry.hooks.some((h) => h.command.includes("graphify-out/graph.json")))
-        .map((entry) => entry.matcher);
-    assert.deepEqual(matchers, ["Bash", "Read|Glob"]);
-});
-
 for (const command of [
     "git branch -D feat/x",
     "git branch --force feat/x origin/main",

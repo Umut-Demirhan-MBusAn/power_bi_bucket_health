@@ -30,7 +30,7 @@ waits for the owner's explicit word (`docs/MAINTENANCE.md` "Release").
 
 ## Gate
 
-AGENTS.md "Pre-PR gate" is the rule; these are its commands, from the worktree root. The whole set
+CLAUDE.md "Pre-PR gate" is the rule; these are its commands, from the worktree root. The whole set
 takes about a minute; run all of it.
 
 ```
@@ -43,7 +43,7 @@ npm audit --audit-level=moderate
 npm run package
 ```
 
-Then the rows of AGENTS.md "Pre-PR gate" for what the diff touches
+Then the rows of CLAUDE.md "Pre-PR gate" for what the diff touches
 (`git diff --name-only origin/main...HEAD`): a `capabilities.json` or `src/settings.ts` change
 carries its `docs/VISUAL_CONTRACT.md` and `docs/SPEC.md` update; a `.github/workflows/**` change has
 the owner's approval.

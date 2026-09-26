@@ -5,7 +5,6 @@ node_modules/
 dist/
 coverage/
 *.pbiviz
-graphify-out/
 .tmp/
 webpack.statistics*.html
 
