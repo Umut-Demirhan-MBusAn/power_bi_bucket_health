@@ -6,7 +6,8 @@ export function renderFleet(
     machines: MachineBucketModel[],
     theme: VisualTheme,
     minCardWidth: number,
-    truncated = false
+    truncated = false,
+    warnings: string[] = []
 ): HTMLElement {
     const section = document.createElement("section");
     section.className = "bucket-health";
@@ -15,9 +16,16 @@ export function renderFleet(
         const banner = document.createElement("div");
         banner.className = "bh-truncation-warning";
         banner.textContent =
-            "⚠ Data cap reached (2 000 rows) — some machines or components may not appear.";
+            "⚠ Row limit reached (2,000 rows) — some machines or components are not shown.";
         section.appendChild(banner);
     }
+
+    warnings.forEach((warning) => {
+        const banner = document.createElement("div");
+        banner.className = "bh-fleet-warning";
+        banner.textContent = `⚠ ${warning}`;
+        section.appendChild(banner);
+    });
 
     const grid = document.createElement("div");
     grid.className = machines.length === 1

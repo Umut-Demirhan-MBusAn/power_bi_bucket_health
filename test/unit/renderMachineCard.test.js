@@ -25,7 +25,9 @@ function okMachine(overrides = {}) {
         lipShrouds: overrides.lipShrouds || Array.from({ length: teethCount - 1 }, (_, i) => component("lipShroud", i + 1)),
         wingShroudsLeft: overrides.wingShroudsLeft || [],
         wingShroudsRight: overrides.wingShroudsRight || [],
-        alarmCount: 0, hasAlarm: false, sourceOrder: 0
+        alarmCount: 0, hasAlarm: false, sourceOrder: 0,
+        issues: overrides.issues || [],
+        incomplete: overrides.incomplete || false
     };
 }
 
@@ -39,7 +41,8 @@ function alarmMachine(moveOrders = [1], proxOrders = []) {
     return {
         key: "EX-TEST", name: "EX-TEST", type: "Hydraulic Excavator",
         teeth, lipShrouds, wingShroudsLeft: [], wingShroudsRight: [],
-        alarmCount: moveOrders.length + proxOrders.length, hasAlarm: true, sourceOrder: 0
+        alarmCount: moveOrders.length + proxOrders.length, hasAlarm: true, sourceOrder: 0,
+        issues: [], incomplete: false
     };
 }
 
@@ -134,7 +137,8 @@ test("alarm banner: lip and wing components use correct label prefixes", () => {
         ],
         wingShroudsLeft: [component("wingShroud", 1, "prox", "left")],
         wingShroudsRight: [],
-        alarmCount: 2, hasAlarm: true, sourceOrder: 0
+        alarmCount: 2, hasAlarm: true, sourceOrder: 0,
+        issues: [], incomplete: false
     };
     const card = renderMachineCard(m, THEME, MIN_WIDTH);
     const moveLine = card.querySelector(".bucket-health-card__alarm-line--move");
@@ -143,4 +147,47 @@ test("alarm banner: lip and wing components use correct label prefixes", () => {
     assert.match(moveLine.textContent, /Lip 2/);
     assert.ok(proxLine, "prox line present");
     assert.match(proxLine.textContent, /Wing 1/);
+});
+
+test("invalid machine: --invalid class, DATA ERROR badge, issues list instead of svg", () => {
+    const m = okMachine({ issues: ["Row 3: status 'Offline' is not supported."] });
+    const card = renderMachineCard(m, THEME, MIN_WIDTH);
+
+    assert.ok(card.className.includes("bucket-health-card--invalid"));
+    assert.equal(card.querySelector(".bucket-health-card__status").textContent, "DATA ERROR");
+
+    const items = card.querySelectorAll(".bucket-health-card__issues li");
+    assert.equal(items.length, 1);
+    assert.equal(items[0].textContent, "Row 3: status 'Offline' is not supported.");
+    assert.equal(card.querySelector("svg"), null, "no bucket svg for an invalid card");
+});
+
+test("incomplete machine: --incomplete class, INCOMPLETE badge", () => {
+    const m = okMachine({
+        issues: ["Incomplete — the 2,000-row limit was reached."],
+        incomplete: true
+    });
+    const card = renderMachineCard(m, THEME, MIN_WIDTH);
+
+    assert.ok(card.className.includes("bucket-health-card--incomplete"));
+    assert.ok(!card.className.includes("bucket-health-card--invalid"));
+    assert.equal(card.querySelector(".bucket-health-card__status").textContent, "INCOMPLETE");
+    assert.equal(card.querySelector("svg"), null);
+});
+
+test("alarming invalid machine: ALARM! badge and alarm banner still shown, alongside the issues list", () => {
+    const m = alarmMachine([1]);
+    m.issues = ["Duplicate component 'T2'."];
+    const card = renderMachineCard(m, THEME, MIN_WIDTH);
+
+    assert.equal(card.querySelector(".bucket-health-card__status").textContent, "ALARM!");
+    assert.ok(card.querySelector(".bucket-health-card__alarm-banner"), "alarm banner present");
+    assert.ok(card.querySelector(".bucket-health-card__issues"), "issues list present");
+    assert.equal(card.querySelector("svg"), null);
+});
+
+test("a valid machine (no issues) still renders the bucket svg, not an issues list", () => {
+    const card = renderMachineCard(okMachine(), THEME, MIN_WIDTH);
+    assert.equal(card.querySelector(".bucket-health-card__issues"), null);
+    assert.ok(card.querySelector("svg"), "bucket svg present for a valid card");
 });
