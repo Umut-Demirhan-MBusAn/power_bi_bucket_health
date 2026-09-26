@@ -295,10 +295,14 @@ for (const payload of [
 }
 
 // The settings tests run the shipped rules through this model of Claude Code's matcher, not
-// through Claude Code itself: a trailing `:*` is a prefix match; any other `*` matches any run of
-// characters, case-sensitively.
+// through Claude Code itself: a legacy trailing `:*` matches the prefix itself or the prefix
+// followed by a space (a word boundary); any other `*` matches any run of characters,
+// case-sensitively.
 function ruleMatches(rule, command) {
-    if (rule.endsWith(":*")) return command.startsWith(rule.slice(0, -2));
+    if (rule.endsWith(":*")) {
+        const prefix = rule.slice(0, -2);
+        return command === prefix || command.startsWith(`${prefix} `);
+    }
     const source = rule
         .split("*")
         .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
@@ -333,6 +337,14 @@ test("settings: git-guard runs for both the Bash and the PowerShell tool", () =>
         .hooks.PreToolUse.filter((entry) => entry.hooks.some((h) => h.command.includes("git-guard.mjs")))
         .map((entry) => entry.matcher);
     assert.deepEqual(matchers, ["Bash|PowerShell"]);
+});
+
+test("settings: the git-guard hook command fails closed when node or the hook file is missing", () => {
+    const commands = loadSettings()
+        .hooks.PreToolUse.flatMap((entry) => entry.hooks)
+        .filter((h) => h.command.includes("git-guard.mjs"))
+        .map((h) => h.command);
+    assert.deepEqual(commands, ['node "$CLAUDE_PROJECT_DIR/.claude/hooks/git-guard.mjs" || exit 2']);
 });
 
 test("settings: the graphify hooks stay wired for Bash and Read|Glob", () => {
@@ -379,6 +391,22 @@ for (const command of ["git add -A", "git add .", "git push origin main", "git p
         assert.ok(bashRules(deny, "git ").some((rule) => ruleMatches(rule, command)));
     });
 }
+
+for (const command of ["git push --force-with-lease origin HEAD", "git push -u origin feat/x", "git add src/a.ts"]) {
+    test(`settings: does not deny ${JSON.stringify(command)}`, () => {
+        const { deny } = loadSettings().permissions;
+        assert.equal(bashRules(deny, "git ").some((rule) => ruleMatches(rule, command)), false);
+    });
+}
+
+test("settings: npm audit is allowed only in its read-only forms", () => {
+    const rules = bashRules(loadSettings().permissions.allow, "npm audit");
+    assert.ok(rules.some((rule) => ruleMatches(rule, "npm audit")));
+    assert.ok(rules.some((rule) => ruleMatches(rule, "npm audit --audit-level=moderate")));
+    for (const command of ["npm audit fix", "npm audit fix --force"]) {
+        assert.equal(rules.some((rule) => ruleMatches(rule, command)), false, command);
+    }
+});
 
 test("settings: browser-pane input and page scripting prompt; read and preview tools stay allowed", () => {
     const { allow } = loadSettings().permissions;

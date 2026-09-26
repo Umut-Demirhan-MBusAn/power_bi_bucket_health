@@ -31,7 +31,8 @@
       "Bash(npm run check:version)",
       "Bash(npm run validate:fixtures)",
       "Bash(npm run package)",
-      "Bash(npm audit:*)",
+      "Bash(npm audit)",
+      "Bash(npm audit --audit-level=moderate)",
       "Bash(pbiviz --version:*)",
       "Bash(pbiviz info:*)",
       "Bash(pbiviz lint:*)",
@@ -110,7 +111,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/git-guard.mjs\""
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/git-guard.mjs\" || exit 2"
           }
         ]
       },
