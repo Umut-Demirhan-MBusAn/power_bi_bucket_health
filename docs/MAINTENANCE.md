@@ -2,8 +2,6 @@
 
 Open-source visual (MIT) — not on AppSource, no certification.
 
-**Developer / maintainer: Umut Demirhan** (demirhan.info@gmail.com)
-
 ## Distribution
 
 Every release's `.pbiviz` is attached to its [GitHub Release](https://github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health/releases).
