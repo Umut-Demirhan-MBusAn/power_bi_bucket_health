@@ -6,7 +6,7 @@ description: Use when asked to implement an epic, an execution plan's slices, or
 # Implementation pipeline
 
 The interactive session orchestrates; agents implement and review; GitHub holds the state; the owner
-is interrupted only at the gates below. AGENTS.md is law throughout.
+is interrupted only at the gates below. CLAUDE.md is law throughout.
 
 **Violating the letter of a gate is violating its spirit.** A gate here protects the host contract,
 the owner's release authority, or another lane's work; none of them is a formality to reinterpret.
@@ -38,7 +38,7 @@ the owner's release authority, or another lane's work; none of them is a formali
    left open before any dispatch; the later slice's brief carries the ruling. A finding that changes
    the spec goes to the owner in one message and holds only the slices in its row. The table goes
    in the status comment.
-3. **Merge authority** is standing for this repo (AGENTS.md "Git workflow"): each slice PR is
+3. **Merge authority** is standing for this repo (CLAUDE.md "Git workflow"): each slice PR is
    squash-merged by the orchestrator once its review is approved and CI is green. A release tag, a
    GitHub Release or any publish still needs the owner's explicit word; no pipeline step makes one.
 4. Post the **status comment** on the epic: a table `slice · issue · state · PR · note`, the

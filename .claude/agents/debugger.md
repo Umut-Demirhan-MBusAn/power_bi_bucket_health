@@ -28,7 +28,7 @@ Method:
 3. **Confirm** the hypothesis with evidence (a failing assertion, a logged value, a minimal repro)
    before fixing.
 4. **Fix** minimally; add or adjust a test that would have caught it. Verify with the targeted test,
-   then the AGENTS.md "Pre-PR gate".
+   then the CLAUDE.md "Pre-PR gate".
 
 Hard rules: never add a `capabilities.json` privilege or an `innerHTML`-style path to "fix" a
 rendering bug; don't touch `main`. Report: the root cause (one paragraph), the evidence, the fix, and

@@ -190,4 +190,4 @@ element, its positioning, and its content builder are all owned by the entry poi
 
 See [TESTING.md](TESTING.md) for the test inventory and infrastructure (Node.js built-in runner,
 jsdom for rendering tests) and the manual Developer Visual checklist. Validation gates: the
-pre-PR gate in [AGENTS.md](../AGENTS.md) (`pbiviz package` runs the pbiviz lint).
+pre-PR gate in [CLAUDE.md](../CLAUDE.md) (`pbiviz package` runs the pbiviz lint).

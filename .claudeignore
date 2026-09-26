@@ -11,9 +11,6 @@ webpack.statistics*.html
 node_modules/
 package-lock.json
 
-# Graphify generated knowledge graph
-graphify-out/
-
 # Binary media and report files
 *.pbix
 assets/*.png

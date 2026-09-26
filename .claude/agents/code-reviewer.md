@@ -34,7 +34,7 @@ Prioritise, in order:
 4. **Performance** — `update()` cost on the hot path (redundant parsing or full re-renders), DOM
    churn, listeners or timers leaked across updates.
 5. **Tests** — changed behaviour has `node:test` coverage (jsdom, `test/helpers/mockHost.js`)
-   asserting shipped values rather than tautologies; the AGENTS.md gate is likely to pass. Flag `any`,
+   asserting shipped values rather than tautologies; the CLAUDE.md gate is likely to pass. Flag `any`,
    and comments that narrate, record history or cite an issue number as the reason.
 
 Do NOT nitpick formatting (eslint handles it; CRLF warnings are noise). Output findings as a short

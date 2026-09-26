@@ -105,7 +105,7 @@ const DIMENSIONS = [
     key: 'conventions',
     relevant: (files) => files.some((f) => /^(src|test)\//.test(f) && !DOC_FILE.test(f)),
     prompt:
-      'Review ONLY for AGENTS.md convention violations: `any`, renderers reading raw host objects instead of the typed model built in src/data/, hand-edited generated files (assets/icon.png), a capabilities or formatting change without its docs/VISUAL_CONTRACT.md and docs/SPEC.md update, comment-style violations (change-history narration, issue numbers as the reason).',
+      'Review ONLY for CLAUDE.md convention violations: `any`, renderers reading raw host objects instead of the typed model built in src/data/, hand-edited generated files (assets/icon.png), a capabilities or formatting change without its docs/VISUAL_CONTRACT.md and docs/SPEC.md update, comment-style violations (change-history narration, issue numbers as the reason).',
   },
   {
     key: 'tests',
