@@ -17,6 +17,20 @@ test("normalizeStatus tolerates casing and surrounding spaces", () => {
     assert.equal(normalizeStatus("movement"), "move");
 });
 
+test("normalizeStatus tolerates missing/extra space around '+'", () => {
+    assert.equal(normalizeStatus("Lockout +No Data"), "lockoutnd");
+    assert.equal(normalizeStatus("Lockout+ No Data"), "lockoutnd");
+    assert.equal(normalizeStatus("Lockout+No Data"), "lockoutnd");
+});
+
+test("normalizeStatus inserts a space before '(' when the source omits it", () => {
+    assert.equal(normalizeStatus("No Data(1h)"), "nodata");
+});
+
+test("normalizeStatus collapses runs of internal whitespace", () => {
+    assert.equal(normalizeStatus("  proximity   alarm "), "prox");
+});
+
 test("normalizeStatus rejects unknown or empty values", () => {
     assert.equal(normalizeStatus("offline"), undefined);
     assert.equal(normalizeStatus(""), undefined);

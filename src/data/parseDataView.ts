@@ -1,5 +1,6 @@
 import powerbi from "powerbi-visuals-api";
 import { assignWingSides, defaultWingSideAssignment } from "../domain/wingSideAssignment";
+import { dominantAlarm } from "../domain/statusMeta";
 import { isAlarmStatus, normalizeStatus } from "./normalizeStatus";
 import {
     BucketHealthDataModel,
@@ -13,11 +14,11 @@ import {
 
 import DataView = powerbi.DataView;
 import DataViewMetadataColumn = powerbi.DataViewMetadataColumn;
-import DataViewTable = powerbi.DataViewTable;
+import DataViewTableRow = powerbi.DataViewTableRow;
 import PrimitiveValue = powerbi.PrimitiveValue;
 
 const requiredRoles = ["machine", "component", "category", "order", "status"];
-const allowedCategories = new Set<ComponentCategory>(["tooth", "lipShroud", "wingShroud"]);
+const MAX_ISSUES_PER_MACHINE = 20;
 
 interface RoleIndexes {
     machine: number;
@@ -31,6 +32,18 @@ interface RoleIndexes {
     tooltipFields: number[];
 }
 
+// One machine's rows as they are collected while walking the table. `validComponents` only ever
+// holds rows that passed every row-level check; `issues` accumulates row-level problems in row
+// order, and machine-level checks (duplicates, counts, wing limits, incomplete) are placed before
+// them when the final issue list is built.
+interface MachineDraft {
+    key: string;
+    machineType?: string;
+    sourceOrder: number;
+    validComponents: ComponentRecord[];
+    issues: string[];
+}
+
 export function parseDataView(
     dataView: DataView | undefined,
     wingSideAssignment: WingSideAssignment = defaultWingSideAssignment,
@@ -41,91 +54,47 @@ export function parseDataView(
         return emptyModel("noFields", requiredRoles);
     }
 
-    const missingRoles = findMissingRoles(table.columns, requiredRoles);
-    if (missingRoles.length > 0) {
-        return emptyModel("invalidConfig", missingRoles);
+    const roleResult = getRoleIndexes(table.columns);
+    if ("missingRoles" in roleResult) {
+        return emptyModel("invalidConfig", roleResult.missingRoles);
     }
 
     if (!table.rows || table.rows.length === 0) {
         return emptyModel("noData");
     }
 
-    const indexes = getRoleIndexes(table.columns);
-    if (!indexes) {
-        return emptyModel("invalidConfig", requiredRoles);
+    const indexes = roleResult;
+    const truncated = dataView?.metadata?.segment !== undefined;
+
+    const { machineDrafts, blankMachineRowCount } = collectMachineDrafts(table.rows, table.columns, indexes);
+
+    const warnings: string[] = [];
+    if (blankMachineRowCount > 0) {
+        warnings.push(`${blankMachineRowCount} row(s) skipped: machine is blank.`);
     }
 
-    const errors: string[] = [];
-    const components: ComponentRecord[] = [];
-
-    table.rows.forEach((row, rowIndex) => {
-        const line = rowIndex + 1;
-        const machineKey = textValue(row[indexes.machine]);
-        const componentKey = textValue(row[indexes.component]);
-        const categoryValue = textValue(row[indexes.category]);
-        const status = normalizeStatus(row[indexes.status]);
-        const order = numberValue(row[indexes.order]);
-
-        if (!machineKey) {
-            errors.push(`Row ${line}: machine is required.`);
-        }
-
-        if (!componentKey) {
-            errors.push(`Row ${line}: component is required.`);
-        }
-
-        if (!allowedCategories.has(categoryValue as ComponentCategory)) {
-            errors.push(`Row ${line}: category '${categoryValue}' is not supported.`);
-        }
-
-        if (!status) {
-            errors.push(`Row ${line}: status '${textValue(row[indexes.status])}' is not supported.`);
-        }
-
-        if (!Number.isInteger(order) || order < 1) {
-            errors.push(`Row ${line}: order must be an integer greater than zero.`);
-        }
-
-        if (machineKey && componentKey && allowedCategories.has(categoryValue as ComponentCategory) && status && Number.isInteger(order) && order >= 1) {
-            components.push({
-                machineKey,
-                machineType: optionalTextValue(row, indexes.machineType),
-                componentKey,
-                category: categoryValue as ComponentCategory,
-                order,
-                status,
-                lastSeen: optionalValue(row, indexes.lastSeen),
-                alarmTime: optionalValue(row, indexes.alarmTime),
-                tooltipFields: getTooltipFields(row, table.columns, indexes.tooltipFields),
-                sourceOrder: rowIndex
-            });
-        }
-    });
-
-    if (errors.length > 0) {
+    if (machineDrafts.size === 0) {
+        // Every row had a blank machine (the only way to reach zero drafts once rows.length > 0),
+        // so `warnings` is always non-empty here.
         return {
             state: "error",
             machines: [],
             missingRoles: [],
-            errors
+            errors: warnings,
+            truncated,
+            warnings: []
         };
     }
 
-    const machines = deriveMachines(components, errors, wingSideAssignment, componentOrder);
-    if (errors.length > 0) {
-        return {
-            state: "error",
-            machines: [],
-            missingRoles: [],
-            errors
-        };
-    }
+    const machines = buildMachineModels(machineDrafts, truncated, wingSideAssignment, componentOrder);
 
     return {
-        state: machines.length > 0 ? "ready" : "noData",
+        state: "ready",
         machines,
         missingRoles: [],
-        errors: []
+        errors: [],
+        truncated,
+        warnings
     };
 }
 
@@ -134,15 +103,13 @@ function emptyModel(state: BucketHealthDataModel["state"], missingRoles: string[
         state,
         machines: [],
         missingRoles,
-        errors: []
+        errors: [],
+        truncated: false,
+        warnings: []
     };
 }
 
-function findMissingRoles(columns: DataViewMetadataColumn[], roles: string[]): string[] {
-    return roles.filter((role) => !columns.some((column) => Boolean(column.roles?.[role])));
-}
-
-function getRoleIndexes(columns: DataViewMetadataColumn[]): RoleIndexes | undefined {
+function getRoleIndexes(columns: DataViewMetadataColumn[]): RoleIndexes | { missingRoles: string[] } {
     const machine = findRoleIndex(columns, "machine");
     const component = findRoleIndex(columns, "component");
     const category = findRoleIndex(columns, "category");
@@ -150,16 +117,16 @@ function getRoleIndexes(columns: DataViewMetadataColumn[]): RoleIndexes | undefi
     const status = findRoleIndex(columns, "status");
 
     if (machine === undefined || component === undefined || category === undefined || order === undefined || status === undefined) {
-        return undefined;
+        return { missingRoles: requiredRoles.filter((role) => findRoleIndex(columns, role) === undefined) };
     }
 
     return {
         machine,
-        machineType: findRoleIndex(columns, "machineType"),
         component,
         category,
         order,
         status,
+        machineType: findRoleIndex(columns, "machineType"),
         lastSeen: findRoleIndex(columns, "lastSeen"),
         alarmTime: findRoleIndex(columns, "alarmTime"),
         tooltipFields: findRoleIndexes(columns, "tooltipFields")
@@ -177,78 +144,212 @@ function findRoleIndexes(columns: DataViewMetadataColumn[], role: string): numbe
         .filter((index) => index >= 0);
 }
 
-function deriveMachines(
-    components: ComponentRecord[],
-    errors: string[],
+// Walks every row once: rows with a blank machine are skipped and counted (fleet-level warning);
+// every other row attaches its row-level issues (if any) to that machine's draft and, only when
+// every row-level check passes, contributes a ComponentRecord to that machine's valid rows.
+function collectMachineDrafts(
+    rows: DataViewTableRow[],
+    columns: DataViewMetadataColumn[],
+    indexes: RoleIndexes
+): { machineDrafts: Map<string, MachineDraft>; blankMachineRowCount: number } {
+    const machineDrafts = new Map<string, MachineDraft>();
+    let blankMachineRowCount = 0;
+
+    rows.forEach((row, rowIndex) => {
+        const line = rowIndex + 1;
+        const machineKey = textValue(row[indexes.machine]);
+
+        if (!machineKey) {
+            blankMachineRowCount += 1;
+            return;
+        }
+
+        let draft = machineDrafts.get(machineKey);
+        if (!draft) {
+            draft = { key: machineKey, sourceOrder: rowIndex, validComponents: [], issues: [] };
+            machineDrafts.set(machineKey, draft);
+        }
+
+        const componentKey = textValue(row[indexes.component]);
+        const categoryRaw = textValue(row[indexes.category]);
+        const category = matchCategory(categoryRaw);
+        const statusRaw = textValue(row[indexes.status]);
+        const status = normalizeStatus(row[indexes.status]);
+        const orderRaw = textValue(row[indexes.order]);
+        const order = parseOrder(row[indexes.order]);
+
+        if (!componentKey) {
+            draft.issues.push(`Row ${line}: component is required.`);
+        }
+        if (!category) {
+            draft.issues.push(`Row ${line}: category '${categoryRaw}' is not supported; use tooth, lipShroud, or wingShroud.`);
+        }
+        if (!status) {
+            draft.issues.push(`Row ${line}: status '${statusRaw}' is not supported.`);
+        }
+        if (order === undefined) {
+            draft.issues.push(`Row ${line}: order '${orderRaw}' is not a whole number ≥ 1.`);
+        }
+
+        if (!componentKey || !category || !status || order === undefined) {
+            return;
+        }
+
+        const machineType = optionalTextValue(row, indexes.machineType);
+        if (draft.machineType === undefined) {
+            draft.machineType = machineType;
+        }
+
+        draft.validComponents.push({
+            machineKey,
+            machineType,
+            componentKey,
+            category,
+            order,
+            status,
+            lastSeen: optionalValue(row, indexes.lastSeen),
+            alarmTime: optionalValue(row, indexes.alarmTime),
+            tooltipFields: getTooltipFields(row, columns, indexes.tooltipFields),
+            sourceOrder: rowIndex
+        });
+    });
+
+    return { machineDrafts, blankMachineRowCount };
+}
+
+// Category matching: lower-case, strip spaces/underscores/hyphens, then match. A real type guard
+// (no `as ComponentCategory` cast) — the return type is only ever a value this function produced.
+function matchCategory(raw: string): ComponentCategory | undefined {
+    const normalized = raw.toLowerCase().replace(/[\s_-]+/g, "");
+    if (normalized === "tooth" || normalized === "teeth") {
+        return "tooth";
+    }
+    if (normalized === "lipshroud") {
+        return "lipShroud";
+    }
+    if (normalized === "wingshroud") {
+        return "wingShroud";
+    }
+    return undefined;
+}
+
+// Accepts a finite integer >= 1, either as a number or as a string of digits (optionally padded
+// with whitespace). Booleans, Dates, hex-looking strings ("0x3"), and decimals ("1.5") all fail
+// both branches and fall through to undefined.
+function parseOrder(value: PrimitiveValue): number | undefined {
+    if (typeof value === "number") {
+        return Number.isInteger(value) && value >= 1 ? value : undefined;
+    }
+    if (typeof value === "string" && /^\s*\d+\s*$/.test(value)) {
+        const parsed = Number(value.trim());
+        return Number.isInteger(parsed) && parsed >= 1 ? parsed : undefined;
+    }
+    return undefined;
+}
+
+function buildMachineModels(
+    machineDrafts: Map<string, MachineDraft>,
+    truncated: boolean,
     wingSideAssignment: WingSideAssignment,
     componentOrder: ComponentOrderDirection
 ): MachineBucketModel[] {
-    const byMachine = new Map<string, ComponentRecord[]>();
-    const sourceOrder = new Map<string, number>();
-
-    components.forEach((component) => {
-        if (!byMachine.has(component.machineKey)) {
-            byMachine.set(component.machineKey, []);
-            sourceOrder.set(component.machineKey, component.sourceOrder);
-        }
-
-        byMachine.get(component.machineKey)?.push(component);
-    });
-
+    const incompleteKey = truncated ? findIncompleteMachineKey(machineDrafts) : undefined;
     const machines: MachineBucketModel[] = [];
-    byMachine.forEach((machineComponents, machineKey) => {
-        const duplicateKeys = findDuplicateComponentKeys(machineComponents);
-        duplicateKeys.forEach((componentKey) => errors.push(`Machine '${machineKey}' has duplicate component '${componentKey}'.`));
 
-        const teeth = orderComponents(machineComponents.filter((component) => component.category === "tooth"), componentOrder);
-        const lipShrouds = orderComponents(machineComponents.filter((component) => component.category === "lipShroud"), componentOrder);
+    machineDrafts.forEach((draft) => {
+        const incomplete = draft.key === incompleteKey;
+
+        const teeth = orderComponents(draft.validComponents.filter((component) => component.category === "tooth"), componentOrder);
+        const lipShrouds = orderComponents(draft.validComponents.filter((component) => component.category === "lipShroud"), componentOrder);
         const wingShrouds = assignWingSides(
-            machineComponents.filter((component) => component.category === "wingShroud"),
+            draft.validComponents.filter((component) => component.category === "wingShroud"),
             wingSideAssignment
         );
-
-        if (teeth.length < 4 || teeth.length > 20) {
-            errors.push(`Machine '${machineKey}' has ${teeth.length} teeth; supported range is 4-20.`);
-        }
-
-        if (lipShrouds.length !== teeth.length - 1) {
-            errors.push(`Machine '${machineKey}' has ${lipShrouds.length} lip shrouds; expected ${teeth.length - 1}.`);
-        }
-
-        if (wingShrouds.length > 8) {
-            errors.push(`Machine '${machineKey}' has ${wingShrouds.length} wing shrouds; maximum total is 8.`);
-        }
-
         const wingShroudsLeft = sortComponents(wingShrouds.filter((component) => component.derivedWingSide === "left"));
         const wingShroudsRight = sortComponents(wingShrouds.filter((component) => component.derivedWingSide === "right"));
-        const alarmComponents = machineComponents.filter((component) => isAlarmStatus(component.status));
-        const hasMove = alarmComponents.some((component) => component.status === "move");
+
+        // Machine-level issues (duplicates, counts, wing limits, incomplete) come before this
+        // machine's row-level issues, so a flood of bad rows can never push the more structurally
+        // significant machine-level problems past the 20-issue cap.
+        const machineIssues: string[] = [];
+
+        findDuplicateComponentKeys(draft.validComponents).forEach((componentKey) => {
+            machineIssues.push(`Duplicate component '${componentKey}'.`);
+        });
+
+        if (incomplete) {
+            machineIssues.push("Incomplete — the 2,000-row limit was reached.");
+        } else if (teeth.length < 4 || teeth.length > 20) {
+            machineIssues.push(`${teeth.length} teeth; supported range is 4–20.`);
+        } else if (lipShrouds.length !== teeth.length - 1) {
+            machineIssues.push(`${lipShrouds.length} lip shrouds; expected ${teeth.length - 1}.`);
+        }
+
+        if (!incomplete && wingShroudsLeft.length > 4) {
+            machineIssues.push(`${wingShroudsLeft.length} wing shrouds on the left side; maximum is 4 per side.`);
+        }
+        if (!incomplete && wingShroudsRight.length > 4) {
+            machineIssues.push(`${wingShroudsRight.length} wing shrouds on the right side; maximum is 4 per side.`);
+        }
+
+        const issues = [...machineIssues, ...draft.issues];
+
+        const alarmComponents = draft.validComponents.filter((component) => isAlarmStatus(component.status));
 
         machines.push({
-            key: machineKey,
-            name: machineKey,
-            type: firstDefined(machineComponents.map((component) => component.machineType)),
+            key: draft.key,
+            name: draft.key,
+            type: draft.machineType,
             teeth,
             lipShrouds,
             wingShroudsLeft,
             wingShroudsRight,
             alarmCount: alarmComponents.length,
             hasAlarm: alarmComponents.length > 0,
-            dominantAlarm: alarmComponents.length > 0 ? (hasMove ? "move" : "prox") : undefined,
-            sourceOrder: sourceOrder.get(machineKey) ?? 0
+            dominantAlarm: dominantAlarm(alarmComponents.map((component) => component.status)),
+            sourceOrder: draft.sourceOrder,
+            issues: capIssues(issues),
+            incomplete
         });
     });
 
-    return machines.sort((a, b) => {
-        if (a.hasAlarm !== b.hasAlarm) return a.hasAlarm ? -1 : 1;
-        if (a.hasAlarm && b.hasAlarm) {
-            const aMove = a.dominantAlarm === "move";
-            const bMove = b.dominantAlarm === "move";
-            if (aMove !== bMove) return aMove ? -1 : 1;
+    return machines.sort(compareMachines);
+}
+
+// Resolves the ambiguity in "the machine whose first row index is highest": the machine whose
+// earliest row in table.rows comes last is the one the 2,000-row cut can have split.
+function findIncompleteMachineKey(machineDrafts: Map<string, MachineDraft>): string | undefined {
+    let bestKey: string | undefined;
+    let bestSourceOrder = -1;
+
+    machineDrafts.forEach((draft) => {
+        if (draft.sourceOrder > bestSourceOrder) {
+            bestSourceOrder = draft.sourceOrder;
+            bestKey = draft.key;
         }
-        if (a.alarmCount !== b.alarmCount) return b.alarmCount - a.alarmCount;
-        return a.sourceOrder - b.sourceOrder;
     });
+
+    return bestKey;
+}
+
+function capIssues(issues: string[]): string[] {
+    if (issues.length <= MAX_ISSUES_PER_MACHINE) {
+        return issues;
+    }
+
+    const overflow = issues.length - MAX_ISSUES_PER_MACHINE;
+    return [...issues.slice(0, MAX_ISSUES_PER_MACHINE), `…and ${overflow} more.`];
+}
+
+function compareMachines(a: MachineBucketModel, b: MachineBucketModel): number {
+    if (a.hasAlarm !== b.hasAlarm) return a.hasAlarm ? -1 : 1;
+    if (a.hasAlarm && b.hasAlarm) {
+        const aMove = a.dominantAlarm === "move";
+        const bMove = b.dominantAlarm === "move";
+        if (aMove !== bMove) return aMove ? -1 : 1;
+    }
+    if (a.alarmCount !== b.alarmCount) return b.alarmCount - a.alarmCount;
+    return a.sourceOrder - b.sourceOrder;
 }
 
 function sortComponents(components: ComponentRecord[]): ComponentRecord[] {
@@ -276,7 +377,7 @@ function findDuplicateComponentKeys(components: ComponentRecord[]): string[] {
     return [...duplicates];
 }
 
-function getTooltipFields(row: DataViewTable["rows"][number], columns: DataViewMetadataColumn[], indexes: number[]): TooltipField[] {
+function getTooltipFields(row: DataViewTableRow, columns: DataViewMetadataColumn[], indexes: number[]): TooltipField[] {
     return indexes.map((index) => ({
         label: columns[index].displayName,
         value: row[index]
@@ -287,7 +388,7 @@ function textValue(value: PrimitiveValue): string {
     return value === null || value === undefined ? "" : String(value).trim();
 }
 
-function optionalTextValue(row: DataViewTable["rows"][number], index: number | undefined): string | undefined {
+function optionalTextValue(row: DataViewTableRow, index: number | undefined): string | undefined {
     if (index === undefined) {
         return undefined;
     }
@@ -295,19 +396,6 @@ function optionalTextValue(row: DataViewTable["rows"][number], index: number | u
     return textValue(row[index]) || undefined;
 }
 
-function optionalValue(row: DataViewTable["rows"][number], index: number | undefined): PrimitiveValue | undefined {
+function optionalValue(row: DataViewTableRow, index: number | undefined): PrimitiveValue | undefined {
     return index === undefined ? undefined : row[index];
-}
-
-function numberValue(value: PrimitiveValue): number {
-    if (typeof value === "number") {
-        return value;
-    }
-
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : Number.NaN;
-}
-
-function firstDefined(values: Array<string | undefined>): string | undefined {
-    return values.find((value) => Boolean(value));
 }

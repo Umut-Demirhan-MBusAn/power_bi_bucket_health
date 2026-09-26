@@ -41,6 +41,10 @@ export class AlarmAudio {
         this.stop();
     }
 
+    isPlaying(): boolean {
+        return this.playing;
+    }
+
     destroy(): void {
         this.stop();
     }

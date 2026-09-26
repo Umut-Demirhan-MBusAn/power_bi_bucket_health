@@ -11,10 +11,10 @@ import {
 
 export const bucketGeometryConstants = {
     SLOT: 66,
-    TOOTH_W: 36,
-    TOOTH_H: 62,
-    LIP_W: 22,
-    LIP_H: 24,
+    TOOTH_W: 30,
+    TOOTH_H: 54,
+    LIP_W: 26,
+    LIP_H: 30,
     WING_HL: 24,
     WING_IN: 11,
     WING_OUT: 14,

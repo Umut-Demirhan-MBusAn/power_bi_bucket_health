@@ -49,10 +49,10 @@ function machine({ teeth, leftWings = 0, rightWings = 0, toothStatus = {}, lipSt
 
 test("bucket geometry uses handoff constants", () => {
     assert.equal(bucketGeometryConstants.SLOT, 66);
-    assert.equal(bucketGeometryConstants.TOOTH_W, 36);
-    assert.equal(bucketGeometryConstants.TOOTH_H, 62);
-    assert.equal(bucketGeometryConstants.LIP_W, 22);
-    assert.equal(bucketGeometryConstants.LIP_H, 24);
+    assert.equal(bucketGeometryConstants.TOOTH_W, 30);
+    assert.equal(bucketGeometryConstants.TOOTH_H, 54);
+    assert.equal(bucketGeometryConstants.LIP_W, 26);
+    assert.equal(bucketGeometryConstants.LIP_H, 30);
     assert.equal(bucketGeometryConstants.WING_PITCH, 56);
     assert.equal(bucketGeometryConstants.MARGIN, 72);
 });
@@ -60,7 +60,7 @@ test("bucket geometry uses handoff constants", () => {
 test("buildBucketGeometry matches minimum geometry dimensions", () => {
     const geometry = buildBucketGeometry(machine({ teeth: 4 }));
 
-    assert.equal(geometry.viewBox, "0 0 408 304");
+    assert.equal(geometry.viewBox, "0 0 408 296");
     assert.equal(geometry.centerX, 204);
     assert.equal(geometry.bottomY, 202);
     assert.equal(geometry.bucketHeight, 116);
@@ -76,7 +76,7 @@ test("buildBucketGeometry matches minimum geometry dimensions", () => {
 test("buildBucketGeometry matches maximum geometry dimensions", () => {
     const geometry = buildBucketGeometry(machine({ teeth: 20, leftWings: 4, rightWings: 4 }));
 
-    assert.equal(geometry.viewBox, "0 0 1464 488");
+    assert.equal(geometry.viewBox, "0 0 1464 480");
     assert.equal(geometry.centerX, 732);
     assert.equal(geometry.bottomY, 386);
     assert.equal(geometry.bucketHeight, 300);
@@ -87,7 +87,7 @@ test("buildBucketGeometry matches maximum geometry dimensions", () => {
     assert.equal(geometry.wingShrouds.length, 8);
     assert.equal(geometry.hitchTransform, "translate(732 86) scale(1.05) translate(-440 -94)");
     assert.deepEqual(geometry.shadow, {
-        center: { x: 732, y: 466 },
+        center: { x: 732, y: 458 },
         radiusX: 660,
         radiusY: 16
     });
@@ -99,9 +99,9 @@ test("buildBucketGeometry preserves fixed component dimensions", () => {
     const firstLip = geometry.lipShrouds[0];
     const firstWing = geometry.wingShrouds[0];
 
-    assert.match(firstTooth.path, /^M 96,292 L 132,292/);
-    assert.equal(firstLip.rect.width, 22);
-    assert.equal(firstLip.rect.height, 24);
+    assert.match(firstTooth.path, /^M 99,292 L 129,292/);
+    assert.equal(firstLip.rect.width, 26);
+    assert.equal(firstLip.rect.height, 30);
     assert.equal(firstWing.polygon.length, 4);
     assert.equal(firstWing.points.split(" ").length, 4);
 });
@@ -143,4 +143,79 @@ test("buildBucketGeometry derives the dominant alarm label", () => {
 
     const healthy = buildBucketGeometry(machine({ teeth: 10 }));
     assert.equal(healthy.alarmLabel, undefined);
+});
+
+function numbersIn(path) {
+    return (path.match(/-?\d+(\.\d+)?/g) || []).map(Number);
+}
+
+function pathPoints(path) {
+    const values = numbersIn(path);
+    const result = [];
+    for (let index = 0; index + 1 < values.length; index += 2) {
+        result.push({ x: values[index], y: values[index + 1] });
+    }
+    return result;
+}
+
+function projectedRange(polygon, axis) {
+    const projections = polygon.map((p) => p.x * axis.x + p.y * axis.y);
+    return [Math.min(...projections), Math.max(...projections)];
+}
+
+function polygonsOverlap(a, b) {
+    const edges = [a, b].flatMap((polygon) => polygon.map((p, index) => {
+        const next = polygon[(index + 1) % polygon.length];
+        return { x: next.y - p.y, y: p.x - next.x };
+    }));
+    return edges.every((axis) => {
+        const [aMin, aMax] = projectedRange(a, axis);
+        const [bMin, bMax] = projectedRange(b, axis);
+        return aMax > bMin + 1e-6 && bMax > aMin + 1e-6;
+    });
+}
+
+test("geometry stays valid for every tooth count and wing count", () => {
+    const c = bucketGeometryConstants;
+    let minGap = Infinity;
+
+    for (let teeth = 4; teeth <= 20; teeth++) {
+        for (let wings = 0; wings <= 4; wings++) {
+            const label = `${teeth} teeth, ${wings} wings per side`;
+            const geometry = buildBucketGeometry(machine({ teeth, leftWings: wings, rightWings: wings }));
+            const inside = (p) => p.x >= 0 && p.y >= 0 && p.x <= geometry.viewBoxWidth && p.y <= geometry.viewBoxHeight;
+
+            const allPoints = [
+                ...geometry.teeth.flatMap((tooth) => pathPoints(tooth.path)),
+                ...geometry.lipShrouds.flatMap(({ rect }) => [
+                    { x: rect.x, y: rect.y },
+                    { x: rect.x + rect.width, y: rect.y + rect.height }
+                ]),
+                ...geometry.wingShrouds.flatMap((wing) => wing.polygon)
+            ];
+            allPoints.forEach((p) => {
+                assert.ok(Number.isFinite(p.x) && Number.isFinite(p.y), `${label}: finite point`);
+                assert.ok(inside(p), `${label}: (${p.x}, ${p.y}) inside the viewBox`);
+            });
+
+            geometry.lipShrouds.forEach(({ rect }, index) => {
+                const left = geometry.teeth[index].center.x + c.TOOTH_W / 2;
+                const right = geometry.teeth[index + 1].center.x - c.TOOTH_W / 2;
+                const gap = Math.min(rect.x - left, right - (rect.x + rect.width));
+                minGap = Math.min(minGap, gap);
+                assert.ok(gap >= 2, `${label}: lip ${index + 1} clears its teeth by ${gap}`);
+            });
+
+            ["left", "right"].forEach((side) => {
+                const polygons = geometry.wingShrouds.filter((wing) => wing.side === side).map((wing) => wing.polygon);
+                for (let a = 0; a < polygons.length; a++) {
+                    for (let b = a + 1; b < polygons.length; b++) {
+                        assert.ok(!polygonsOverlap(polygons[a], polygons[b]), `${label}: ${side} wings ${a + 1} and ${b + 1} overlap`);
+                    }
+                }
+            });
+        }
+    }
+
+    assert.equal(minGap, 2.5);
 });

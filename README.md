@@ -1,10 +1,14 @@
 # Bucket Health for Power BI
 
-An internal Power BI custom visual for real-time monitoring of mining excavator bucket GET (Ground Engaging Tools) component health. Each machine is rendered as a responsive schematic bucket with live status colours, alarm prioritisation, audio alerts, and rich tooltips.
+An open-source (MIT) Power BI custom visual for real-time monitoring of mining excavator bucket GET (Ground Engaging Tools) component health. Each machine is rendered as a responsive schematic bucket with live status colours, alarm prioritisation, audio alerts, and rich tooltips.
 
-Developed by **Umut Demirhan**. Distributed internally as an organizational visual (not on AppSource) — versioning, releases, and distribution: [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md).
+Developed by **Umut Demirhan**. Not on AppSource: download the `.pbiviz` from
+[GitHub Releases](https://github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health/releases). Versioning and releases:
+[`docs/MAINTENANCE.md`](docs/MAINTENANCE.md).
 
 ![Bucket Health fleet view](photos_for_launch/multiple_machine_alarming.png)
+
+▶ [Demo video: an alarm arriving](https://github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health/releases/download/v1.0.0.0/alarm_demo_video.mp4) (MP4, 15 MB)
 
 ---
 
@@ -33,12 +37,22 @@ Developed by **Umut Demirhan**. Distributed internally as an organizational visu
 |---|---|---|
 | ![Tooltip](photos_for_launch/tooltips.png) | ![Cross-filter](photos_for_launch/select_component_to_cross_filter.png) | ![Setup](photos_for_launch/no_machines_to_show_and_format_visual_setup.png) |
 
+| Proximity alarm on one tooth | Movement and proximity alarms, mixed statuses | Fleet with a no-data machine and a lockout tooth |
+|---|---|---|
+| ![Proximity alarm](photos_for_launch/prox_alarm.png) | ![Movement and proximity alarms](photos_for_launch/one_alarming_machine.png) | ![No-data machine and lockout tooth](photos_for_launch/fleet_with_offline_machine_and_lockout_comp.png) |
+
+| No data, single machine | No data, compact card |
+|---|---|
+| ![No data, single machine](photos_for_launch/one_offline_machine.png) | ![No data, compact card](photos_for_launch/no_data_one_machine.png) |
+
 ---
 
 ## Quick start
 
-Add the visual from **Insert → More visuals → My organization** and bind the required fields
-(see below).
+Download the `.pbiviz` file from the latest [release](https://github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health/releases), then in
+Power BI choose **Visualizations → … → Import a visual from a file**. If your Power BI admin has
+added it as an organizational visual, use **More visuals → My organization** instead. Then bind
+the required fields (see below).
 
 A sample `.pbix` demo report is included at [`example_bucket_health_dashboard.pbix`](example_bucket_health_dashboard.pbix).
 
@@ -57,19 +71,20 @@ Each row must represent **one component on one machine**. Bind these roles in th
 | **Component** | ✓ | The component's name, unique within its machine. Identifies a single tooth, lip shroud, or wing shroud on that machine. Used for rendering, tooltips, selection, and alarm detection. | `T1`, `L3`, `W2R` |
 | **Category** | ✓ | The component type. Determines where on the bucket schematic the component is drawn. Must be one of three exact values. | `tooth`, `lipShroud`, `wingShroud` |
 | **Order** | ✓ | Integer position of the component within its category (1 = leftmost for teeth and lip shrouds). For wing shrouds, left/right side is inferred from this value by the **Wing side assignment** Formatting pane setting — there is no left/right column in the data. | `1`, `2`, `3`, … |
-| **Component Status** | ✓ | The current health status of this component. Matched case-insensitively against the accepted status strings (see table below). Non-alarm statuses leave the Alarm Time cell blank. | `OK`, `No Data`, `Lockout`, `Lockout + No Data`, `Proximity Alarm`, `Movement Alarm` |
+| **Component Status** | ✓ | The current health status of this component. Matched case-insensitively against the accepted status strings (see table below). Non-alarm statuses leave the Alarm Time cell blank. | `OK`, `No Data (1h)`, `Lockout`, `Lockout + No Data`, `Proximity Alarm`, `Movement Alarm` |
 | Comp. Alarm Time | Recommended | Timestamp when this component entered its current alarm state. The visual builds an alarm identity from machine + component + alarm time; audio fires exactly once per unique identity. **If left unbound the visual still renders, but a component that clears and then re-alarms in the same session won't beep the second time** (see [Alarm audio logic](docs/DATA_SCHEMA.md#alarm-audio-logic)). Leave the cell blank (null) for non-alarm rows. | `2026-06-22T08:14:00Z` |
 | Last Seen | — | Timestamp of the last data receipt for this component. Shown in the component tooltip. | `2026-06-22T08:14:00Z` |
 | Tooltip Fields | — | Any additional columns to include in the component tooltip. You can bind multiple columns here. They appear after the standard fields. | Tag IDs, sensor readings, … |
 
 ### Status values
 
-Accepted status strings (case-insensitive; alternate spellings such as `prox` or `No data (1h)` also work):
+Statuses as the visual displays them. Matching is case-insensitive and also accepts short forms
+such as `No Data`, `prox` or `movement`:
 
 | Status | Colour | Alarm audio |
 |---|---|---|
 | `OK` | Green | No |
-| `No Data` | Amber | No |
+| `No Data (1h)` | Yellow | No |
 | `Lockout` | Blue | No |
 | `Lockout + No Data` | Dark blue | No |
 | `Proximity Alarm` | Flashing red | Yes — on transition |
@@ -77,7 +92,7 @@ Accepted status strings (case-insensitive; alternate spellings such as `prox` or
 
 ### Component counts & layout
 
-Each machine's bucket geometry adapts to the rows you supply: **4–20 teeth**, **lip shrouds = teeth − 1**, and **0–8 wing shrouds** (up to 4 per side). Wing shrouds have no left/right column — the side is derived from **Order** via the **Wing side assignment** setting.
+Each machine's bucket geometry adapts to the rows you supply: **4–20 teeth**, **lip shrouds = teeth − 1**, and **0–4 wing shrouds per side** (0–8 total). Wing shrouds have no left/right column — the side is derived from **Order** via the **Wing side assignment** setting. A machine outside these counts still renders — as its own invalid card listing the problem — without affecting any other machine.
 
 See **[`docs/DATA_SCHEMA.md`](docs/DATA_SCHEMA.md)** for the full schema: exact count rules, all four wing-assignment modes, accepted status spellings, and the alarm-audio logic.
 
@@ -97,7 +112,9 @@ See **[`docs/DATA_SCHEMA.md`](docs/DATA_SCHEMA.md)** for the full schema: exact 
 
 ## Support
 
-Bugs and feature requests → Azure DevOps work items. Developer/maintainer: **Umut Demirhan**.
+Bugs and feature requests → [GitHub Issues](https://github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health/issues). Security vulnerabilities →
+[`SECURITY.md`](SECURITY.md) (private report, not a public issue). Developer/maintainer:
+**Umut Demirhan**.
 
 ---
 

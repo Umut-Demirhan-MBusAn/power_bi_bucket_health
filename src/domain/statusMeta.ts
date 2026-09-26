@@ -61,16 +61,27 @@ function darkenHex(hex: string, amount: number): string {
     return `#${toHex(red)}${toHex(green)}${toHex(blue)}`;
 }
 
-// Reduces a machine's component statuses to the single status that drives its frame color:
-// - any alarm component -> alarm (movement outranks proximity)
-// - else if every component is "no data" or "lockout + no data" -> nodata
-// - otherwise -> ok
-export function machineStatusKey(statuses: BucketStatusKey[]): BucketStatusKey {
+// The single implementation of move-over-prox alarm precedence, shared by parseDataView (machine
+// alarm fields) and machineStatusKey (frame color). The bucket geometry engine still derives its
+// own center alarm label separately (its alarm handling is reworked in a later task).
+export function dominantAlarm(statuses: BucketStatusKey[]): "move" | "prox" | undefined {
     if (statuses.some((status) => status === "move")) {
         return "move";
     }
     if (statuses.some((status) => status === "prox")) {
         return "prox";
+    }
+    return undefined;
+}
+
+// Reduces a machine's component statuses to the single status that drives its frame color:
+// - any alarm component -> alarm (movement outranks proximity)
+// - else if every component is "no data" or "lockout + no data" -> nodata
+// - otherwise -> ok
+export function machineStatusKey(statuses: BucketStatusKey[]): BucketStatusKey {
+    const alarm = dominantAlarm(statuses);
+    if (alarm) {
+        return alarm;
     }
     if (statuses.length > 0 && statuses.every((status) => status === "nodata" || status === "lockoutnd")) {
         return "nodata";

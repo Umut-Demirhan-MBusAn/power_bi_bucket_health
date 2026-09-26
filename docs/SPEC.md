@@ -43,11 +43,12 @@ machine.
 
 ### Bucket geometry
 
-- Teeth: dynamic count, 4 to 20 per machine (out-of-range counts are rejected with an error
-  state).
+- Teeth: dynamic count, 4 to 20 per machine (an out-of-range count is a validation issue on that
+  machine's own card — see [Visual States](#visual-states)).
 - Lip shrouds: always `teeth − 1`.
-- Wing shrouds: up to 8 total per machine; each wing's left/right side is derived from its Order
-  value by the **Wing side assignment** setting (the geometry accommodates up to 4 per side).
+- Wing shrouds: 0–4 per side, 0–8 total per machine; each wing's left/right side is derived from
+  its Order value by the **Wing side assignment** setting. More than 4 on one side is a validation
+  issue on that machine's card.
 - More teeth/lip shrouds widen the bucket edge; more wing shrouds extend the bucket sides; fewer
   components shrink and rebalance the bucket proportionally. Component shapes are integrated into
   the parametric bucket body, not pasted onto a static image.
@@ -90,10 +91,20 @@ suppressed:
 | Loading | Loading machine data. | Reserved: implemented in the renderer but not produced by the current synchronous parse path |
 | Invalid configuration | Configuration incomplete. | Required roles missing (lists which) or inconsistent |
 | No data | No machines to show. | Roles bound but zero rows after filters |
-| Error | Couldn't render the visual. | Any parse/validation error (bad category, out-of-range counts, unknown status, duplicate component, render exception) |
+| Error | Couldn't render the visual. | A failure not attributable to one machine — every row's machine is blank, or an unexpected render exception — with audio suppressed |
 
 Normal data renders responsive machine cards; high-cardinality data renders up to the host row cap
 with a truncation banner and scrolling.
+
+Row/count problems that **are** attributable to a machine (bad category, out-of-range counts,
+unknown status, duplicate component, the row cap splitting a machine's data) never fail the whole
+visual: that machine renders its own card instead, with the bucket schematic replaced by a capped
+problem list. It still sorts, alarms, and beeps like any other machine.
+
+| Card state | Badge | Trigger |
+| --- | --- | --- |
+| Invalid machine | ALARM! (if alarming), else DATA ERROR | The machine has one or more row-level or count validation issues |
+| Incomplete machine | ALARM! (if alarming), else INCOMPLETE | The host's 2,000-row cap cut this machine's data short; its count checks are replaced by one "row limit reached" issue |
 
 ## Status Model
 
@@ -131,6 +142,9 @@ Each machine card frame and badge reflect the worst status across its components
   silent (see [DATA_SCHEMA.md › Alarm audio logic](DATA_SCHEMA.md#alarm-audio-logic)).
 - Dismissal rule: clicking anywhere on the visual dismisses current audio. Dismissing does not
   re-arm the already-heard alarm id; only a genuinely new alarm id plays audio.
+- Stop rule: a sounding alarm stops at once when **Enable audio alarm** is turned off or the data
+  drops to an edge state (landing page, invalid configuration, no data, error). An alarm id first
+  seen while audio is off never plays later.
 - Audio gesture rule: browser autoplay policies require a user gesture, so audio is armed/resumed
   by a user click inside the visual before it can play.
 - Audio pattern: WebAudio two-tone square-wave beep, 880 Hz then 660 Hz, ~0.24 seconds each,

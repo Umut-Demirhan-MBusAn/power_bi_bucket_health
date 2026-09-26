@@ -11,24 +11,42 @@ function machine(key, components) {
     return { key, name: key, teeth: components, lipShrouds: [], wingShroudsLeft: [], wingShroudsRight: [], alarmCount: 0, hasAlarm: false, sourceOrder: 0 };
 }
 
-function model(machines) {
-    return { state: "ready", machines, missingRoles: [], errors: [] };
+function model(machines, state = "ready") {
+    return { state, machines, missingRoles: [], errors: [] };
+}
+
+function playingController() {
+    const audio = fakeAudio();
+    const c = new AlarmController(audio);
+    c.update(model([machine("M", [comp("T1", "ok", "t")])]), true);
+    c.update(model([machine("M", [comp("T1", "prox", "t1")])]), true);
+    assert.equal(audio.isPlaying(), true);
+    return { audio, c };
 }
 
 function fakeAudio() {
-    return { starts: 0, dismisses: 0, start() { this.starts++; }, dismiss() { this.dismisses++; }, destroy() {}, arm() {} };
+    return {
+        starts: 0,
+        dismisses: 0,
+        playing: false,
+        start() { this.starts++; this.playing = true; },
+        dismiss() { this.dismisses++; this.playing = false; },
+        isPlaying() { return this.playing; },
+        destroy() {},
+        arm() {}
+    };
 }
 
 test("buildAlarmId combines machine, component, and time", () => {
-    assert.equal(buildAlarmId("M1", "C1", "2026-06-23T10:00:00Z"), "M1|#|C1|#|2026-06-23T10:00:00Z");
-    assert.equal(buildAlarmId("M1", "C1", undefined), "M1|#|C1|#|");
+    assert.equal(buildAlarmId("M1", "C1", "2026-06-23T10:00:00Z"), JSON.stringify(["M1", "C1", "2026-06-23T10:00:00Z"]));
+    assert.equal(buildAlarmId("M1", "C1", undefined), JSON.stringify(["M1", "C1", ""]));
 });
 
 test("collectAlarmIds only includes alarm-status components", () => {
     const ids = collectAlarmIds([machine("M", [comp("T1", "ok", "t"), comp("T2", "prox", "t1"), comp("T3", "move", "t2")])]);
     assert.equal(ids.size, 2);
-    assert.ok(ids.has("M|#|T2|#|t1"));
-    assert.ok(ids.has("M|#|T3|#|t2"));
+    assert.ok(ids.has(JSON.stringify(["M", "T2", "t1"])));
+    assert.ok(ids.has(JSON.stringify(["M", "T3", "t2"])));
 });
 
 test("first update seeds without firing audio", () => {
@@ -71,5 +89,38 @@ test("audioEnabled false never fires", () => {
     const c = new AlarmController(audio);
     c.update(model([machine("M", [comp("T1", "ok", "t")])]), false);
     c.update(model([machine("M", [comp("T1", "prox", "t1")])]), false);
+    assert.equal(audio.starts, 0);
+});
+
+test("turning audio off while the alarm sounds stops it", () => {
+    const { audio, c } = playingController();
+    c.update(model([machine("M", [comp("T1", "prox", "t1")])]), false);
+    assert.equal(audio.dismisses, 1);
+    assert.equal(audio.isPlaying(), false);
+});
+
+["noData", "error", "invalidConfig", "noFields"].forEach((state) => {
+    test(`an edge state (${state}) while the alarm sounds stops it`, () => {
+        const { audio, c } = playingController();
+        c.update(model([], state), true);
+        assert.equal(audio.dismisses, 1);
+    });
+});
+
+test("nothing is stopped while no alarm is sounding", () => {
+    const audio = fakeAudio();
+    const c = new AlarmController(audio);
+    c.update(model([machine("M", [comp("T1", "ok", "t")])]), false);
+    c.update(model([], "noData"), true);
+    c.update(model([machine("M", [comp("T1", "prox", "t1")])]), false);
+    assert.equal(audio.dismisses, 0);
+});
+
+test("an alarm that arrived while audio was off does not beep once audio is back on", () => {
+    const audio = fakeAudio();
+    const c = new AlarmController(audio);
+    c.update(model([machine("M", [comp("T1", "ok", "t")])]), true);
+    c.update(model([machine("M", [comp("T1", "prox", "t1")])]), false);
+    c.update(model([machine("M", [comp("T1", "prox", "t1")])]), true);
     assert.equal(audio.starts, 0);
 });

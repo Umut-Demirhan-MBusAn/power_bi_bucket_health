@@ -1,0 +1,21 @@
+# Keeps agent context lean: excluded from agent reads and search.
+
+# Build / package output
+dist/
+.tmp/
+coverage/
+webpack.statistics*.html
+*.pbiviz
+
+# Dependencies & lockfile
+node_modules/
+package-lock.json
+
+# Graphify generated knowledge graph
+graphify-out/
+
+# Binary media and report files
+*.pbix
+assets/*.png
+photos_for_launch/*.png
+photos_for_launch/*.mp4

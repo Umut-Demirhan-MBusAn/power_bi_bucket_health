@@ -11,7 +11,7 @@ import { BucketHealthDataModel, ComponentRecord, MachineBucketModel } from "./da
 import { asAlarmMotion, asComponentOrderDirection, asWingSideAssignment } from "./domain/settingsGuards";
 import { statusColors, statusLabels, VisualTheme } from "./domain/statusMeta";
 import { renderEdgeState } from "./rendering/renderEdgeStates";
-import { renderFleet } from "./rendering/renderFleet";
+import { renderFleet, resyncFleetAnimations, updateFleet } from "./rendering/renderFleet";
 import { VisualFormattingSettingsModel } from "./settings";
 
 import IVisual = powerbi.extensibility.visual.IVisual;
@@ -25,6 +25,9 @@ import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructor
 import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 
 const DIMMED_CLASS = "bucket-health-svg__component--dimmed";
+// VisualUpdateType.Data | VisualUpdateType.Style. The API declares a const enum, which has no
+// runtime object in the packaged visual, so the flag values are spelled out.
+const DATA_OR_STYLE_UPDATE = 2 | 16;
 
 export class Visual implements IVisual {
     private readonly events: IVisualEventService;
@@ -35,13 +38,23 @@ export class Visual implements IVisual {
     private componentLookup = new Map<string, ComponentRecord>();
     private selectionIdLookup = new Map<string, ISelectionId>();
     private tooltip: HTMLElement | null = null;
+    private tooltipKey: string | null = null;
+    private fleet: HTMLElement | null = null;
+    private hasRendered = false;
+    private alarmMotion: ReturnType<typeof asAlarmMotion> = "always";
+    private flashing: boolean | null = null;
+    private readonly reducedMotionQuery: MediaQueryList | null;
+    private readonly onReducedMotionChange = (): void => this.syncFlashing();
     private hideTooltipTimer: ReturnType<typeof setTimeout> | null = null;
     private readonly host: IVisualHost;
     private readonly selectionManager: ISelectionManager;
     private minCardWidth = 220;
-    private rowCount = 0;
 
-    constructor(options: VisualConstructorOptions) {
+    // powerbi-visuals-api's IVisualPlugin.create types this parameter as optional (it forwards
+    // whatever pbiviz's generated plugin wrapper receives); the real Power BI host always
+    // supplies it when constructing a working visual.
+    constructor(rawOptions: VisualConstructorOptions | undefined) {
+        const options = rawOptions!;
         this.host = options.host;
         this.events = options.host.eventService;
         this.selectionManager = options.host.createSelectionManager();
@@ -55,6 +68,11 @@ export class Visual implements IVisual {
         this.target.addEventListener("mousemove", (event) => this.handlePointerMove(event));
         this.target.addEventListener("mouseleave", () => this.hideTooltipNow());
 
+        this.reducedMotionQuery = typeof window.matchMedia === "function"
+            ? window.matchMedia("(prefers-reduced-motion: reduce)")
+            : null;
+        this.reducedMotionQuery?.addEventListener("change", this.onReducedMotionChange);
+
         try {
             this.selectionManager.registerOnSelectCallback(() => this.applyDimming());
         } catch (e) {
@@ -64,6 +82,12 @@ export class Visual implements IVisual {
 
     public update(options: VisualUpdateOptions): void {
         this.events.renderingStarted(options);
+
+        // Resize and view-mode updates carry no new data or theme; the fleet already fits by CSS.
+        if (this.hasRendered && options.type !== undefined && (options.type & DATA_OR_STYLE_UPDATE) === 0) {
+            this.events.renderingFinished(options);
+            return;
+        }
 
         try {
             const dataView = options.dataViews?.[0];
@@ -82,8 +106,8 @@ export class Visual implements IVisual {
             this.minCardWidth = minCardWidth;
             this.target.classList.toggle("bucket-health-root--flash-always", alarmMotion === "always");
             this.target.classList.toggle("bucket-health-root--flash-never", alarmMotion === "never");
+            this.alarmMotion = alarmMotion;
 
-            this.rowCount = dataView?.table?.rows?.length ?? 0;
             const model = parseDataView(dataView, wingSideAssignment, componentOrder);
             this.alarmController.update(model, audioEnabled);
 
@@ -91,14 +115,20 @@ export class Visual implements IVisual {
             this.buildSelectionIdLookup(model, dataView?.table);
 
             this.render(model, theme);
+            this.syncFlashing();
+            this.hasRendered = true;
             this.events.renderingFinished(options);
         } catch (error) {
+            this.hasRendered = false;
             const errorModel: BucketHealthDataModel = {
                 state: "error",
                 machines: [],
                 missingRoles: [],
-                errors: [error instanceof Error ? error.message : String(error)]
+                errors: [error instanceof Error ? error.message : String(error)],
+                truncated: false,
+                warnings: []
             };
+            this.alarmController.update(errorModel, false);
             this.render(errorModel, this.readTheme());
             this.events.renderingFailed(options, String(error));
         }
@@ -110,21 +140,19 @@ export class Visual implements IVisual {
 
     public destroy(): void {
         this.alarmController.destroy();
+        this.reducedMotionQuery?.removeEventListener("change", this.onReducedMotionChange);
         this.hideTooltipNow();
         this.tooltip = null;
+        this.fleet = null;
         this.target.replaceChildren();
     }
 
     private render(model: BucketHealthDataModel, theme: VisualTheme): void {
-        // Power BI calls update() frequently; preserve the fleet scroll position across re-renders
-        // so the user's scrollbar does not snap back to the top.
-        const previousScroll = this.target.querySelector<HTMLElement>(".bucket-health")?.scrollTop ?? 0;
-
-        this.hideTooltipNow();
-        this.target.replaceChildren();
-        this.tooltip = null;
-
         if (model.state !== "ready") {
+            this.hideTooltipNow();
+            this.target.replaceChildren();
+            this.tooltip = null;
+            this.fleet = null;
             const detail = model.state === "error" ? model.errors.join(" ") : undefined;
             const missingRoles = model.state === "invalidConfig" ? model.missingRoles : undefined;
             this.target.appendChild(renderEdgeState(model.state, detail, missingRoles));
@@ -133,12 +161,77 @@ export class Visual implements IVisual {
         }
 
         this.componentLookup = buildComponentLookup(model.machines);
-        const fleet = renderFleet(model.machines, theme, this.minCardWidth, this.rowCount >= 2000);
-        this.target.appendChild(fleet);
-        fleet.scrollTop = previousScroll;
+
+        if (this.fleet?.isConnected) {
+            const focused = this.focusedComponent();
+            // Removing and re-inserting cards can clamp the scroll position; keep the user's place.
+            const previousScroll = this.fleet.scrollTop;
+            updateFleet(this.fleet, model.machines, theme, this.minCardWidth, model.truncated, model.warnings);
+            this.fleet.scrollTop = previousScroll;
+            this.restoreFocus(focused);
+            this.refreshTooltip();
+        } else {
+            this.hideTooltipNow();
+            this.target.replaceChildren();
+            this.tooltip = null;
+            this.fleet = renderFleet(model.machines, theme, this.minCardWidth, model.truncated, model.warnings);
+            this.target.appendChild(this.fleet);
+        }
 
         // Re-apply dimming so the selection visual survives re-renders.
         this.applyDimming();
+    }
+
+    // When flashing turns on (Alarm motion or the OS reduced-motion setting), every kept card's
+    // animation restarts at the same moment, so one shared delay puts them all in phase. Changing
+    // the delay of a running animation shifts it in place, so this runs only on an off→on switch.
+    private syncFlashing(): void {
+        const flashing = this.alarmMotion === "always"
+            || (this.alarmMotion === "auto" && !this.reducedMotionQuery?.matches);
+        if (this.flashing === false && flashing && this.fleet) {
+            resyncFleetAnimations(this.fleet);
+        }
+        this.flashing = flashing;
+    }
+
+    private focusedComponent(): { machineKey: string; componentKey: string; element: Element } | null {
+        const active = document.activeElement;
+        if (!active || !this.target.contains(active)) {
+            return null;
+        }
+        const componentKey = active.getAttribute("data-component-key");
+        const machineKey = active.closest("[data-machine-key]")?.getAttribute("data-machine-key");
+        if (componentKey === null || machineKey === null || machineKey === undefined) {
+            return null;
+        }
+        return { machineKey, componentKey, element: active };
+    }
+
+    // A rebuilt or moved card drops focus; move it to the same component in the new card.
+    private restoreFocus(focused: { machineKey: string; componentKey: string; element: Element } | null): void {
+        if (!focused || (focused.element.isConnected && document.activeElement === focused.element)) {
+            return;
+        }
+        const card = Array.from(this.target.querySelectorAll("[data-machine-key]"))
+            .find((el) => el.getAttribute("data-machine-key") === focused.machineKey);
+        const component = card
+            ? Array.from(card.querySelectorAll<HTMLElement>("[data-component-key]"))
+                .find((el) => el.getAttribute("data-component-key") === focused.componentKey)
+            : undefined;
+        component?.focus({ preventScroll: true });
+    }
+
+    // An open tooltip shows the hovered component's latest data, or closes if it is gone.
+    private refreshTooltip(): void {
+        if (!this.tooltip || this.tooltip.hidden || this.tooltipKey === null) {
+            return;
+        }
+        const record = this.componentLookup.get(this.tooltipKey);
+        if (record) {
+            this.tooltip.replaceChildren(...buildTooltipContent(record));
+        } else {
+            this.hideTooltipNow();
+        }
     }
 
     private readTheme(): VisualTheme {
@@ -298,6 +391,7 @@ export class Visual implements IVisual {
             return;
         }
 
+        this.tooltipKey = buildCompositeKey(machineKey, componentKey);
         this.showTooltip(record, event);
     }
 
