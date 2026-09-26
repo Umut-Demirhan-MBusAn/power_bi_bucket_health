@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>visual frame</title>
+<link rel="stylesheet" href="/visual.css">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0f14; }
+  #visual { position: relative; width: 100%; height: 100%; }
+</style>
+<script>
+  window.powerbi = { visuals: { plugins: {} } };
+
+  // Audio probe: counts the visual's beeps and logs when an alarm starts and stops. The sound
+  // itself is untouched. A beep is the 880 Hz tone that opens each 880/660 Hz pair.
+  (() => {
+    const Real = window.AudioContext || window.webkitAudioContext;
+    const state = { starts: 0, stops: 0, beeps: 0, playing: false, startedAt: 0, lastBeepAt: 0 };
+    window.__bhAudio = state;
+    if (!Real) return;
+    class ProbedAudioContext extends Real {
+      createOscillator() {
+        const osc = super.createOscillator();
+        const start = osc.start.bind(osc);
+        osc.start = (...args) => {
+          if (osc.frequency.value === 880) {
+            state.beeps += 1;
+            state.lastBeepAt = Date.now();
+            if (!this.__bhSounding) {
+              this.__bhSounding = true;
+              state.starts += 1;
+              state.playing = true;
+              state.startedAt = Date.now();
+              window.__bhEvent?.("audio: alarm started");
+            }
+          }
+          return start(...args);
+        };
+        return osc;
+      }
+      close() {
+        if (this.__bhSounding) {
+          this.__bhSounding = false;
+          state.stops += 1;
+          state.playing = false;
+          window.__bhEvent?.(`audio: alarm stopped after ${((Date.now() - state.startedAt) / 1000).toFixed(1)} s`);
+        }
+        return super.close();
+      }
+    }
+    window.AudioContext = ProbedAudioContext;
+  })();
+</script>
+<script src="/visual.js"></script>
+</head>
+<body>
+<div id="visual"></div>
+<script>
+(() => {
+  const parent = window.parent;
+  const events = [];
+  const event = (text) => {
+    events.push({ at: Date.now(), text });
+    if (events.length > 500) events.shift();
+    parent.harnessLog?.(text);
+  };
+  window.__bhEvent = event;
+  const status = (text) => parent.harnessStatus?.(text);
+  const controls = () => parent.harnessControls();
+
+  // Source column -> data role, in the order the host would list them.
+  const COLUMNS = [
+    ["machine_key", "machine"], ["machine_type", "machineType"], ["component_key", "component"],
+    ["component_category", "category"], ["component_order", "order"], ["status", "status"],
+    ["alarm_time", "alarmTime"], ["last_seen_utc", "lastSeen"], ["tag_id", "tooltipFields"], ["wear_pct", "tooltipFields"]
+  ];
+  const DATE_COLUMNS = new Set(["alarm_time", "last_seen_utc"]);
+  const ROW_CAP = 2000;
+
+  // Host double. Selection ids here are machine + component, so they survive a refresh; Power BI's
+  // row identity also includes the other bound grouping columns.
+  let selected = [];
+  let onSelect = () => {};
+  let sentRows = [];
+  const makeId = (key) => ({ key, getKey: () => key, equals: (other) => !!other && other.getKey?.() === key });
+  const selectionManager = {
+    select(id, multi) {
+      const ids = Array.isArray(id) ? id : [id];
+      if (multi) {
+        ids.forEach((i) => {
+          const at = selected.findIndex((s) => s.equals(i));
+          if (at >= 0) selected.splice(at, 1); else selected.push(i);
+        });
+      } else {
+        selected = selected.length === 1 && selected[0].equals(ids[0]) ? [] : ids;
+      }
+      event(`select ${ids.map((i) => i.key).join(", ")}${multi ? " (multi)" : ""} -> ${selected.length} selected`);
+      setTimeout(() => onSelect(selected), 0);
+      return Promise.resolve(selected);
+    },
+    clear() {
+      selected = [];
+      event("selection cleared");
+      setTimeout(() => onSelect(selected), 0);
+      return Promise.resolve();
+    },
+    showContextMenu(id, position) {
+      event(`context menu ${id && id.key ? id.key : "(no selection id)"} at ${position.x},${position.y}`);
+      return Promise.resolve();
+    },
+    hasSelection: () => selected.length > 0,
+    getSelectionIds: () => selected,
+    registerOnSelectCallback(cb) { onSelect = cb; },
+    toggleExpandCollapse: () => Promise.resolve()
+  };
+  const NORMAL_PALETTE = { isHighContrast: false, foreground: { value: "#252423" }, background: { value: "#ffffff" }, foregroundSelected: { value: "#252423" } };
+  const HIGH_CONTRAST_PALETTE = { isHighContrast: true, foreground: { value: "#ffffff" }, background: { value: "#000000" }, foregroundSelected: { value: "#1aebff" } };
+  const host = {
+    eventService: {
+      renderingStarted() {},
+      renderingFinished() {},
+      renderingFailed(_options, reason) { event(`renderingFailed: ${reason}`); }
+    },
+    createSelectionManager: () => selectionManager,
+    createSelectionIdBuilder() {
+      let index;
+      return {
+        withTable(_table, i) { index = i; return this; },
+        createSelectionId() {
+          const row = sentRows[index];
+          return makeId(JSON.stringify([row.machine_key, row.component_key]));
+        }
+      };
+    },
+    colorPalette: NORMAL_PALETTE,
+    hostCapabilities: { allowInteractions: true },
+    persistProperties() {},
+    instanceId: "local-test-page"
+  };
+
+  const element = document.getElementById("visual");
+  const plugin = Object.values(window.powerbi.visuals.plugins)[0];
+  const visual = plugin.create({ element, host });
+
+  let lastJson = "";
+  let sourceRows = null;
+  let updates = 0;
+  let timer = null;
+
+  function formattingObjects(s) {
+    return {
+      layout: { minCardWidth: s.minCardWidth },
+      ordering: { wingSideAssignment: s.wingSideAssignment, componentOrder: s.componentOrder },
+      alarm: { audioEnabled: s.audioEnabled, alarmMotion: s.alarmMotion }
+    };
+  }
+
+  // Builds the DataView the host would send: bound columns only, the visual-level machine filter,
+  // and the 2,000-row cap (the host marks a cut table with metadata.segment).
+  function buildDataView(c) {
+    const bound = COLUMNS.filter(([, role]) => c.bound[role]);
+    if (bound.length === 0) return undefined;
+    const filter = c.filter.split(",").map((s) => s.trim()).filter(Boolean);
+    let rows = filter.length ? sourceRows.filter((r) => filter.includes(r.machine_key)) : sourceRows;
+    const truncated = rows.length > ROW_CAP;
+    if (truncated) rows = rows.slice(0, ROW_CAP);
+    sentRows = rows;
+    const columns = bound.map(([name, role], index) => ({
+      displayName: name, queryName: `v_bucket_health.${name}`, index, roles: { [role]: true },
+      type: DATE_COLUMNS.has(name) ? { dateTime: true } : {}
+    }));
+    const metadata = { columns, objects: formattingObjects(c.settings) };
+    if (truncated) metadata.segment = {};
+    return { metadata, table: { columns, rows: rows.map((r) => bound.map(([name]) => r[name])) } };
+  }
+
+  function update(type) {
+    if (!sourceRows) return;
+    const c = controls();
+    host.colorPalette = c.highContrast ? HIGH_CONTRAST_PALETTE : NORMAL_PALETTE;
+    host.hostCapabilities.allowInteractions = c.allowInteractions;
+    const dataView = buildDataView(c);
+    const viewport = { width: element.clientWidth, height: element.clientHeight };
+    visual.update({ dataViews: dataView ? [dataView] : [], viewport, type });
+    updates += 1;
+  }
+
+  async function poll() {
+    const c = controls();
+    try {
+      const res = await fetch("/data", { cache: "no-store" });
+      if (!res.ok) throw new Error(await res.text());
+      const json = await res.text();
+      const changed = json !== lastJson;
+      if (changed) {
+        lastJson = json;
+        sourceRows = JSON.parse(json).map((r) => {
+          const row = { ...r };
+          DATE_COLUMNS.forEach((name) => { if (row[name] !== null) row[name] = new Date(`${row[name]}Z`); });
+          return row;
+        });
+      }
+      if (changed || c.always) update(2);
+      status(`${sourceRows.length} rows · ${updates} updates · last ${changed ? "changed" : "unchanged"} ${new Date().toLocaleTimeString()}`);
+    } catch (e) {
+      status(`data error: ${String(e.message || e).slice(0, 160)}`);
+    }
+    clearTimeout(timer);
+    timer = setTimeout(poll, c.interval * 1000);
+  }
+
+  // VisualUpdateType: Data 2, Resize 4, Style 16, ResizeEnd 32.
+  new ResizeObserver(() => update(4 | 32)).observe(element);
+
+  const text = (el) => (el ? el.textContent.trim() : null);
+  window.harness = {
+    visual, element, host,
+    refreshNow() { return poll(); },
+    // Formatting-pane, binding and filter changes arrive as data updates; a theme change as style.
+    controlsChanged(kind) { update(kind === "style" ? 16 : 2); },
+    events: () => events.slice(),
+    clearEvents() { events.length = 0; },
+    audio: () => ({ ...window.__bhAudio }),
+    selection: () => selected.map((s) => s.key),
+    tooltip() {
+      const t = element.querySelector(".bh-tooltip");
+      if (!t) return null;
+      return {
+        hidden: t.hidden,
+        name: text(t.querySelector(".bh-tooltip__name")),
+        rows: Array.from(t.querySelectorAll(".bh-tooltip__row")).map((r) =>
+          [text(r.querySelector(".bh-tooltip__label")), text(r.querySelector(".bh-tooltip__value"))])
+      };
+    },
+    // A structured read of what is on screen, so a check does not depend on a screenshot.
+    snapshot() {
+      const state = element.querySelector(".bucket-health-state");
+      if (state) {
+        return {
+          edge: text(state.querySelector(".bucket-health-state__title")),
+          subtitle: text(state.querySelector(".bucket-health-state__subtitle")),
+          detail: text(state.querySelector(".bucket-health-state__error-detail, .bucket-health-state__detail")),
+          fields: Array.from(state.querySelectorAll(".bucket-health-state__field-name")).map(text),
+          tip: text(state.querySelector(".bh-landing-tip"))
+        };
+      }
+      const grid = element.querySelector(".bucket-health__grid");
+      return {
+        edge: null,
+        banners: Array.from(element.querySelectorAll(".bh-truncation-warning, .bh-fleet-warning")).map(text),
+        single: !!grid && grid.classList.contains("bucket-health__grid--single"),
+        cards: Array.from(element.querySelectorAll(".bucket-health-card")).map((card) => {
+          const components = Array.from(card.querySelectorAll("[data-component-key]"));
+          const rect = card.getBoundingClientRect();
+          return {
+            machine: card.getAttribute("data-machine-key"),
+            ariaLabel: card.getAttribute("aria-label"),
+            badge: text(card.querySelector(".bucket-health-card__status")),
+            meta: text(card.querySelector(".bucket-health-card__header p")),
+            border: card.style.borderColor,
+            classes: card.className,
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+            alarmLines: Array.from(card.querySelectorAll(".bucket-health-card__alarm-line")).map(text),
+            issues: Array.from(card.querySelectorAll(".bucket-health-card__issues li")).map(text),
+            centerAlarm: !!card.querySelector(".bucket-health-svg__center-alarm:not(.bucket-health-svg__center-alarm--hidden)"),
+            // x/y: the component's centre in SVG units; x grows to the right, y downwards.
+            components: components.map((el) => ({
+              key: el.getAttribute("data-component-key"),
+              x: Math.round(el.getBBox().x + el.getBBox().width / 2),
+              y: Math.round(el.getBBox().y + el.getBBox().height / 2),
+              status: el.getAttribute("data-status"),
+              label: el.getAttribute("aria-label"),
+              side: el.getAttribute("data-side"),
+              fill: el.getAttribute("fill"),
+              stroke: el.getAttribute("stroke"),
+              strokeWidth: el.getAttribute("stroke-width"),
+              dimmed: el.classList.contains("bucket-health-svg__component--dimmed"),
+              animation: getComputedStyle(el).animationName
+            }))
+          };
+        })
+      };
+    }
+  };
+  poll();
+})();
+</script>
+</body>
+</html>

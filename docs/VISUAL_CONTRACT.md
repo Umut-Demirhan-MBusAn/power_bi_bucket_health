@@ -26,7 +26,7 @@ Counts are derived from component rows, per machine:
   issue on that machine's own card — the geometry engine's 4-20 clamp exists only as
   defense-in-depth behind that validation.
 - Lip shrouds = count of `category = lipShroud` rows; count must equal `teeth - 1`, checked only
-  when the tooth count is itself in range.
+  when the tooth count is in range and none of the machine's rows was rejected.
 - Wing shrouds = count of `category = wingShroud` rows. Left/right side is derived from `order`
   using a visual formatting setting, not from a source data column; each side is validated
   independently and may not exceed 4, for a maximum of 8 per machine.
@@ -42,7 +42,7 @@ Counts are derived from component rows, per machine:
 | order | Measure or Grouping | Yes | Position of this component within its category, starting at 1. For teeth and lip shrouds, 1 is the leftmost position under the default **Teeth & lip order** setting (right-to-left flips it). For wing shrouds, left/right side is inferred from this value by the Wing side assignment formatting setting — there is no left/right column in the data. | Max 1 field. A finite integer ≥ 1, accepted as a number or a digit-only string; booleans, dates, and non-integer or hex-looking strings are rejected as a row-level issue. Duplicate order values within a machine+category are not rejected — they tie-break by source row order — but unique values are strongly recommended for a deterministic layout. |
 | status | Grouping or Measure | Yes | Current health status of the component. Must match one of the accepted status spellings (case-insensitive; several inputs per canonical status — see [DATA_SCHEMA.md › Status values](DATA_SCHEMA.md#status-values)). | Max 1 field. Maps to the status model below; an unmatched value is a row-level issue. |
 | alarmTime | Grouping or Measure | No (recommended) | Timestamp when this component entered its current alarm state. The visual builds an alarm identity from machine + component + alarmTime. Audio fires exactly once per unique identity and is permanently cached for the session. The visual renders normally without it; **without it, a component that clears and re-alarms in the same session will not trigger audio a second time** because the identity never changes. Strongly recommended for live dashboards. Leave null/blank for non-alarm rows. | Max 1 field — bind the datetime column itself, not a date hierarchy. ISO 8601 datetime string or datetime value. Must be null/blank for non-alarm rows. |
-| lastSeen | Grouping or Measure | No | Timestamp of the last data receipt for this component. Displayed in the component tooltip as a full local date and time. | Max 1 field — bind the datetime column itself, not a date hierarchy. |
+| lastSeen | Grouping or Measure | No | Timestamp of the last data receipt for this component. Displayed in the component tooltip as a local date and time, to the minute. | Max 1 field — bind the datetime column itself, not a date hierarchy. |
 | tooltipFields | Measure, multiple | No | Additional report-author-selected columns appended to the component tooltip after the standard fields. Multiple columns can be bound. | No max — the only role that accepts more than one field. |
 
 ## Status Model
@@ -148,20 +148,28 @@ is fully adaptive (not author-configurable), and status strings/colours are fixe
 
 ## Host Interactions
 
-- Selection / cross-filter: clicking a component selects it via the host `ISelectionManager` and
-  cross-filters other visuals on the page.
-- Highlight: alarm highlight is visual-owned; alarming machines flash/solid and sort to the front.
+- Selection / cross-filter: clicking a component selects it via the host `ISelectionManager`
+  (`select(id, ctrlKey)`, so Ctrl+click is multi-select) and cross-filters other visuals on the
+  page; clicking elsewhere in the visual calls `clear()`. Selection ids come from
+  `withTable(table, rowIndex)`. Unselected components dim, re-applied on every render and on
+  `registerOnSelectCallback`.
+- Highlight: `supportsHighlight` is not declared, so another visual's selection filters this one's
+  rows. Alarm emphasis is visual-owned; alarming machines flash/solid and sort to the front.
+- `hostCapabilities.allowInteractions`: when false, click, context-menu and keyboard handlers do
+  nothing (no selection, no audio arming or dismissal).
 - Tooltip: the visual renders its own custom themed HTML tooltip rather than calling the Power BI
-  host tooltip service. It shows the component label, a human-readable status, the machine, the full
-  local Last seen date and time, and the bound tooltip fields. The host tooltip service was
+  host tooltip service. It shows the component label, a human-readable status, the machine, the
+  machine type (when bound), the component key, the local Last seen date and time (to the minute),
+  and the bound tooltip fields. The host tooltip service was
   deliberately rejected because its styling cannot be themed to match the visual's design, so the
   visual owns tooltip positioning, theming, and content; report-page tooltips are not used.
 - Sorting: alarm priority overrides base order in fleet view (movement before proximity, then alarm
   count, then source order). Ties keep source order.
 - Context menu: right-click opens the Power BI default context menu via
-  `ISelectionManager.showContextMenu`.
-- Keyboard: components are focusable (`supportsKeyboardFocus`); arrow keys move focus, Enter/Space
-  selects.
+  `ISelectionManager.showContextMenu`, with the component's selection id or, off a component, an
+  empty one.
+- Keyboard: components are focusable (`supportsKeyboardFocus`); Right/Down and Left/Up move focus
+  through every component in document order, wrapping; Enter/Space selects (Ctrl adds).
 - Fetch more data: not needed under the 20-machine / 2000-row cap.
 - Persist properties: formatting-pane settings persist via the formatting model.
 
@@ -185,7 +193,8 @@ visual distributed outside AppSource, regardless of certification status.
 - Machines: 20 is the design/performance target. The machine count itself is not validated — the
   effective ceiling is the 2000-row host cap below.
 - Teeth per machine: 4 to 20; a machine outside this range is invalid.
-- Lip shrouds per machine: supplied rows equal to `teeth - 1`, checked only when teeth is in range.
+- Lip shrouds per machine: supplied rows equal to `teeth - 1`, checked only when teeth is in range
+  and no row of that machine was rejected.
 - Wing shrouds per machine: 0 to 4 per side (0 to 8 total), assigned to sides by visual settings; a
   side over 4 makes that machine invalid.
 - Data role fields: each role in `capabilities.json`'s `dataViewMappings[0].conditions` allows at

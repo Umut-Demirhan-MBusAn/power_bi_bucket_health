@@ -69,6 +69,7 @@ only tool-specific deltas. Product and host docs: `docs/`.
   formatting model · `src/data/` parseDataView, keys, normalizeStatus · `src/domain/` statusMeta,
   settingsGuards, wingSideAssignment · `src/geometry/` · `src/rendering/` · `src/audio/`
 - `capabilities.json` host contract · `pbiviz.json` identity and version · `style/visual.less`
+- `qa/` QA sample data (SQL Server), showcase script, local test page — cases in `docs/QA_TEST_CASES.md`
 - `test/unit/*.test.js` (CommonJS over `.tmp/test-build/src/...`) · `test/fixtures/` · `scripts/`
 - Releases: tag `vX.Y.Z.0` → the CI `release` job publishes the tested `.pbiviz` as a GitHub Release
   (`docs/MAINTENANCE.md`).
