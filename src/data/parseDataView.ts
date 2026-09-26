@@ -33,8 +33,9 @@ interface RoleIndexes {
 }
 
 // One machine's rows as they are collected while walking the table. `validComponents` only ever
-// holds rows that passed every row-level check; `issues` accumulates in row order and machine
-// checks append to it afterward.
+// holds rows that passed every row-level check; `issues` accumulates row-level problems in row
+// order, and machine-level checks (duplicates, counts, wing limits, incomplete) are placed before
+// them when the final issue list is built.
 interface MachineDraft {
     key: string;
     machineType?: string;

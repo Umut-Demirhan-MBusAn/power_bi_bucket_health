@@ -44,7 +44,7 @@ machine.
 ### Bucket geometry
 
 - Teeth: dynamic count, 4 to 20 per machine (an out-of-range count is a validation issue on that
-  machine's own card, not a whole-visual failure — see [Visual States](#visual-states)).
+  machine's own card — see [Visual States](#visual-states)).
 - Lip shrouds: always `teeth − 1`.
 - Wing shrouds: 0–4 per side, 0–8 total per machine; each wing's left/right side is derived from
   its Order value by the **Wing side assignment** setting. More than 4 on one side is a validation

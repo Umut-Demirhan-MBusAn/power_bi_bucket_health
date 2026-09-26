@@ -208,7 +208,7 @@ test("an invalid machine's alarm components still set hasAlarm and are collected
     assert.ok(ids.has(buildAlarmId("EX-9", "T3", undefined)));
 });
 
-test("a machine with one invalid row and a Movement Alarm elsewhere still alarms, sorts, and is collected for audio", () => {
+test("a machine with one invalid row and a Movement Alarm elsewhere still alarms and is collected for audio", () => {
     const rows = [
         componentRow("EX-MIX", "T1", "tooth", 1, "OK"),
         componentRow("EX-MIX", "T2", "tooth", 2, "OK"),
@@ -314,10 +314,11 @@ test("truncated segment marks the last-first-seen machine incomplete; others sta
         componentRow("EX-1", "L1", "lipShroud", 1, "OK"),
         componentRow("EX-1", "L2", "lipShroud", 2, "OK"),
         componentRow("EX-1", "L3", "lipShroud", 3, "OK"),
-        // EX-2 is actually cut short by the row cap: 2 teeth and 0 lip shrouds would normally be
-        // two count issues ("2 teeth; supported range..." and "0 lip shrouds; expected 1.") --
-        // asserting only the Incomplete issue below proves those checks are replaced, not just
-        // silently absent because the counts happened to be fine.
+        // EX-2 is actually cut short by the row cap: 2 teeth and 0 lip shrouds would normally raise
+        // only the teeth-count issue ("2 teeth; supported range...") -- the lip-count check is
+        // skipped when teeth are out of range -- so asserting only the Incomplete issue below
+        // proves that check is replaced, not just silently absent because the count happened to be
+        // fine.
         componentRow("EX-2", "T1", "tooth", 1, "OK"),
         componentRow("EX-2", "T2", "tooth", 2, "OK")
     ];
