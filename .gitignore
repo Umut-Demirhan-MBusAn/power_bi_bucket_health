@@ -19,6 +19,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Local agent state (Agent-tool worktrees, per-user Claude settings)
+.claude/worktrees/
+.claude/settings.local.json
+
 # OS/editor noise
 .DS_Store
 Thumbs.db

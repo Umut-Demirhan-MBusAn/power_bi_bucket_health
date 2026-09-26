@@ -352,6 +352,16 @@ for (const command of ["git add -A", "git add .", "git push origin main", "git p
     });
 }
 
+test("settings: browser-pane input and page scripting prompt; read and preview tools stay allowed", () => {
+    const { allow } = loadSettings().permissions;
+    for (const tool of ["computer", "form_input", "javascript_tool"]) {
+        assert.equal(allow.includes(`mcp__Claude_Browser__${tool}`), false, `${tool} must prompt`);
+    }
+    for (const tool of ["preview_start", "read_page", "get_page_text", "read_console_messages"]) {
+        assert.ok(allow.includes(`mcp__Claude_Browser__${tool}`), `${tool} should stay allowed`);
+    }
+});
+
 test("settings: every allowed npm run names a script in package.json", () => {
     const { scripts } = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
     const named = bashRules(loadSettings().permissions.allow, "npm run ").map((rule) =>

@@ -52,8 +52,6 @@
       "mcp__Claude_Browser__find",
       "mcp__Claude_Browser__read_console_messages",
       "mcp__Claude_Browser__read_network_requests",
-      "mcp__Claude_Browser__computer",
-      "mcp__Claude_Browser__form_input",
       "mcp__Claude_Browser__resize_window",
       "mcp__Claude_Browser__tabs_context"
     ],
