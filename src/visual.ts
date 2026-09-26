@@ -41,11 +41,10 @@ export class Visual implements IVisual {
     private tooltipKey: string | null = null;
     private fleet: HTMLElement | null = null;
     private hasRendered = false;
-    private alarmMotion: ReturnType<typeof asAlarmMotion> | null = null;
+    private alarmMotion: ReturnType<typeof asAlarmMotion> = "always";
+    private flashing: boolean | null = null;
     private readonly reducedMotionQuery: MediaQueryList | null;
-    private readonly onReducedMotionChange = (): void => {
-        if (this.fleet) resyncFleetAnimations(this.fleet);
-    };
+    private readonly onReducedMotionChange = (): void => this.syncFlashing();
     private hideTooltipTimer: ReturnType<typeof setTimeout> | null = null;
     private readonly host: IVisualHost;
     private readonly selectionManager: ISelectionManager;
@@ -69,7 +68,6 @@ export class Visual implements IVisual {
         this.target.addEventListener("mousemove", (event) => this.handlePointerMove(event));
         this.target.addEventListener("mouseleave", () => this.hideTooltipNow());
 
-        // Flipping the OS setting restarts every alarm animation at once; re-align their phases.
         this.reducedMotionQuery = typeof window.matchMedia === "function"
             ? window.matchMedia("(prefers-reduced-motion: reduce)")
             : null;
@@ -108,7 +106,6 @@ export class Visual implements IVisual {
             this.minCardWidth = minCardWidth;
             this.target.classList.toggle("bucket-health-root--flash-always", alarmMotion === "always");
             this.target.classList.toggle("bucket-health-root--flash-never", alarmMotion === "never");
-            const motionChanged = this.alarmMotion !== null && this.alarmMotion !== alarmMotion;
             this.alarmMotion = alarmMotion;
 
             const model = parseDataView(dataView, wingSideAssignment, componentOrder);
@@ -118,10 +115,7 @@ export class Visual implements IVisual {
             this.buildSelectionIdLookup(model, dataView?.table);
 
             this.render(model, theme);
-            // A motion change restarts the kept cards' animations together; re-align their phases.
-            if (motionChanged && this.fleet) {
-                resyncFleetAnimations(this.fleet);
-            }
+            this.syncFlashing();
             this.hasRendered = true;
             this.events.renderingFinished(options);
         } catch (error) {
@@ -186,6 +180,18 @@ export class Visual implements IVisual {
 
         // Re-apply dimming so the selection visual survives re-renders.
         this.applyDimming();
+    }
+
+    // When flashing turns on (Alarm motion or the OS reduced-motion setting), every kept card's
+    // animation restarts at the same moment, so one shared delay puts them all in phase. Changing
+    // the delay of a running animation shifts it in place, so this runs only on an off→on switch.
+    private syncFlashing(): void {
+        const flashing = this.alarmMotion === "always"
+            || (this.alarmMotion === "auto" && !this.reducedMotionQuery?.matches);
+        if (this.flashing === false && flashing && this.fleet) {
+            resyncFleetAnimations(this.fleet);
+        }
+        this.flashing = flashing;
     }
 
     private focusedComponent(): { machineKey: string; componentKey: string; element: Element } | null {

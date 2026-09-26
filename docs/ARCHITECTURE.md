@@ -130,8 +130,9 @@ element, its positioning, and its content builder are all owned by the entry poi
   closed when its component is gone.
 - Flash phase: every card sets `--bh-sync-<period>` to minus (timeline time mod period) when it is
   inserted, and each alarm animation uses it as its delay, so a rebuilt card flashes in step with
-  the cards around it. A change of Alarm motion or of the OS reduced-motion setting restarts every
-  animation at once, so all cards are re-synced then.
+  the cards around it. When flashing switches back on (Alarm motion or the OS reduced-motion
+  setting), every animation restarts at once, so all cards are re-synced then; a running animation
+  is never re-synced, because changing its delay would shift it out of step.
 - High contrast: when the host palette reports high-contrast mode, decorative gradients are
   replaced by background fills with foreground outlines, and alarm components use the
   selected-foreground accent with a heavier stroke.

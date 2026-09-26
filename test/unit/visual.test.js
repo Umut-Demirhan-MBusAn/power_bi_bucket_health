@@ -379,3 +379,22 @@ test("changing Alarm motion puts every card on the same flash phase", (t) => {
     assert.deepEqual(Array.from(phases()), ["-300ms"]);
     assert.ok(element.classList.contains("bucket-health-root--flash-always"));
 });
+
+test("switching Alarm motion between Auto and Always leaves running flash phases alone", (t) => {
+    let now = 100;
+    t.mock.method(performance, "now", () => now);
+    const host = createMockHost();
+    const { visual, element } = makeVisual(host);
+    visual.update({ dataViews: [withAlarmMotion(fixtureDataView(), "auto")], type: 2 });
+    now = 450;
+    visual.update({ dataViews: [withAlarmMotion(setStatus(fixtureDataView(), "EX-041-T02", "Lockout"), "auto")], type: 2 });
+    const phases = () => Array.from(element.querySelectorAll(".bucket-health-card"))
+        .map((card) => card.style.getPropertyValue("--bh-sync-700"));
+    const before = phases();
+
+    now = 1000;
+    visual.update({ dataViews: [withAlarmMotion(setStatus(fixtureDataView(), "EX-041-T02", "Lockout"), "always")], type: 2 });
+
+    assert.deepEqual(phases(), before);
+    assert.equal(new Set(before).size, 2);
+});
