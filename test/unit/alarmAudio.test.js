@@ -119,3 +119,43 @@ test("start() is idempotent while already playing", () => {
 
     assert.equal(oscAfterSecond, oscAfterFirst, "second start() does not re-schedule tones");
 });
+
+test("start() schedules 3 beeps by 3000ms: the initial beep plus two 1500ms interval ticks", (t) => {
+    t.mock.timers.enable({ apis: ["setInterval", "setTimeout"] });
+    const { createContext, ctx } = fakeContextFactory("running");
+    const audio = new AlarmAudio(createContext);
+
+    audio.start();
+    assert.equal(ctx.oscillators, 2, "start() fires the initial beep synchronously (2 tones)");
+
+    t.mock.timers.tick(1500);
+    assert.equal(ctx.oscillators, 4, "first 1500ms interval tick fires a second beep");
+
+    t.mock.timers.tick(1500);
+    assert.equal(ctx.oscillators, 6, "second 1500ms interval tick fires a third beep (3 total by 3000ms)");
+
+    audio.dismiss();
+});
+
+test("start() auto-stops at 60000ms (interval cleared); a later start() schedules again", (t) => {
+    t.mock.timers.enable({ apis: ["setInterval", "setTimeout"] });
+    const { createContext, ctx } = fakeContextFactory("running");
+    const audio = new AlarmAudio(createContext);
+
+    audio.start();
+    t.mock.timers.tick(60000);
+
+    assert.equal(ctx.closes, 1, "the 60000ms stopTimeout closes the context, clearing the interval");
+
+    const oscillatorsBeforeRestart = ctx.oscillators;
+    // If the auto-stop had not reset the internal `playing` flag, this start() would be a no-op
+    // (see the idempotent-start test above) and no new oscillator would be created.
+    audio.start();
+    assert.equal(
+        ctx.oscillators,
+        oscillatorsBeforeRestart + 2,
+        "playing was reset to false, so start() schedules a new beep"
+    );
+
+    audio.dismiss();
+});
