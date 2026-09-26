@@ -134,7 +134,7 @@ Positions come from `snapshot().cards[i].components[j].x` / `.y` (SVG units; x g
 | AL-04 | Both | Then `EXEC dbo.bh_alarm 'LD-202','tooth',1,'Movement Alarm';` Refresh. | LD-202 first (movement outranks proximity), then SH-301, EX-103. |
 | AL-05 | Both | Then `EXEC dbo.bh_clear_alarms;` Refresh. | All badges "OK"; source order restored; no alarm lines; no centre icons. |
 | AL-06 | Both | One alarm on. Alarm motion = Never. | T03 animation `none`; card and ALARM! chip solid (no flashing); still red. |
-| AL-07 | Both | Alarm motion = Auto, OS reduced motion off (Page: default). | Flashing (`bh-flash-prox`). |
+| AL-07 | Both | Alarm motion = Auto, OS reduced motion off. | Flashing (`bh-flash-prox`). |
 | AL-08 | Page | Alarm motion = Auto with reduced motion emulated (DevTools / Playwright `emulateMedia({ reducedMotion: "reduce" })`). | Solid (`none`). With Always flash under the same emulation: flashing. |
 | AL-09 | Both | Two machines alarming (AL-03). Watch 10 s. | Both cards flash in step (frames and chips pulse together). |
 
@@ -161,11 +161,12 @@ Page: read `h.audio()` and `h.events()`. Desktop: listen.
 ## 7. Tooltip
 
 Hover with the real mouse (Page: Playwright hover or `mouse.move` into the iframe; a synthetic
-`mousemove` event on the element also works).
+`mousemove` event on the element also works). A scripted run should hover and read `h.tooltip()` in
+the same call and time waits inside the page: a slow round trip can outlast the 8 s idle close.
 
 | ID | Runs on | Steps | Expected |
 | --- | --- | --- | --- |
-| TT-01 | Both | `EXEC dbo.bh_set 'EX-101','tooth',2,'Lockout';` Refresh. Hover EX-101 tooth 2. | Heading "Tooth 2" with a status dot; rows in order: Status "Lockout" (in the status colour), Machine "EX-101", Type "Hydraulic Excavator", Component "EX-101-T02", Last seen (local date and time to the minute, e.g. "Sep 26, 2026, 09:14 AM"), tag_id "TAG-EX-101-T02", wear_pct (a number). Desktop: record the tooltip-field labels Power BI gives. |
+| TT-01 | Both | `EXEC dbo.bh_set 'EX-101','tooth',2,'Lockout';` Refresh. Hover EX-101 tooth 2. | Heading "Tooth 2" with a status dot; rows in order: Status "Lockout" (in the status colour), Machine "EX-101", Type "Hydraulic Excavator", Component "EX-101-T02", Last seen (local date and time to the minute in the browser's locale, e.g. "Sep 26, 2026, 09:14 AM" or "26 Sept 2026, 18:41"), tag_id "TAG-EX-101-T02", wear_pct (a number). Desktop: record the tooltip-field labels Power BI gives. |
 | TT-02 | Both | Hover a lip shroud and a wing shroud. | Headings "Lip shroud N" and "Wing shroud N". |
 | TT-03 | Both | Unbind Machine Type, Last Seen and Tooltip Fields. Hover a component. | Only Status, Machine, Component rows. |
 | TT-04 | Both | Hover a tooth, then move onto empty card space. | Hides immediately. |
@@ -187,7 +188,7 @@ Hover with the real mouse (Page: Playwright hover or `mouse.move` into the ifram
 | IN-03 | Both | Click empty space. | "selection cleared"; nothing dimmed. |
 | IN-04 | Page | Select a tooth, then `EXEC dbo.bh_touch;` and Refresh; then change another machine's status and Refresh. | Dimming stays on the same selection after both refreshes (the page's ids are machine + component). Desktop: observe and record; Power BI's row identity includes every bound grouping column, so a refresh that changes Last Seen may leave the selection matching no component. |
 | IN-05 | Both | Right-click EX-101 tooth 2; right-click empty space. | Page: `context menu ["EX-101","EX-101-T02"] at x,y`, then `context menu (no selection id)`. Desktop: Power BI's context menu opens both times. |
-| IN-06 | Both | Focus EX-101's first component (Tab into the visual). Press ArrowRight, ArrowDown, ArrowLeft, ArrowUp. | Focus moves next, next, previous, previous through the components (card by card: wing shrouds, lip shrouds, teeth), with a white focus ring; from the last component ArrowRight wraps to the first. |
+| IN-06 | Both | Focus EX-101's first component (Tab into the visual). Press ArrowRight, ArrowDown, ArrowLeft, ArrowUp. | Focus moves next, next, previous, previous through the components (card by card: wing shrouds, lip shrouds, teeth), with a white focus ring; from the last component of the last card ArrowRight wraps to the first component of the first card. |
 | IN-07 | Both | Focus a component, press Enter; focus another, press Space; Ctrl+Enter on a third. | Each selects its component (Ctrl adds). |
 | IN-08 | Page | Untick Allow interactions. Click, right-click, press Enter on a focused component. | No select, clear or context-menu event. |
 | IN-09 | Desktop | Click a row in the Table visual. | Observe and record. Bucket Health does not support highlighting, so Power BI filters it to that row; its machine then has one component and shows count issues. Setting Format → Edit interactions → None on the Table avoids it. |
