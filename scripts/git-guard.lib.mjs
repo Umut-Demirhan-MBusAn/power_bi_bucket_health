@@ -11,7 +11,8 @@
  * data, never commands.
  */
 
-const HEREDOC_START = /<<-?\s*(['"]?)([A-Za-z_][\w-]*)\1/;
+// `<<<` is a here-string (one word of stdin), not a heredoc: its word ends nothing.
+const HEREDOC_START = /(?<!<)<<(?!<)-?\s*(['"]?)([A-Za-z_][\w-]*)\1/;
 
 // Leading tokens that wrap the real command. `values`: options that consume the next token;
 // `scripts`: options whose value is a command string; `operands`: positionals before the command.
@@ -34,8 +35,16 @@ const WRAPPERS = new Map([
   // Keywords; tokenize drops grouping parens, so `while (git push ...)` reaches the command too.
   ...['if', 'elif', 'elseif', 'then', 'else', 'while', 'until', 'do', '{', '!'].map((k) => [k, {}]),
 ]);
-const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash', 'pwsh', 'powershell']);
+const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash', 'pwsh', 'powershell', 'cmd']);
 const POWERSHELLS = new Set(['pwsh', 'powershell']);
+// PowerShell prefixes that leave the command in place: `[type]` casts (one level of nested
+// brackets, as in `[string[]]`), `$var =` / `+=` / `??=` assignments, and `@(` / `[type](` groups.
+const PS_CAST = String.raw`\[[\w.]+(?:\[[\w.,\s]*\])*\]`;
+const PS_CAST_ONLY = new RegExp(`^(?:${PS_CAST})+$`);
+const PS_ASSIGNEE = new RegExp(`^(?:${PS_CAST})*\\$[\\w:]+$`);
+const PS_GLUED_ASSIGNMENT = new RegExp(`^(?:${PS_CAST})*\\$[\\w:]+(?:[-+*/%]|\\?\\?)?=(.*)$`, 's');
+const PS_OPERATOR = /^(?:[-+*/%]|\?\?)?=(.*)$/s;
+const PS_GROUP_START = new RegExp(`^(?:@|(?:${PS_CAST})+)\\(`);
 const START_PROCESS = new Set(['start-process', 'saps', 'start']);
 const START_PROCESS_SWITCHES = new Set(['-wait', '-nonewwindow', '-passthru', '-loaduserprofile', '-useshellexecute', '-usenewenvironment']);
 const START_PROCESS_VALUES = new Set(['-workingdirectory', '-verb', '-windowstyle', '-redirectstandardoutput', '-redirectstandarderror', '-redirectstandardinput', '-credential', '-environment']);
@@ -161,6 +170,8 @@ function tokenize(segment, shell) {
       else finish();
       while (/[<>&|]/.test(segment[i + 1] ?? '')) i += 1;
       redirectTarget = true;
+    } else if (shell !== 'bash' && !started && PS_GROUP_START.test(segment.slice(i))) {
+      i += PS_GROUP_START.exec(segment.slice(i))[0].length - 1;
     } else if (ch !== '(' || started) {
       current += ch;
       started = true;
@@ -218,7 +229,8 @@ function skipWrapperOptions(rest, spec) {
 
 // Strips leading `KEY=value` assignments and wrapper binaries, returning the assignments so a
 // rule can require an explicit opt-in variable, or the command string a wrapper evaluates.
-function unwrap(tokens) {
+// PowerShell casts and `$var =` assignments are stripped too, but never count as the opt-in.
+function unwrap(tokens, shell) {
   const env = {};
   const rest = [...tokens];
   for (;;) {
@@ -229,6 +241,18 @@ function unwrap(tokens) {
       env[assignment[1]] = assignment[2];
       rest.shift();
       continue;
+    }
+    if (shell === 'powershell') {
+      const glued = PS_GLUED_ASSIGNMENT.exec(head);
+      const spaced = !glued && PS_ASSIGNEE.test(head) ? PS_OPERATOR.exec(rest[1] ?? '') : null;
+      if (glued || spaced) {
+        rest.splice(0, glued ? 1 : 2, ...[(glued ?? spaced)[1]].filter(Boolean));
+        continue;
+      }
+      if (PS_CAST_ONLY.test(head)) {
+        rest.shift();
+        continue;
+      }
     }
     const base = baseName(head);
     if (START_PROCESS.has(base)) return { env, rest: [], script: startProcessCommand(rest.slice(1)) };
@@ -287,16 +311,18 @@ function ghVerdict(args, env, ctx) {
 }
 
 // `bash -c "<script>"` runs the script verbatim, so it is inspected like a command; `-c` may sit
-// inside combined flags (`bash -lc`). PowerShell accepts any prefix of `-Command`.
+// inside combined flags (`bash -lc`). PowerShell accepts any prefix of `-Command`; cmd takes
+// `/c` or `/k` (`//c` from Git Bash, which would otherwise rewrite `/c` as a path).
 function nestedShellScript(tool, rest) {
-  const scriptFlag = POWERSHELLS.has(tool) ? /^-c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?$/i : /^-[a-z]*c[a-z]*$/;
+  const scriptFlag =
+    tool === 'cmd' ? /^\/\/?[ck]$/i : POWERSHELLS.has(tool) ? /^-c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?$/i : /^-[a-z]*c[a-z]*$/;
   const flagAt = rest.findIndex((t) => scriptFlag.test(t));
   return flagAt === -1 ? null : rest.slice(flagAt + 1).join(' ');
 }
 
 function segmentVerdict(segment, ctx) {
   if (segment.startsWith('#')) return null;
-  const { env, rest, script } = unwrap(tokenize(segment, ctx.shell));
+  const { env, rest, script } = unwrap(tokenize(segment, ctx.shell), ctx.shell);
   if (script !== undefined) return evaluateIn(script, ctx);
   if (rest.length === 0) return null;
   const tool = baseName(rest[0]);
@@ -305,7 +331,9 @@ function segmentVerdict(segment, ctx) {
   if (tool === 'gh') return ghVerdict(args, env, ctx);
   if (!SHELLS.has(tool)) return null;
   const nested = nestedShellScript(tool, args);
-  return nested ? evaluateIn(nested, { ...ctx, shell: POWERSHELLS.has(tool) ? 'powershell' : 'bash' }) : null;
+  // cmd keeps backslashes literal, as PowerShell does, so its paths tokenize the same way.
+  const shell = tool === 'cmd' || POWERSHELLS.has(tool) ? 'powershell' : 'bash';
+  return nested ? evaluateIn(nested, { ...ctx, shell }) : null;
 }
 
 // Returns the block message of the first offending segment, or null. Heredoc bodies are

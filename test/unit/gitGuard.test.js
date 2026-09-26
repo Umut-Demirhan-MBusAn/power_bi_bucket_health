@@ -85,6 +85,11 @@ const BLOCKED = [
     ["sh -c 'git stash'", "stash"],
     ['pwsh -Command "git push origin main"', "pushMain"],
     ['pwsh -c "git stash pop"', "stash"],
+    ['cmd /c "git push origin main"', "pushMain"],
+    ['cmd.exe /C "git stash"', "stash"],
+    ['cmd //c "git add -A"', "addAll"],
+    ['cmd /d /s /c "C:\\tools\\git.exe push origin main"', "pushMain"],
+    ['cat <<< "hello"\ngit push origin main', "pushMain"],
     ["if true; then git push origin main; fi", "pushMain"],
     ["if git push origin main; then echo ok; fi", "pushMain"],
     ["while git stash pop; do sleep 1; done", "stash"],
@@ -138,6 +143,9 @@ const ALLOWED = [
     "{ git status; }",
     'bash -lc "git status"',
     'pwsh -Command "git status"',
+    'cmd /c "git status"',
+    "cmd /c dir",
+    'cat <<< "git push origin main"',
     "git -c alias.st=status st",
     "git -c alias.x=push x -u origin feat/x",
 ];
@@ -161,6 +169,19 @@ const PS_BLOCKED = [
     ['Write-Output "a`tb"; git add .', "addAll"],
     ["BUCKET_HEALTH_MERGE_OK=1 gh pr merge 1 --squash", "merge"],
     ["$env:BUCKET_HEALTH_MERGE_OK='1'; gh pr merge 1 --squash", "merge"],
+    ["$r = gh pr merge 5 --squash --delete-branch", "merge"],
+    ["$out = git push origin main 2>&1", "pushMain"],
+    ["$null = git stash", "stash"],
+    ["$x = git add -A", "addAll"],
+    ["[void](git stash)", "stash"],
+    ["@(git push origin main)", "pushMain"],
+    ["$x=git push origin main", "pushMain"],
+    ["$log += git stash pop", "stash"],
+    ["[string[]]$lines = git push origin main", "pushMain"],
+    ["$x = [string](git push origin main)", "pushMain"],
+    ["[void] (git add .)", "addAll"],
+    ["$script:out =git stash", "stash"],
+    ['cmd /c "git push origin main"', "pushMain"],
 ];
 
 const PS_ALLOWED = [
@@ -172,6 +193,13 @@ const PS_ALLOWED = [
     "C:\\tools\\git.exe status",
     "echo `git push origin main`",
     "git stash list",
+    "$b = git branch --show-current",
+    "$x = git stash list",
+    "$out = git push origin feat/x 2>&1",
+    "[void](git add src/a.ts)",
+    "@(git log --oneline -5)",
+    "$env:BUCKET_HEALTH_MERGE_OK='1'",
+    '$msg = "git push origin main"',
 ];
 
 for (const [command, key] of BLOCKED) {
