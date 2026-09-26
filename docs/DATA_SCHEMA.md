@@ -36,7 +36,7 @@ the visual only reads the one value bound to the role.
 
 ## Status values
 
-The **Component Status** value is matched **case-insensitively**. Before matching, the visual also:
+The **Component Status** value is matched **case-insensitively**, after normalization:
 leading/trailing spaces are trimmed, runs of internal whitespace collapse to one space, spacing
 around `+` is normalised to ` + `, and a missing space before `(` is inserted (so `No Data(1h)`
 matches the same as `No data (1h)`). Each status accepts several spellings; the visual normalises
@@ -127,10 +127,10 @@ live dashboards.
 
 ## Validation rules
 
-Validation is **per machine** (owner decision D1): a problem on one machine's rows never fails the
-whole visual. That machine renders its own card with a capped list of its problems instead of the
-bucket schematic; every other machine renders normally, and the invalid machine still sorts,
-alarms, and beeps like any other.
+Validation is **per machine**: a problem on one machine's rows never fails the whole visual. That
+machine renders its own card with a capped list of its problems instead of the bucket schematic;
+every other machine renders normally, and the invalid machine still sorts, alarms, and beeps like
+any other.
 
 Row-level checks (excluded row does not count toward that machine's geometry or counts):
 

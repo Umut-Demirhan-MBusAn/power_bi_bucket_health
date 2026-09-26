@@ -62,7 +62,8 @@ function darkenHex(hex: string, amount: number): string {
 }
 
 // The single implementation of move-over-prox alarm precedence, shared by parseDataView (machine
-// alarm fields), machineStatusKey (frame color), and the bucket geometry engine (center label).
+// alarm fields) and machineStatusKey (frame color). The bucket geometry engine still derives its
+// own center alarm label separately (its alarm handling is reworked in a later task).
 export function dominantAlarm(statuses: BucketStatusKey[]): "move" | "prox" | undefined {
     if (statuses.some((status) => status === "move")) {
         return "move";

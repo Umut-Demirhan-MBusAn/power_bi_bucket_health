@@ -23,14 +23,13 @@ scaffolded.
 Counts are derived from component rows, per machine:
 
 - Teeth = count of `category = tooth` rows; must be 4-20. An out-of-range count is a validation
-  issue on that machine's own card (D1: per-machine, not a whole-data-view failure) — the geometry
-  engine's 4-20 clamp exists only as defense-in-depth behind that validation.
+  issue on that machine's own card — the geometry engine's 4-20 clamp exists only as
+  defense-in-depth behind that validation.
 - Lip shrouds = count of `category = lipShroud` rows; count must equal `teeth - 1`, checked only
   when the tooth count is itself in range.
 - Wing shrouds = count of `category = wingShroud` rows. Left/right side is derived from `order`
   using a visual formatting setting, not from a source data column; each side is validated
-  independently and may not exceed 4 (0-8 total is a consequence of that per-side limit, not a
-  separately enforced total).
+  independently and may not exceed 4, for a maximum of 8 per machine.
 
 ## Data Roles
 
@@ -127,7 +126,7 @@ interface MachineBucketModel {
 
 `issues`/`incomplete` are computed from the machine's own rows only and never affect `alarmCount`,
 `hasAlarm`, or `dominantAlarm`, which are always derived from every valid row of that machine — an
-invalid or incomplete machine still alarms, sorts, and beeps normally (owner decision D1).
+invalid or incomplete machine still alarms, sorts, and beeps normally.
 
 ## Formatting Objects
 
@@ -185,12 +184,12 @@ internally distributed visual regardless of certification status.
 
 - Machines: 20 is the design/performance target. The machine count itself is not validated — the
   effective ceiling is the 2000-row host cap below.
-- Teeth per machine: 4 to 20 (a machine outside this range is invalid, not the whole visual).
+- Teeth per machine: 4 to 20; a machine outside this range is invalid.
 - Lip shrouds per machine: supplied rows equal to `teeth - 1`, checked only when teeth is in range.
 - Wing shrouds per machine: 0 to 4 per side (0 to 8 total), assigned to sides by visual settings; a
   side over 4 makes that machine invalid.
-- Data role fields: each role in `capabilities.json`'s `dataViewMappings[0].table.conditions` allows
-  at most one bound field, except `tooltipFields` (unbounded).
+- Data role fields: each role in `capabilities.json`'s `dataViewMappings[0].conditions` allows at
+  most one bound field, except `tooltipFields` (unbounded).
 - Host row cap: `capabilities.json` requests `dataReductionAlgorithm.top.count = 2000` rows. The
   practical worst case under the 20-machine / 20-tooth limits is ~940 supplied component rows
   (20 × (20 teeth + 19 lip shrouds + 8 wing shrouds)), comfortably under the 2000 cap. When the cap
