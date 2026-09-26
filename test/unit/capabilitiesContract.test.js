@@ -93,3 +93,19 @@ test("every ItemDropdown item is accepted unchanged by its guard, and each guard
         "GUARD_BY_DROPDOWN is out of sync with the model's ItemDropdown slices"
     );
 });
+
+test("dataViewMappings[0].conditions caps every role but tooltipFields to one field, and sits beside table (not nested under it, where the host ignores it)", () => {
+    const mapping = capabilities.dataViewMappings[0];
+    const conditions = mapping.conditions && mapping.conditions[0];
+    assert.ok(conditions, "dataViewMappings[0].conditions[0] should exist");
+
+    capabilities.dataRoles.forEach(({ name }) => {
+        if (name === "tooltipFields") {
+            assert.equal(conditions[name], undefined, "tooltipFields accepts more than one field, so it has no condition");
+        } else {
+            assert.deepEqual(conditions[name], { max: 1 }, `${name} should be capped to { max: 1 }`);
+        }
+    });
+
+    assert.equal(mapping.table.conditions, undefined, "conditions must not be nested under table -- the host reads it from the dataViewMapping object itself");
+});
