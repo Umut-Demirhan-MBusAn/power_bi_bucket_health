@@ -90,7 +90,8 @@ element, its positioning, and its content builder are all owned by the entry poi
 
 ## Data Flow
 
-1. Power BI calls `visual.update(options)`.
+1. Power BI calls `visual.update(options)`. Once the visual has rendered, an update without the
+   Data or Style flag (resize, view mode) stops here: the cards already fit by CSS.
 2. `parseDataView` validates roles and parses table rows into the typed model, returning one of the
    data states: `noFields`, `invalidConfig`, `noData`, `error`, or `ready`. (A `loading` state
    exists in the union and renderer as a reserved branch, but the current synchronous parse path
@@ -104,11 +105,17 @@ element, its positioning, and its content builder are all owned by the entry poi
    rule.
 6. `AlarmController` compares previous and current alarms by stable alarm identity
    (machine + component + alarmTime) so each identity fires audio at most once per session.
-7. The renderer replaces the DOM subtree and re-wires selection, keyboard, and tooltip handlers.
+7. The first ready render builds the fleet; later ones reconcile it card by card (`updateFleet`).
+   Each card is keyed by machine and stores a signature of everything it draws (theme, minimum
+   width, name, type, issues, and each component's key, order, status and wing side). A card with
+   an unchanged signature keeps its DOM node, so focus, hover and running animations survive;
+   changed cards are rebuilt, missing ones removed, and cards move only when the order changes.
+   Focus inside a rebuilt card returns to the same component. Handlers live on the root element,
+   so nothing is re-wired. An edge state replaces the whole subtree.
 
 ## Rendering Strategy
 
-- SVG-first, hand-written DOM/SVG renderer — no rendering libraries (D3 was removed). Geometry math
+- SVG-first, hand-written DOM/SVG renderer — no rendering libraries. Geometry math
   is pure TypeScript and framework-agnostic.
 - Resize strategy: uniform fixed-height cards flex-wrap to fill the available width; scroll
   overflow appears once the wrapped cards exceed the available space.
@@ -119,7 +126,13 @@ element, its positioning, and its content builder are all owned by the entry poi
   never hidden and audio is governed independently.
 - Tooltip strategy: a custom themed HTML tooltip element is rendered by the visual itself rather
   than calling the Power BI host tooltip service (the host tooltip cannot be themed to match the
-  visual's design).
+  visual's design). It survives updates: an open tooltip is refreshed from the new model, or
+  closed when its component is gone.
+- Flash phase: every card sets `--bh-sync-<period>` to minus (timeline time mod period) when it is
+  inserted, and each alarm animation uses it as its delay, so a rebuilt card flashes in step with
+  the cards around it. When flashing switches back on (Alarm motion or the OS reduced-motion
+  setting), every animation restarts at once, so all cards are re-synced then; a running animation
+  is never re-synced, because changing its delay would shift it out of step.
 - High contrast: when the host palette reports high-contrast mode, decorative gradients are
   replaced by background fills with foreground outlines, and alarm components use the
   selected-foreground accent with a heavier stroke.
@@ -140,8 +153,11 @@ element, its positioning, and its content builder are all owned by the entry poi
 - Requires an explicit user-gesture click to arm/resume the audio context (browser autoplay
   policy).
 - Square-wave two-tone pattern: 880 Hz then 660 Hz, ~0.24 s each, repeating every 1.5 s.
-- Auto-stops after 60 s; stops on click anywhere inside the visual; stays armed after dismissal.
-- Suppressed entirely in edge states and when the **Enable audio alarm** setting is off.
+- Auto-stops after 60 s; stops on click anywhere inside the visual. Stopping closes the audio
+  context, so the next alarm creates a new one.
+- Suppressed in edge states and when the **Enable audio alarm** setting is off; a sounding alarm
+  stops on the first update that turns the setting off or leaves the `ready` state, including an
+  update that throws and shows the error state.
 
 ## Key Runtime Concerns
 
@@ -158,11 +174,11 @@ element, its positioning, and its content builder are all owned by the entry poi
 - Worst expected data: 20 machines × (20 teeth + 19 lip shrouds + 8 wing shrouds) ≈ 940 rows,
   comfortably under the 2000-row host cap declared in `capabilities.json` (see
   [VISUAL_CONTRACT.md › Data Limits](VISUAL_CONTRACT.md#data-limits)).
-- Each update re-renders the subtree; geometry is computed once per machine per update. No
-  incremental DOM diffing has been needed at this scale.
+- A data update rebuilds only the cards whose signature changed; a DirectQuery refresh that only
+  moves last-seen times rebuilds nothing. Resize and view-mode updates skip parsing entirely.
 
 ## Testing
 
 See [TESTING.md](TESTING.md) for the test inventory and infrastructure (Node.js built-in runner,
-jsdom for rendering tests) and the manual Developer Visual checklist. Validation gates:
-`npm test`, `npm run eslint`, `pbiviz lint`, and `pbiviz package`.
+jsdom for rendering tests) and the manual Developer Visual checklist. Validation gates: the
+pre-PR gate in [AGENTS.md](../AGENTS.md) (`pbiviz package` runs the pbiviz lint).

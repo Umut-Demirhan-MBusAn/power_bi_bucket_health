@@ -118,7 +118,7 @@ export function renderEdgeState(
             icon.appendChild(svgEl(SVG_ERROR));
             icon.classList.add("bucket-health-state__icon--error");
             title.textContent = "Couldn’t render the visual";
-            subtitle.textContent = "An unexpected data error occurred. The last good state is kept; new audio alarms are suppressed until valid data returns.";
+            subtitle.textContent = "An unexpected data error occurred. New audio alarms are suppressed until valid data returns.";
             container.append(icon, title, subtitle);
             if (detail) {
                 const code = document.createElement("code");

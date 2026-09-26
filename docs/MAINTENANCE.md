@@ -1,17 +1,20 @@
 # Maintenance
 
-Internal visual — not on AppSource, no certification.
+Open-source visual (MIT) — not on AppSource, no certification.
 
 **Developer / maintainer: Umut Demirhan** (demirhan.info@gmail.com)
 
 ## Distribution
 
-- Deploy as an **organizational visual**: Power BI Admin portal → Organizational visuals →
-  upload the `.pbiviz`. Report authors add it from **Insert → More visuals → My organization**.
-- Updates are centralized: when the admin uploads a new version, every report using the visual —
-  including reports rendered through Power BI Embedded — gets it automatically.
-- Do **not** distribute by per-report file import ("Import a visual from a file"): those copies
-  never update.
+Every release's `.pbiviz` is attached to its [GitHub Release](https://github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health/releases).
+
+- **Organizational visual** (use this inside an organization): Power BI Admin portal →
+  Organizational visuals → upload the `.pbiviz`. Report authors add it from **Insert → More
+  visuals → My organization**. Updates are centralized: when the admin uploads a new version,
+  every report using the visual — including reports rendered through Power BI Embedded — gets it
+  automatically.
+- **Import a visual from a file** (a single report): the copy lives in that report and never
+  updates; re-import a newer `.pbiviz` to update it.
 
 ## Update rules
 
@@ -75,4 +78,5 @@ Manual checklist: [TESTING.md § Manual testing](TESTING.md#manual-testing).
 
 ## Support
 
-Bugs and feature requests → Azure DevOps work items.
+Bugs and feature requests → [GitHub Issues](https://github.com/Umut-Demirhan-MBusAn/power_bi_bucket_health/issues). Security reports →
+[`SECURITY.md`](../SECURITY.md).

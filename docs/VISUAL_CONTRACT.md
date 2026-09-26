@@ -9,16 +9,16 @@ This file defines the contract between Power BI and the visual. Update it before
 - Display name: **Bucket Health**.
 - GUID: `bucketHealthD598C3A88E864DB290BEFCEF7B22DF7B`.
 - API version: `5.11.0`; `powerbi-visuals-tools` `7.1.0`.
-- Package target: internal organizational visual — see [MAINTENANCE.md](MAINTENANCE.md).
+- Package target: `.pbiviz` on GitHub Releases, deployed as an organizational visual or imported
+  from a file — see [MAINTENANCE.md](MAINTENANCE.md).
 
 ## Expected Dataset Shape
 
 One row represents one GET component status for one machine.
 
 The concrete source CSV schema and fixture columns are defined in [DATA_SCHEMA.md](DATA_SCHEMA.md).
-Power BI field wells may be bound from differently named business columns later, but the initial
-fixture uses stable, snake_case source names so parser behavior can be tested before the visual is
-scaffolded.
+Power BI field wells may be bound from any business column names; the fixture uses stable,
+snake_case source names so parser behavior is testable without Power BI.
 
 Counts are derived from component rows, per machine:
 
@@ -50,11 +50,11 @@ Counts are derived from component rows, per machine:
 | Canonical Status | Accepted Design Key | Fill | Alarm | Audio |
 | --- | --- | --- | --- | --- |
 | OK | `ok` | `#34D399` | No | No |
-| No data (1h) | `nodata` | `#F4C04E` | No | No |
+| No Data (1h) | `nodata` | `#F4C04E` | No | No |
 | Lockout | `lockout` | `#5BA8F5` | No | No |
-| Lockout + No data | `lockoutnd` | `#3B5BD9` | No | No |
-| Proximity alarm | `prox` | `#FF5A5A` | Yes | Yes, on transition |
-| Movement alarm | `move` | `#C42B4A` | Yes | Yes, on transition |
+| Lockout + No Data | `lockoutnd` | `#3B5BD9` | No | No |
+| Proximity Alarm | `prox` | `#FF5A5A` | Yes | Yes, on transition |
+| Movement Alarm | `move` | `#C42B4A` | Yes | Yes, on transition |
 
 Each component carries exactly one status — a duplicate component key is a validation issue on that
 machine's card, so no per-component precedence is ever applied. At machine level the frame/badge
@@ -149,7 +149,7 @@ is fully adaptive (not author-configurable), and status strings/colours are fixe
 ## Host Interactions
 
 - Selection / cross-filter: clicking a component selects it via the host `ISelectionManager` and
-  cross-filters other visuals on the page. Implemented (PR #11).
+  cross-filters other visuals on the page.
 - Highlight: alarm highlight is visual-owned; alarming machines flash/solid and sort to the front.
 - Tooltip: the visual renders its own custom themed HTML tooltip rather than calling the Power BI
   host tooltip service. It shows the component label, a human-readable status, the machine, the full
@@ -159,9 +159,9 @@ is fully adaptive (not author-configurable), and status strings/colours are fixe
 - Sorting: alarm priority overrides base order in fleet view (movement before proximity, then alarm
   count, then source order). Ties keep source order.
 - Context menu: right-click opens the Power BI default context menu via
-  `ISelectionManager.showContextMenu`. Implemented (PR #11).
+  `ISelectionManager.showContextMenu`.
 - Keyboard: components are focusable (`supportsKeyboardFocus`); arrow keys move focus, Enter/Space
-  selects. Implemented (PR #11).
+  selects.
 - Fetch more data: not needed under the 20-machine / 2000-row cap.
 - Persist properties: formatting-pane settings persist via the formatting model.
 
@@ -177,8 +177,8 @@ Audio uses the in-browser WebAudio API, so no host privilege is declared. Becaus
 policies block sound without a user gesture, the audio context is armed/resumed on a user click
 inside the visual before any alarm can play.
 
-`privileges` is empty (`[]`) so the visual makes no external calls — good security posture for an
-internally distributed visual regardless of certification status.
+`privileges` is empty (`[]`) so the visual makes no external calls — good security posture for a
+visual distributed outside AppSource, regardless of certification status.
 
 ## Data Limits
 
@@ -209,10 +209,10 @@ Constants (SVG user units):
 
 ```text
 SLOT       = 66   # tooth slot width (per-tooth pitch along the cutting edge)
-TOOTH_W    = 36   # tooth width
-TOOTH_H    = 62   # tooth height
-LIP_W      = 22   # lip shroud width
-LIP_H      = 24   # lip shroud height
+TOOTH_W    = 30   # tooth width
+TOOTH_H    = 54   # tooth height
+LIP_W      = 26   # lip shroud width
+LIP_H      = 30   # lip shroud height
 WING_HL    = 24   # wing shroud horizontal half-length
 WING_IN    = 11   # wing shroud inner offset
 WING_OUT   = 14   # wing shroud outer offset
@@ -242,7 +242,8 @@ Body corners:
 Geometry rules:
 
 - Teeth are tapered wedges distributed along the cutting edge.
-- Lip shrouds are rectangular plates between teeth and are supplied as component rows.
+- Lip shrouds are rectangular plates between teeth and are supplied as component rows; each clears
+  its neighbouring teeth by at least 2 units at every tooth count (2.5 at 4 teeth).
 - Wing shrouds are quads along side edges with fixed 56-unit pitch.
 - Hitch bracket is centered on the top edge and scaled by top width.
 - Spill guard bars run across the top edge.

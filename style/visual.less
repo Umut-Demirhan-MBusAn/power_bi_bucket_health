@@ -387,6 +387,7 @@
     position: relative;
 }
 
+// Flash delays come from --bh-sync-<period> on each card (renderFleet.ts) so cards stay in step.
 @keyframes bh-frame-flash {
     0%, 100% { box-shadow: 0 0 0 1px rgba(255, 77, 77, 0.4); }
     50% { box-shadow: 0 0 26px 6px rgba(255, 60, 60, 0.95); }
@@ -394,6 +395,7 @@
 
 .bucket-health-card--alarm {
     animation: bh-frame-flash 0.8s ease-in-out infinite;
+    animation-delay: var(--bh-sync-800, 0ms);
 }
 
 .bucket-health-card--invalid,
@@ -436,6 +438,7 @@
     font-weight: 900;
     letter-spacing: 0.08em;
     animation: bh-alarm-chip 0.7s ease-in-out infinite;
+    animation-delay: var(--bh-sync-700, 0ms);
 }
 
 @keyframes bh-flash-prox {
@@ -450,10 +453,12 @@
 
 .bucket-health-svg__component[data-status="prox"] {
     animation: bh-flash-prox 0.7s ease-in-out infinite;
+    animation-delay: var(--bh-sync-700, 0ms);
 }
 
 .bucket-health-svg__component[data-status="move"] {
     animation: bh-flash-move 0.7s ease-in-out infinite;
+    animation-delay: var(--bh-sync-700, 0ms);
 }
 
 @keyframes bh-center-pulse {
@@ -465,6 +470,7 @@
     transform-box: fill-box;
     transform-origin: center;
     animation: bh-center-pulse 0.85s ease-in-out infinite;
+    animation-delay: var(--bh-sync-850, 0ms);
 }
 
 /* Reduced motion: keep alarms fully visible but solid (no flashing).
