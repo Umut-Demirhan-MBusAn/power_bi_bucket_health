@@ -20,30 +20,31 @@ Power BI field wells may be bound from differently named business columns later,
 fixture uses stable, snake_case source names so parser behavior can be tested before the visual is
 scaffolded.
 
-Counts are derived from component rows:
+Counts are derived from component rows, per machine:
 
-- Teeth = count of `category = tooth` rows for the machine; must be 4-20. Out-of-range counts are
-  rejected — the whole data view renders the error state (the geometry engine's 4-20 clamp exists
-  only as defense-in-depth behind that validation).
-- Lip shrouds = count of `category = lipShroud` rows for the machine; count must equal `teeth - 1`.
-- Wing shrouds = count of `category = wingShroud` rows, up to 8 total (only the total is
-  validated). Left/right side is derived from `order` using a visual formatting setting, not from
-  a source data column, so an uneven split can put more than 4 on one side; the geometry height
-  accommodates up to 4 per side.
+- Teeth = count of `category = tooth` rows; must be 4-20. An out-of-range count is a validation
+  issue on that machine's own card (D1: per-machine, not a whole-data-view failure) — the geometry
+  engine's 4-20 clamp exists only as defense-in-depth behind that validation.
+- Lip shrouds = count of `category = lipShroud` rows; count must equal `teeth - 1`, checked only
+  when the tooth count is itself in range.
+- Wing shrouds = count of `category = wingShroud` rows. Left/right side is derived from `order`
+  using a visual formatting setting, not from a source data column; each side is validated
+  independently and may not exceed 4 (0-8 total is a consequence of that per-side limit, not a
+  separately enforced total).
 
 ## Data Roles
 
 | Role | Kind | Required | Description | Constraints |
 | --- | --- | --- | --- | --- |
-| machine | Grouping | Yes | The machine's name and its unique identifier. Each unique value becomes one card in the fleet view and is shown as the card header label. Must be stable across data refreshes — changing this value resets alarm state for that machine. | Must uniquely identify a machine across all rows and across refreshes. |
-| machineType | Grouping | No | Human-readable machine class or model label (e.g. "Hydraulic Excavator"). Shown in the card header below the machine name. | Displayed below the machine name in the card header. Omit if not applicable. |
-| component | Grouping | Yes | The component's name, unique within its machine. Identifies a single tooth, lip shroud, or wing shroud. Used for rendering, tooltip, cross-filter selection, and alarm transition detection. Must be stable across refreshes — changing this value resets alarm history for that component. | Must be unique within each machine. |
-| category | Grouping | Yes | GET component type. Determines where on the bucket schematic the component is drawn. | Must be one of: `tooth`, `lipShroud`, `wingShroud`. |
-| order | Measure or Grouping | Yes | Integer position of this component within its category, starting at 1. For teeth and lip shrouds, 1 is the leftmost position under the default **Teeth & lip order** setting (right-to-left flips it). For wing shrouds, left/right side is inferred from this value by the Wing side assignment formatting setting — there is no left/right column in the data. | Integer ≥ 1 (validated). Duplicate order values within a machine+category are not rejected — they tie-break by source row order — but unique values are strongly recommended for a deterministic layout. |
-| status | Grouping or Measure | Yes | Current health status of the component. Must match one of the accepted status spellings (case-insensitive; several inputs per canonical status — see [DATA_SCHEMA.md › Status values](DATA_SCHEMA.md#status-values)). | Maps to the status model below. |
-| alarmTime | Grouping or Measure | No (recommended) | Timestamp when this component entered its current alarm state. The visual builds an alarm identity from machine + component + alarmTime. Audio fires exactly once per unique identity and is permanently cached for the session. The visual renders normally without it; **without it, a component that clears and re-alarms in the same session will not trigger audio a second time** because the identity never changes. Strongly recommended for live dashboards. Leave null/blank for non-alarm rows. | ISO 8601 datetime string or datetime value. Must be null/blank for non-alarm rows. |
-| lastSeen | Grouping or Measure | No | Timestamp of the last data receipt for this component. Displayed in the component tooltip as a full local date and time. | — |
-| tooltipFields | Measure, multiple | No | Additional report-author-selected columns appended to the component tooltip after the standard fields. Multiple columns can be bound. | — |
+| machine | Grouping | Yes | The machine's name and its unique identifier. Each unique value becomes one card in the fleet view and is shown as the card header label. Must be stable across data refreshes — changing this value resets alarm state for that machine. | Max 1 field (`capabilities.json` condition). Must uniquely identify a machine across all rows and across refreshes. A blank value cannot be attributed to a machine — the row is skipped and counted into a fleet-level warning instead of becoming a machine issue. |
+| machineType | Grouping | No | Human-readable machine class or model label (e.g. "Hydraulic Excavator"). Shown in the card header below the machine name. | Max 1 field. Displayed below the machine name in the card header. Omit if not applicable. |
+| component | Grouping | Yes | The component's name, unique within its machine. Identifies a single tooth, lip shroud, or wing shroud. Used for rendering, tooltip, cross-filter selection, and alarm transition detection. Must be stable across refreshes — changing this value resets alarm history for that component. | Max 1 field. Must be unique within each machine; a blank value is a row-level issue. |
+| category | Grouping | Yes | GET component type. Determines where on the bucket schematic the component is drawn. | Max 1 field. Matched leniently (case/space/underscore/hyphen-insensitive) against `tooth`/`teeth`, `lipShroud`, `wingShroud` — see [DATA_SCHEMA.md › Category matching](DATA_SCHEMA.md#category-matching); anything else is a row-level issue. |
+| order | Measure or Grouping | Yes | Position of this component within its category, starting at 1. For teeth and lip shrouds, 1 is the leftmost position under the default **Teeth & lip order** setting (right-to-left flips it). For wing shrouds, left/right side is inferred from this value by the Wing side assignment formatting setting — there is no left/right column in the data. | Max 1 field. A finite integer ≥ 1, accepted as a number or a digit-only string; booleans, dates, and non-integer or hex-looking strings are rejected as a row-level issue. Duplicate order values within a machine+category are not rejected — they tie-break by source row order — but unique values are strongly recommended for a deterministic layout. |
+| status | Grouping or Measure | Yes | Current health status of the component. Must match one of the accepted status spellings (case-insensitive; several inputs per canonical status — see [DATA_SCHEMA.md › Status values](DATA_SCHEMA.md#status-values)). | Max 1 field. Maps to the status model below; an unmatched value is a row-level issue. |
+| alarmTime | Grouping or Measure | No (recommended) | Timestamp when this component entered its current alarm state. The visual builds an alarm identity from machine + component + alarmTime. Audio fires exactly once per unique identity and is permanently cached for the session. The visual renders normally without it; **without it, a component that clears and re-alarms in the same session will not trigger audio a second time** because the identity never changes. Strongly recommended for live dashboards. Leave null/blank for non-alarm rows. | Max 1 field — bind the datetime column itself, not a date hierarchy. ISO 8601 datetime string or datetime value. Must be null/blank for non-alarm rows. |
+| lastSeen | Grouping or Measure | No | Timestamp of the last data receipt for this component. Displayed in the component tooltip as a full local date and time. | Max 1 field — bind the datetime column itself, not a date hierarchy. |
+| tooltipFields | Measure, multiple | No | Additional report-author-selected columns appended to the component tooltip after the standard fields. Multiple columns can be bound. | No max — the only role that accepts more than one field. |
 
 ## Status Model
 
@@ -56,9 +57,12 @@ Counts are derived from component rows:
 | Proximity alarm | `prox` | `#FF5A5A` | Yes | Yes, on transition |
 | Movement alarm | `move` | `#C42B4A` | Yes | Yes, on transition |
 
-Each component carries exactly one status — duplicate component rows are rejected as an error, so
-no per-component precedence is ever applied. At machine level the frame/badge status reduces as:
-any movement alarm > any proximity alarm > all-components no-data (nodata/lockoutnd) > ok.
+Each component carries exactly one status — a duplicate component key is a validation issue on that
+machine's card, so no per-component precedence is ever applied. At machine level the frame/badge
+status reduces as: any movement alarm > any proximity alarm > all-components no-data
+(nodata/lockoutnd) > ok. `dominantAlarm(statuses)` in `src/domain/statusMeta.ts` is the single
+implementation of the movement-over-proximity rule, shared by the parser's machine alarm fields and
+this frame reduction (the geometry engine still derives its own center alarm label separately).
 
 Component stroke = component fill mixed 42% toward black.
 
@@ -116,8 +120,14 @@ interface MachineBucketModel {
   hasAlarm: boolean;
   dominantAlarm?: "prox" | "move";
   sourceOrder: number;
+  issues: string[];      // row/count problems on this machine; empty means valid
+  incomplete: boolean;   // true when the host's row cap cut this machine's rows short
 }
 ```
+
+`issues`/`incomplete` are computed from the machine's own rows only and never affect `alarmCount`,
+`hasAlarm`, or `dominantAlarm`, which are always derived from every valid row of that machine — an
+invalid or incomplete machine still alarms, sorts, and beeps normally (owner decision D1).
 
 ## Formatting Objects
 
@@ -175,14 +185,21 @@ internally distributed visual regardless of certification status.
 
 - Machines: 20 is the design/performance target. The machine count itself is not validated — the
   effective ceiling is the 2000-row host cap below.
-- Teeth per machine: 4 to 20.
-- Lip shrouds per machine: supplied rows equal to `teeth - 1`.
-- Wing shrouds per machine: 0 to 8 total, assigned to sides by visual settings.
+- Teeth per machine: 4 to 20 (a machine outside this range is invalid, not the whole visual).
+- Lip shrouds per machine: supplied rows equal to `teeth - 1`, checked only when teeth is in range.
+- Wing shrouds per machine: 0 to 4 per side (0 to 8 total), assigned to sides by visual settings; a
+  side over 4 makes that machine invalid.
+- Data role fields: each role in `capabilities.json`'s `dataViewMappings[0].table.conditions` allows
+  at most one bound field, except `tooltipFields` (unbounded).
 - Host row cap: `capabilities.json` requests `dataReductionAlgorithm.top.count = 2000` rows. The
   practical worst case under the 20-machine / 20-tooth limits is ~940 supplied component rows
-  (20 × (20 teeth + 19 lip shrouds + 8 wing shrouds)), comfortably under the 2000 cap.
+  (20 × (20 teeth + 19 lip shrouds + 8 wing shrouds)), comfortably under the 2000 cap. When the cap
+  does truncate rows (`dataView.metadata.segment` present), a banner appears and the machine whose
+  first row comes latest in the table is marked incomplete (see
+  [DATA_SCHEMA.md › Validation rules](DATA_SCHEMA.md#validation-rules)).
 - Reduction strategy: the 2000-row top cap is the only reduction; the visual needs all current
   component rows at once (no aggregation or paging).
+- Issues per machine: capped at 20, with a final "…and N more." summary line beyond that.
 
 ## Geometry Contract
 
