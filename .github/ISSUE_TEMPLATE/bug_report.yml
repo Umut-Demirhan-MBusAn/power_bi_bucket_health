@@ -1,0 +1,49 @@
+name: Bug report
+description: Something in the visual does not work as documented.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Visual version
+      description: From the release you installed, e.g. 1.0.0.0.
+    validations:
+      required: true
+  - type: dropdown
+    id: host
+    attributes:
+      label: Where does it happen?
+      options:
+        - Power BI Service (browser)
+        - Power BI Desktop
+        - Power BI Embedded
+        - Power BI mobile
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Data connection
+      options:
+        - DirectQuery
+        - Live connection
+        - Import
+        - Not sure
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Bound fields, settings, and what you did.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or sample data
+      description: Remove anything confidential first.
