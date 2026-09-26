@@ -43,10 +43,10 @@ test("renderFleet omits truncation banner when truncated=false", () => {
 });
 
 test("renderFleet renders a banner per fleet-level warning", () => {
-    const el = renderFleet([machine()], THEME, 220, false, ["2 row(s) skipped: machine is blank."]);
+    const el = renderFleet([machine()], THEME, 220, false, ["2 rows have no machine and are not shown."]);
     const banners = el.querySelectorAll(".bh-fleet-warning");
     assert.equal(banners.length, 1);
-    assert.match(banners[0].textContent, /2 row\(s\) skipped: machine is blank\./);
+    assert.match(banners[0].textContent, /2 rows have no machine and are not shown\./);
 });
 
 test("renderFleet omits fleet-warning banners when warnings is empty", () => {

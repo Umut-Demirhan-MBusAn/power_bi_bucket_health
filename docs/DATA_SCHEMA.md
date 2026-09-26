@@ -52,8 +52,8 @@ them to a canonical key and shows a fixed display label. Bind any of the accepte
 | `Movement Alarm` · `movement` · `move` | `move` | Movement Alarm | Yes — on transition |
 
 An unrecognised status string is a **row-level issue**: the row is listed on its machine's card
-("Row N: status '…' is not supported.") and excluded from that machine's geometry and counts — it
-does not fail the whole visual. Make sure your source system only emits the accepted spellings
+("Tooth 4 (EX-107-T04): status 'Broken' is not recognised. Use OK, …") and excluded from that
+machine's geometry and counts — it does not fail the whole visual. Make sure your source system only emits the accepted spellings
 above.
 
 Status **colours (hex), alarm precedence, and the component stroke rule** are defined once in the host
@@ -140,8 +140,13 @@ Row-level checks (excluded row does not count toward that machine's geometry or 
 - Order must be a whole number ≥ 1 — accepted as a number or a digit-only string (e.g. `"3"`);
   booleans, dates, hex-looking strings (`"0x3"`), and decimals (`"1.5"`) are all rejected.
 
+A row-level issue names the component the way the report author knows it — "Tooth 4 (EX-107-T04)"
+when category and order are usable, else the component key, else "A tooth row" / "A row" — and says
+which values are accepted. It never cites a row number: rows are numbered by the host's query
+result, which the author cannot see and which changes with filters and sorting.
+
 A row with a **blank Machine** value cannot be attributed to any machine at all: it is skipped and
-counted into one fleet-level warning ("N row(s) skipped: machine is blank.") shown as a banner above
+counted into one fleet-level warning ("N rows have no machine and are not shown.") shown as a banner above
 the grid, rather than becoming a row-level issue on some machine's card. If every row in the update
 has a blank machine, there is nothing to render and the visual shows the Error state using that same
 warning.
@@ -152,6 +157,12 @@ Machine-level checks (run only on that machine's valid rows):
 - Teeth count must be 4–20.
 - Lip shroud count must equal `teeth − 1` — checked only when the teeth count is itself in range.
 - Each wing side (after applying **Wing side assignment**) must have at most 4 wing shrouds.
+
+While any of the machine's rows is rejected, the "fewer than 4 teeth" and lip-shroud checks are
+skipped: counting without the rejected row would blame a category that is actually fine (a bad
+tooth status would otherwise also report "4 lip shrouds; expected 3."). The "more than 20 teeth"
+and per-side wing limits always run, because a rejected row can only lower a count. The card
+header counts the valid components only.
 
 Each machine's issue list is capped at 20 entries, with a final "…and N more." summary when there
 are more.
