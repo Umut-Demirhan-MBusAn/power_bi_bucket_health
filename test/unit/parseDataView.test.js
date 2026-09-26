@@ -208,6 +208,29 @@ test("an invalid machine's alarm components still set hasAlarm and are collected
     assert.ok(ids.has(buildAlarmId("EX-9", "T3", undefined)));
 });
 
+test("a machine with one invalid row and a Movement Alarm elsewhere still alarms, sorts, and is collected for audio", () => {
+    const rows = [
+        componentRow("EX-MIX", "T1", "tooth", 1, "OK"),
+        componentRow("EX-MIX", "T2", "tooth", 2, "OK"),
+        componentRow("EX-MIX", "T3", "tooth", 3, "OK"),
+        componentRow("EX-MIX", "T4", "tooth", 4, "Movement Alarm"),
+        componentRow("EX-MIX", "T5", "tooth", 5, "Offline"),
+        componentRow("EX-MIX", "L1", "lipShroud", 1, "OK"),
+        componentRow("EX-MIX", "L2", "lipShroud", 2, "OK"),
+        componentRow("EX-MIX", "L3", "lipShroud", 3, "OK")
+    ];
+
+    const model = parseDataView(dataViewFromRows(rows));
+    const machine = model.machines.find((m) => m.key === "EX-MIX");
+
+    assert.equal(machine.hasAlarm, true);
+    assert.equal(machine.dominantAlarm, "move");
+    assert.deepEqual(machine.issues, ["Row 5: status 'Offline' is not supported."]);
+
+    const ids = collectAlarmIds(model.machines);
+    assert.ok(ids.has(buildAlarmId("EX-MIX", "T4", undefined)));
+});
+
 test("wing side over-assignment: odd orders 1,3,5,7,9 overflow the left side; 1-8 do not", () => {
     const baseline = (machine) => [
         componentRow(machine, "T1", "tooth", 1, "OK"),
@@ -265,6 +288,23 @@ test("issues are capped at 20 with a summary line for the rest", () => {
     assert.equal(machine.issues[20], "…and 5 more.");
 });
 
+test("machine-level issues sort before row issues, so the cap never hides the Incomplete flag", () => {
+    // A single machine with 25 bad rows and no segment cutoff would just be 25 row issues, capped
+    // to 20 plus a summary. Adding a truncating segment makes this (the only) machine "incomplete"
+    // too -- that machine-level issue must still land at issues[0], ahead of all 25 row issues,
+    // proving machine-level issues are placed first before capping rather than appended at the end.
+    const badRows = Array.from({ length: 25 }, (_, i) => componentRow("EX-BAD", `X${i + 1}`, "adapter", i + 1, "OK"));
+
+    const model = parseDataView(dataViewFromRows(badRows, undefined, {}));
+    const machine = model.machines.find((m) => m.key === "EX-BAD");
+
+    assert.equal(model.truncated, true);
+    assert.equal(machine.incomplete, true);
+    assert.equal(machine.issues[0], "Incomplete — the 2,000-row limit was reached.");
+    assert.equal(machine.issues.length, 21);
+    assert.equal(machine.issues[20], "…and 6 more.");
+});
+
 test("truncated segment marks the last-first-seen machine incomplete; others stay valid", () => {
     const rows = [
         componentRow("EX-1", "T1", "tooth", 1, "OK"),
@@ -274,13 +314,12 @@ test("truncated segment marks the last-first-seen machine incomplete; others sta
         componentRow("EX-1", "L1", "lipShroud", 1, "OK"),
         componentRow("EX-1", "L2", "lipShroud", 2, "OK"),
         componentRow("EX-1", "L3", "lipShroud", 3, "OK"),
+        // EX-2 is actually cut short by the row cap: 2 teeth and 0 lip shrouds would normally be
+        // two count issues ("2 teeth; supported range..." and "0 lip shrouds; expected 1.") --
+        // asserting only the Incomplete issue below proves those checks are replaced, not just
+        // silently absent because the counts happened to be fine.
         componentRow("EX-2", "T1", "tooth", 1, "OK"),
-        componentRow("EX-2", "T2", "tooth", 2, "OK"),
-        componentRow("EX-2", "T3", "tooth", 3, "OK"),
-        componentRow("EX-2", "T4", "tooth", 4, "OK"),
-        componentRow("EX-2", "L1", "lipShroud", 1, "OK"),
-        componentRow("EX-2", "L2", "lipShroud", 2, "OK"),
-        componentRow("EX-2", "L3", "lipShroud", 3, "OK")
+        componentRow("EX-2", "T2", "tooth", 2, "OK")
     ];
 
     const model = parseDataView(dataViewFromRows(rows, undefined, {}));
@@ -347,8 +386,13 @@ test("order accepts finite integers (numeric or numeric-string) >= 1 and rejects
     assert.equal(machine.teeth[0].componentKey, "T7");
     assert.equal(machine.teeth[0].order, 3);
 
-    const orderIssueCount = machine.issues.filter((issue) => issue.includes("order must be")).length;
-    assert.equal(orderIssueCount, 6);
+    const orderIssues = machine.issues.filter((issue) => issue.includes("is not a whole number"));
+    assert.equal(orderIssues.length, 6);
+    assert.ok(orderIssues.includes("Row 1: order 'true' is not a whole number ≥ 1."));
+    assert.ok(orderIssues.includes("Row 3: order '0x3' is not a whole number ≥ 1."));
+    assert.ok(orderIssues.includes("Row 4: order '1.5' is not a whole number ≥ 1."));
+    assert.ok(orderIssues.includes("Row 5: order '0' is not a whole number ≥ 1."));
+    assert.ok(orderIssues.includes("Row 6: order '-1' is not a whole number ≥ 1."));
 });
 
 test("rows with a blank machine are skipped and counted into one fleet warning; other machines still render", () => {

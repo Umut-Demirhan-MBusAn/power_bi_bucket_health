@@ -116,7 +116,7 @@ function getRoleIndexes(columns: DataViewMetadataColumn[]): RoleIndexes | { miss
     const status = findRoleIndex(columns, "status");
 
     if (machine === undefined || component === undefined || category === undefined || order === undefined || status === undefined) {
-        return { missingRoles: requiredRoles.filter((role) => !columns.some((column) => Boolean(column.roles?.[role]))) };
+        return { missingRoles: requiredRoles.filter((role) => findRoleIndex(columns, role) === undefined) };
     }
 
     return {
@@ -174,6 +174,7 @@ function collectMachineDrafts(
         const category = matchCategory(categoryRaw);
         const statusRaw = textValue(row[indexes.status]);
         const status = normalizeStatus(row[indexes.status]);
+        const orderRaw = textValue(row[indexes.order]);
         const order = parseOrder(row[indexes.order]);
 
         if (!componentKey) {
@@ -186,20 +187,21 @@ function collectMachineDrafts(
             draft.issues.push(`Row ${line}: status '${statusRaw}' is not supported.`);
         }
         if (order === undefined) {
-            draft.issues.push(`Row ${line}: order must be an integer greater than zero.`);
+            draft.issues.push(`Row ${line}: order '${orderRaw}' is not a whole number ≥ 1.`);
         }
 
         if (!componentKey || !category || !status || order === undefined) {
             return;
         }
 
+        const machineType = optionalTextValue(row, indexes.machineType);
         if (draft.machineType === undefined) {
-            draft.machineType = optionalTextValue(row, indexes.machineType);
+            draft.machineType = machineType;
         }
 
         draft.validComponents.push({
             machineKey,
-            machineType: optionalTextValue(row, indexes.machineType),
+            machineType,
             componentKey,
             category,
             order,
@@ -265,26 +267,31 @@ function buildMachineModels(
         const wingShroudsLeft = sortComponents(wingShrouds.filter((component) => component.derivedWingSide === "left"));
         const wingShroudsRight = sortComponents(wingShrouds.filter((component) => component.derivedWingSide === "right"));
 
-        const issues = [...draft.issues];
+        // Machine-level issues (duplicates, counts, wing limits, incomplete) come before this
+        // machine's row-level issues, so a flood of bad rows can never push the more structurally
+        // significant machine-level problems past the 20-issue cap.
+        const machineIssues: string[] = [];
 
         findDuplicateComponentKeys(draft.validComponents).forEach((componentKey) => {
-            issues.push(`Duplicate component '${componentKey}'.`);
+            machineIssues.push(`Duplicate component '${componentKey}'.`);
         });
 
         if (incomplete) {
-            issues.push("Incomplete — the 2,000-row limit was reached.");
+            machineIssues.push("Incomplete — the 2,000-row limit was reached.");
         } else if (teeth.length < 4 || teeth.length > 20) {
-            issues.push(`${teeth.length} teeth; supported range is 4–20.`);
+            machineIssues.push(`${teeth.length} teeth; supported range is 4–20.`);
         } else if (lipShrouds.length !== teeth.length - 1) {
-            issues.push(`${lipShrouds.length} lip shrouds; expected ${teeth.length - 1}.`);
+            machineIssues.push(`${lipShrouds.length} lip shrouds; expected ${teeth.length - 1}.`);
         }
 
         if (!incomplete && wingShroudsLeft.length > 4) {
-            issues.push(`${wingShroudsLeft.length} wing shrouds on the left side; maximum is 4 per side.`);
+            machineIssues.push(`${wingShroudsLeft.length} wing shrouds on the left side; maximum is 4 per side.`);
         }
         if (!incomplete && wingShroudsRight.length > 4) {
-            issues.push(`${wingShroudsRight.length} wing shrouds on the right side; maximum is 4 per side.`);
+            machineIssues.push(`${wingShroudsRight.length} wing shrouds on the right side; maximum is 4 per side.`);
         }
+
+        const issues = [...machineIssues, ...draft.issues];
 
         const alarmComponents = draft.validComponents.filter((component) => isAlarmStatus(component.status));
 
