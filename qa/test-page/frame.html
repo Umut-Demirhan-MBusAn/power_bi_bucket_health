@@ -77,7 +77,8 @@
   const DATE_COLUMNS = new Set(["alarm_time", "last_seen_utc"]);
   const ROW_CAP = 2000;
 
-  // Host double. Selection ids are identity-based (machine + component), like Power BI's.
+  // Host double. Selection ids here are machine + component, so they survive a refresh; Power BI's
+  // row identity also includes the other bound grouping columns.
   let selected = [];
   let onSelect = () => {};
   let sentRows = [];

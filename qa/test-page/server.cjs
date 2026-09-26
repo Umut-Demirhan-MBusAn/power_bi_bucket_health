@@ -57,7 +57,12 @@ function send(res, status, type, body) {
 
 const PAGES = { "/": "index.html", "/index.html": "index.html", "/frame.html": "frame.html" };
 
+// Only this machine's own origin: a page elsewhere could otherwise rebind its hostname to
+// 127.0.0.1 and read the data or trigger sqlcmd runs.
+const ALLOWED_HOSTS = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`]);
+
 http.createServer((req, res) => {
+    if (!ALLOWED_HOSTS.has(req.headers.host)) return send(res, 403, "text/plain", "forbidden host");
     try {
         const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
         if (PAGES[url.pathname]) {

@@ -112,7 +112,7 @@ position. While a row is rejected, only count problems it cannot have caused are
 | Invalid machine | ALARM! (if alarming), else DATA ERROR | The machine has one or more row-level or count validation issues |
 | Incomplete machine | ALARM! (if alarming), else INCOMPLETE | The host's 2,000-row cap cut this machine's data short; its count checks are replaced by one "row limit reached" issue |
 
-Both have a grey frame unless alarming, and the header's type and counts come from the valid rows
+Both have a grey frame (host foreground in high contrast) unless alarming, and the header's type and counts come from the valid rows
 only.
 
 ## Status Model
@@ -168,8 +168,8 @@ Each machine card frame and badge reflect the worst status across its components
 
 - Selection/cross-filter: clicking a component selects it and cross-filters other visuals on the
   page; Ctrl+click adds or removes a component. Components outside the selection dim to 40 %
-  opacity, and the dimming survives data refreshes. Clicking empty space in the visual clears the
-  selection. Every click inside the visual also arms audio and stops a sounding alarm.
+  opacity (alarming components stay fully visible), re-applied on every render. Clicking empty
+  space in the visual clears the selection. Every click inside the visual also arms audio and stops a sounding alarm.
 - Highlight: not supported, so a selection in another visual filters this one. A machine left
   with a few components then shows count issues; set Edit interactions to None on visuals that
   should not filter it.

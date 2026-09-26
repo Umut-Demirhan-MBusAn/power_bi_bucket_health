@@ -29,9 +29,9 @@
    2. Add the Bucket Health visual and bind (drag the column, not a date hierarchy):
         Machine = machine_key            Machine Type = machine_type
         Component = component_key        Category = component_category
-        Order = component_order          Component Status = status
+        Order = component_order (Don't summarize)   Component Status = status
         Comp. Alarm Time = alarm_time    Last Seen = last_seen_utc
-        Tooltip Fields = tag_id, wear_pct   (set wear_pct to "Don't summarize")
+        Tooltip Fields = tag_id (First), wear_pct
    3. Add a Table visual next to it with machine_key, component_name, status, tag_id, wear_pct
       (used for the cross-filter screenshot).
    4. Format page -> Page refresh -> On -> Auto page refresh -> every 5 seconds.
@@ -44,7 +44,7 @@ GO
 
 /* =============================================================================================
    PART A: STILL SCREENSHOTS (no sound needed)
-   Suggested file names are in [brackets]; rename freely and send them to me.
+   Suggested file names are in [brackets].
    ============================================================================================= */
 
 -- A1. Landing page. No SQL.
@@ -101,7 +101,7 @@ EXEC dbo.bh_alarm 'SH-301', 'tooth', 15;
 --     EXPECT: EX-103 first (movement beats proximity), banner has two lines:
 --     "Movement Alarm - Lip 2" and "Proximity Alarm - Tooth 3". SH-301 second with
 --     "Proximity Alarm - Tooth 14, Tooth 15". The rest follow, green.
---     SCREENSHOT [09_fleet_multiple_alarms.png]  (hero image for the README)
+--     SCREENSHOT [09_fleet_multiple_alarms.png]
 --     Filter the visual to EX-103 only (Filters pane) for a close-up:
 --     SCREENSHOT [10_single_machine_movement_and_proximity.png]   Remove the filter.
 

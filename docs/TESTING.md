@@ -94,8 +94,9 @@ expected column set: `machine_key`, `machine_name`, `machine_type`, `component_k
 
 ## Manual testing
 
-Unit tests verify logic and DOM structure. These behaviors require manual verification in Power BI
-Desktop using `pbiviz start` (Developer Visual mode).
+Unit tests verify logic and DOM structure. Host behaviour (audio, selection, tooltips, layout, high
+contrast) is checked by the release QA below, and live development uses `pbiviz start` (Developer
+Visual mode).
 
 Setup notes for `pbiviz start`:
 

@@ -1,6 +1,6 @@
 # QA Test Cases
 
-Release test cases for Bucket Health v1.0.0.0, against live SQL Server data. Every case has an ID, where it
+Release test cases for Bucket Health, against live SQL Server data. Every case has an ID, where it
 runs, steps and the exact expected result. Unit tests: [TESTING.md](TESTING.md).
 
 | Runs on | Meaning |
@@ -60,9 +60,11 @@ h.clearEvents();
 
 **Power BI Desktop:** Get data → SQL Server → `localhost`, `BucketHealthQA`, DirectQuery →
 `dbo.v_bucket_health`. Bind Machine = `machine_key`, Machine Type = `machine_type`, Component =
-`component_key`, Category = `component_category`, Order = `component_order`, Component Status =
-`status`, Comp. Alarm Time = `alarm_time`, Last Seen = `last_seen_utc` (the columns, not date
-hierarchies), Tooltip Fields = `tag_id`, `wear_pct` (Don't summarize). Add a Table visual with
+`component_key`, Category = `component_category`, Order = `component_order` (Don't summarize:
+a summed Order merges rows that share every other value), Component Status = `status`, Comp.
+Alarm Time = `alarm_time`, Last Seen = `last_seen_utc` (the columns, not date hierarchies),
+Tooltip Fields = `tag_id` (First), `wear_pct`. Tooltip field labels then follow Power BI's naming
+(e.g. "First tag_id"); the exact labels in TT-01 are the test page's. Add a Table visual with
 `machine_key`, `component_name`, `status`. Format page → Page refresh → every 5 seconds.
 
 **Every case starts from:** `EXEC dbo.bh_reset;`, the test page reloaded with default controls (or
@@ -163,7 +165,7 @@ Hover with the real mouse (Page: Playwright hover or `mouse.move` into the ifram
 
 | ID | Runs on | Steps | Expected |
 | --- | --- | --- | --- |
-| TT-01 | Both | `EXEC dbo.bh_set 'EX-101','tooth',2,'Lockout';` Refresh. Hover EX-101 tooth 2. | Heading "Tooth 2" with a status dot; rows in order: Status "Lockout" (in the status colour), Machine "EX-101", Type "Hydraulic Excavator", Component "EX-101-T02", Last seen (local date and time to the minute, e.g. "Sep 26, 2026, 09:14 AM"), tag_id "TAG-EX-101-T02", wear_pct (a number). |
+| TT-01 | Both | `EXEC dbo.bh_set 'EX-101','tooth',2,'Lockout';` Refresh. Hover EX-101 tooth 2. | Heading "Tooth 2" with a status dot; rows in order: Status "Lockout" (in the status colour), Machine "EX-101", Type "Hydraulic Excavator", Component "EX-101-T02", Last seen (local date and time to the minute, e.g. "Sep 26, 2026, 09:14 AM"), tag_id "TAG-EX-101-T02", wear_pct (a number). Desktop: record the tooltip-field labels Power BI gives. |
 | TT-02 | Both | Hover a lip shroud and a wing shroud. | Headings "Lip shroud N" and "Wing shroud N". |
 | TT-03 | Both | Unbind Machine Type, Last Seen and Tooltip Fields. Hover a component. | Only Status, Machine, Component rows. |
 | TT-04 | Both | Hover a tooth, then move onto empty card space. | Hides immediately. |
@@ -180,10 +182,10 @@ Hover with the real mouse (Page: Playwright hover or `mouse.move` into the ifram
 
 | ID | Runs on | Steps | Expected |
 | --- | --- | --- | --- |
-| IN-01 | Both | Click EX-101 tooth 2. | Page: event `select ["EX-101","EX-101-T02"] -> 1 selected`; every other component `dimmed` (40 % opacity). Desktop: the Table shows only that row. |
+| IN-01 | Both | Click EX-101 tooth 2. | Page: event `select ["EX-101","EX-101-T02"] -> 1 selected`; every other component `dimmed` (40 % opacity; alarming components stay fully visible). Desktop: the Table shows only that row. |
 | IN-02 | Both | Ctrl+click EX-101 tooth 7. | Two selected; both undimmed. |
 | IN-03 | Both | Click empty space. | "selection cleared"; nothing dimmed. |
-| IN-04 | Both | Select a tooth, then `EXEC dbo.bh_touch;` and Refresh; then change another machine's status and Refresh. | Dimming stays on the same selection after both refreshes. |
+| IN-04 | Page | Select a tooth, then `EXEC dbo.bh_touch;` and Refresh; then change another machine's status and Refresh. | Dimming stays on the same selection after both refreshes (the page's ids are machine + component). Desktop: observe and record; Power BI's row identity includes every bound grouping column, so a refresh that changes Last Seen may leave the selection matching no component. |
 | IN-05 | Both | Right-click EX-101 tooth 2; right-click empty space. | Page: `context menu ["EX-101","EX-101-T02"] at x,y`, then `context menu (no selection id)`. Desktop: Power BI's context menu opens both times. |
 | IN-06 | Both | Focus EX-101's first component (Tab into the visual). Press ArrowRight, ArrowDown, ArrowLeft, ArrowUp. | Focus moves next, next, previous, previous through the components (card by card: wing shrouds, lip shrouds, teeth), with a white focus ring; from the last component ArrowRight wraps to the first. |
 | IN-07 | Both | Focus a component, press Enter; focus another, press Space; Ctrl+Enter on a third. | Each selects its component (Ctrl adds). |
