@@ -2,8 +2,8 @@
 
 Bucket Health, a Power BI custom visual (TypeScript, powerbi-visuals-api ~5.11, formattingmodel 7,
 MIT; developer Umut Demirhan). **This file is the single source of truth for coding agents**;
-`.github/copilot-instructions.md` only points here. Product and host docs: `docs/`. Task status =
-GitHub Issues, never a doc.
+`.github/copilot-instructions.md` points here and adds only Copilot notes. Product and host docs:
+`docs/`. Task status = GitHub Issues, never a doc.
 
 ## Commands  (npm · Node ≥ 22.13, `.nvmrc` 22 · repo root)
 - Install `npm ci`. `pbiviz` is a GLOBAL install, never a dependency:
