@@ -1,5 +1,11 @@
 export class AlarmAudio {
+    // The context a click unlocked must outlive dismissal: the visual runs in a sandboxed
+    // cross-origin iframe, where a context created later, without a user gesture, starts suspended
+    // and cannot be resumed, so the alarm would play silently. Only destroy() closes it.
     private context: AudioContext | null = null;
+    // Every tone of one alarm runs through this node; disconnecting it silences the alarm at once
+    // and frees its tone nodes, which matters because the context lives for the whole session.
+    private master: GainNode | null = null;
     private stopTimeout: ReturnType<typeof setTimeout> | null = null;
     private intervalId: ReturnType<typeof setInterval> | null = null;
     private playing = false;
@@ -8,12 +14,7 @@ export class AlarmAudio {
 
     arm(): void {
         try {
-            if (!this.context) {
-                this.context = this.createContext();
-            }
-            if (this.context.state === "suspended") {
-                void this.context.resume();
-            }
+            this.ensureRunning();
         } catch {
             /* ignore */
         }
@@ -23,17 +24,18 @@ export class AlarmAudio {
         if (this.playing) return;
         this.playing = true;
         try {
-            if (!this.context) {
-                this.context = this.createContext();
-            }
-            if (this.context.state === "suspended") {
-                void this.context.resume();
-            }
+            const context = this.ensureRunning(() => {
+                // resume() settles asynchronously, so the beep start() skipped plays now.
+                if (this.playing) this.scheduleBeep();
+            });
+            this.master = context.createGain();
+            this.master.gain.value = 0.12;
+            this.master.connect(context.destination);
             this.scheduleBeep();
             this.intervalId = setInterval(() => this.scheduleBeep(), 1500);
             this.stopTimeout = setTimeout(() => this.stop(), 60000);
         } catch {
-            this.playing = false;
+            this.stop();
         }
     }
 
@@ -47,24 +49,38 @@ export class AlarmAudio {
 
     destroy(): void {
         this.stop();
+        if (this.context) {
+            this.context.close().catch(() => undefined);
+            this.context = null;
+        }
+    }
+
+    // "interrupted" (Safari) as well as "suspended": a kept context can stall either way.
+    private ensureRunning(onResumed?: () => void): AudioContext {
+        if (!this.context) {
+            this.context = this.createContext();
+        }
+        if (this.context.state !== "running") {
+            this.context.resume().then(onResumed, () => undefined);
+        }
+        return this.context;
     }
 
     private scheduleBeep(): void {
-        if (!this.context) return;
+        // currentTime is frozen while the context is not running, so tones scheduled then would all
+        // sound at once when it resumes.
+        if (!this.context || !this.master || this.context.state !== "running") return;
         const now = this.context.currentTime;
         this.tone(880, now, 0.24);
         this.tone(660, now + 0.24, 0.24);
     }
 
     private tone(freq: number, start: number, duration: number): void {
-        if (!this.context) return;
+        if (!this.context || !this.master) return;
         const osc = this.context.createOscillator();
-        const gain = this.context.createGain();
         osc.type = "square";
         osc.frequency.value = freq;
-        gain.gain.value = 0.12;
-        osc.connect(gain);
-        gain.connect(this.context.destination);
+        osc.connect(this.master);
         osc.start(start);
         osc.stop(start + duration);
     }
@@ -78,9 +94,9 @@ export class AlarmAudio {
             clearTimeout(this.stopTimeout);
             this.stopTimeout = null;
         }
-        if (this.context) {
-            try { this.context.close(); } catch { /* ignore */ }
-            this.context = null;
+        if (this.master) {
+            try { this.master.disconnect(); } catch { /* ignore */ }
+            this.master = null;
         }
         this.playing = false;
     }
