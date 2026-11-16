@@ -163,7 +163,16 @@ Each machine card frame and badge reflect the worst status across its components
   drops to an edge state (landing page, invalid configuration, no data, error). An alarm first
   seen while audio is off never plays later.
 - Audio gesture rule: browser autoplay policies require a user gesture, so audio is armed/resumed
-  by a user click inside the visual before it can play.
+  by a user click inside the visual before it can play. The unlocked context is kept, so one click
+  lasts until the browser locks audio again.
+- Unlock prompt: while the browser keeps audio locked (Power BI Service, embedded), a small button
+  pill in its own strip at the top centre (the fleet moves down 30 px, so it never covers a machine)
+  reads "🔇 Click to turn on alarm sound". A click on it, or anywhere in the
+  visual, unlocks audio; the pill then reads "🔊 Alarm sound on" for 2 s and goes. A click on the
+  pill does not change the selection. The pill is keyboard-reachable (Tab, then Enter or Space). It
+  shows only with **Enable audio alarm** on, ready data, interactions allowed and Web Audio
+  available, never where audio starts unlocked (Power BI Desktop), and it returns if the browser
+  locks audio again. In Power BI high contrast it takes the host palette's colours.
 - Audio pattern: WebAudio two-tone square-wave beep, 880 Hz then 660 Hz, ~0.24 seconds each,
   repeating every 1.5 seconds, with auto-stop after 60 seconds.
 - A new alarm transition while the beep is sounding does not restart it or its 60 seconds. Clearing an
@@ -205,6 +214,9 @@ Each machine card frame and badge reflect the worst status across its components
 - Status never relies on color alone: alarm animation, labels, ARIA labels, and tooltips provide
   secondary signals.
 - Audio alarm is dismissible.
+- The audio unlock prompt is a real button (focusable, Enter/Space), its icon is hidden from
+  assistive technology, and the switch to "Alarm sound on" is announced (`aria-live="polite"`);
+  it uses system colours in forced-colors mode.
 - The **Alarm motion** setting controls flashing without ever hiding the alarm: *Always flash*
   (default) ignores the OS reduced-motion setting so a safety alarm is never silently suppressed;
   *Auto* renders a solid, still-prominent alarm when the OS requests reduced motion; *Never* is

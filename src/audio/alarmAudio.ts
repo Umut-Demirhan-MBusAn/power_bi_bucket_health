@@ -9,6 +9,7 @@ export class AlarmAudio {
     private stopTimeout: ReturnType<typeof setTimeout> | null = null;
     private intervalId: ReturnType<typeof setInterval> | null = null;
     private playing = false;
+    private onLockChange: (() => void) | null = null;
 
     constructor(private readonly createContext: () => AudioContext = () => new AudioContext()) {}
 
@@ -18,6 +19,24 @@ export class AlarmAudio {
         } catch {
             /* ignore */
         }
+    }
+
+    // Creates the context up front, without a gesture, so the visual can tell whether the browser
+    // has audio locked (the Service) or not (Desktop) and prompt for the unlocking click. It never
+    // calls resume(): without a gesture that only logs an autoplay warning on every refresh, and an
+    // unlocked host starts the context by itself.
+    prepare(onLockChange: () => void): void {
+        this.onLockChange = onLockChange;
+        try {
+            this.ensureContext();
+        } catch {
+            /* ignore */
+        }
+    }
+
+    // False without a context (no Web Audio): no click could unlock one, so nothing should ask.
+    isLocked(): boolean {
+        return this.context !== null && this.context.state !== "running";
     }
 
     start(): void {
@@ -57,11 +76,17 @@ export class AlarmAudio {
 
     // "interrupted" (Safari) as well as "suspended": a kept context can stall either way.
     private ensureRunning(onResumed?: () => void): AudioContext {
+        const context = this.ensureContext();
+        if (context.state !== "running") {
+            context.resume().then(onResumed, () => undefined);
+        }
+        return context;
+    }
+
+    private ensureContext(): AudioContext {
         if (!this.context) {
             this.context = this.createContext();
-        }
-        if (this.context.state !== "running") {
-            this.context.resume().then(onResumed, () => undefined);
+            this.context.onstatechange = () => this.onLockChange?.();
         }
         return this.context;
     }

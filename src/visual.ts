@@ -10,6 +10,7 @@ import { parseDataView } from "./data/parseDataView";
 import { BucketHealthDataModel, ComponentRecord, MachineBucketModel } from "./data/types";
 import { asAlarmMotion, asComponentOrderDirection, asWingSideAssignment } from "./domain/settingsGuards";
 import { statusColors, statusLabels, VisualTheme } from "./domain/statusMeta";
+import { applyAudioPromptTheme, AUDIO_PROMPT_CLASS, createAudioPrompt, setAudioPromptState } from "./rendering/renderAudioPrompt";
 import { renderEdgeState } from "./rendering/renderEdgeStates";
 import { renderFleet, resyncFleetAnimations, updateFleet } from "./rendering/renderFleet";
 import { VisualFormattingSettingsModel } from "./settings";
@@ -29,6 +30,10 @@ const DIMMED_CLASS = "bucket-health-svg__component--dimmed";
 // runtime object in the packaged visual, so the flag values are spelled out.
 const DATA_OR_STYLE_UPDATE = 2 | 16;
 const TOOLTIP_IDLE_MS = 8000;
+const AUDIO_PROMPT_CONFIRM_MS = 2000;
+const AUDIO_PROMPT_ROOT_CLASS = "bucket-health-root--audio-prompt";
+// Matches the pill's CSS fade-in delay: a pill unlocked sooner was never seen, so it goes silently.
+const AUDIO_PROMPT_SHOW_DELAY_MS = 600;
 
 export class Visual implements IVisual {
     private readonly events: IVisualEventService;
@@ -53,6 +58,14 @@ export class Visual implements IVisual {
     private readonly host: IVisualHost;
     private readonly selectionManager: ISelectionManager;
     private minCardWidth = 220;
+    private audioPrompt: HTMLButtonElement | null = null;
+    private audioPromptWanted = false;
+    private audioPromptTimer: ReturnType<typeof setTimeout> | null = null;
+    private audioPromptStripTimer: ReturnType<typeof setTimeout> | null = null;
+    private audioPromptStripOpen = false;
+    private audioPromptCreatedAt = 0;
+    private audioPromptTheme: VisualTheme | null = null;
+    private readonly onAudioLockChange = (): void => this.syncAudioPrompt();
 
     // powerbi-visuals-api's IVisualPlugin.create types this parameter as optional (it forwards
     // whatever pbiviz's generated plugin wrapper receives); the real Power BI host always
@@ -121,6 +134,13 @@ export class Visual implements IVisual {
 
             this.render(model, theme);
             this.syncFlashing();
+            this.audioPromptTheme = theme;
+            this.audioPromptWanted = model.state === "ready" && audioEnabled
+                && !!this.host.hostCapabilities?.allowInteractions;
+            if (this.audioPromptWanted) {
+                this.alarmController.prepare(this.onAudioLockChange);
+            }
+            this.syncAudioPrompt();
             this.hasRendered = true;
             this.events.renderingFinished(options);
         } catch (error) {
@@ -135,6 +155,8 @@ export class Visual implements IVisual {
             };
             this.alarmController.update(errorModel, false);
             this.render(errorModel, this.readTheme());
+            this.audioPromptWanted = false;
+            this.syncAudioPrompt();
             this.events.renderingFailed(options, String(error));
         }
     }
@@ -144,6 +166,8 @@ export class Visual implements IVisual {
     }
 
     public destroy(): void {
+        this.audioPromptWanted = false;
+        this.syncAudioPrompt();
         this.alarmController.destroy();
         this.reducedMotionQuery?.removeEventListener("change", this.onReducedMotionChange);
         this.hideTooltipNow();
@@ -185,6 +209,74 @@ export class Visual implements IVisual {
 
         // Re-apply dimming so the selection visual survives re-renders.
         this.applyDimming();
+    }
+
+    // The browser keeps audio locked until a click inside the visual (the Service, embedded); the
+    // pill says so until that click, confirms briefly, then goes. Where audio starts unlocked
+    // (Desktop) it never shows: the pill's CSS fade-in delay covers the moment before that is known.
+    private syncAudioPrompt(): void {
+        if (!this.audioPromptWanted) {
+            this.removeAudioPrompt();
+            return;
+        }
+        if (this.alarmController.isLocked()) {
+            this.clearAudioPromptTimer();
+            if (!this.audioPrompt) {
+                this.audioPrompt = createAudioPrompt();
+                this.audioPromptCreatedAt = Date.now();
+                this.audioPromptStripTimer = setTimeout(() => {
+                    this.audioPromptStripTimer = null;
+                    this.audioPromptStripOpen = true;
+                    this.syncAudioPrompt();
+                }, AUDIO_PROMPT_SHOW_DELAY_MS);
+            }
+            setAudioPromptState(this.audioPrompt, "locked");
+        } else if (this.audioPrompt && Date.now() - this.audioPromptCreatedAt < AUDIO_PROMPT_SHOW_DELAY_MS) {
+            this.removeAudioPrompt();
+        } else if (this.audioPrompt && this.audioPromptTimer === null) {
+            setAudioPromptState(this.audioPrompt, "unlocked");
+            this.audioPromptTimer = setTimeout(() => this.removeAudioPrompt(), AUDIO_PROMPT_CONFIRM_MS);
+        }
+        if (this.audioPrompt) {
+            if (this.audioPromptTheme) {
+                applyAudioPromptTheme(this.audioPrompt, this.audioPromptTheme);
+            }
+            // First in the root so Tab reaches it before the components; a full re-render
+            // replaces the root's children, so it is re-attached here.
+            if (this.audioPrompt !== this.target.firstChild) {
+                this.target.prepend(this.audioPrompt);
+            }
+        }
+        // The prompt has its own strip above the fleet so it never covers a machine. The strip opens
+        // only once the pill has faded in, so a pill that goes silently never moves the fleet.
+        this.target.classList.toggle(AUDIO_PROMPT_ROOT_CLASS, this.audioPrompt !== null && this.audioPromptStripOpen);
+    }
+
+    private removeAudioPrompt(): void {
+        this.clearAudioPromptTimers();
+        if (this.audioPrompt && document.activeElement === this.audioPrompt) {
+            // Keep a keyboard user inside the visual rather than dropping focus to the page.
+            this.target.querySelector<HTMLElement>("[data-component-key]")?.focus({ preventScroll: true });
+        }
+        this.audioPrompt?.remove();
+        this.audioPrompt = null;
+        this.audioPromptStripOpen = false;
+        this.target.classList.remove(AUDIO_PROMPT_ROOT_CLASS);
+    }
+
+    private clearAudioPromptTimers(): void {
+        this.clearAudioPromptTimer();
+        if (this.audioPromptStripTimer !== null) {
+            clearTimeout(this.audioPromptStripTimer);
+            this.audioPromptStripTimer = null;
+        }
+    }
+
+    private clearAudioPromptTimer(): void {
+        if (this.audioPromptTimer !== null) {
+            clearTimeout(this.audioPromptTimer);
+            this.audioPromptTimer = null;
+        }
     }
 
     // When flashing turns on (Alarm motion or the OS reduced-motion setting), every kept card's
@@ -293,8 +385,13 @@ export class Visual implements IVisual {
         // Preserve the existing audio arm/dismiss behavior on every click.
         this.alarmController.arm();
         this.alarmController.dismiss();
+        this.syncAudioPrompt();
 
         const target = event.target as Element | null;
+        // The pill only unlocks audio; it must not clear the user's selection.
+        if (target?.closest(`.${AUDIO_PROMPT_CLASS}`)) {
+            return;
+        }
         const componentEl = target?.closest("[data-component-key]") ?? null;
         const selectionId = componentEl ? this.resolveSelectionId(componentEl) : undefined;
 

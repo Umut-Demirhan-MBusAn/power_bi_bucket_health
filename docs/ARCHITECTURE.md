@@ -73,6 +73,7 @@ src/
     geometryTypes.ts
   rendering/
     renderBucketSvg.ts      # Bucket SVG from geometry + theme
+    renderAudioPrompt.ts    # Audio unlock prompt pill (locked / unlocked text)
     renderEdgeStates.ts     # The five non-normal states
     renderFleet.ts          # Flex-wrap fleet grid + truncation banner
     renderMachineCard.ts    # Card frame, header, alarm banner
@@ -164,7 +165,15 @@ element, its positioning, and its content builder are all owned by the entry poi
 **AlarmAudio (WebAudio beep):**
 
 - Requires an explicit user-gesture click to arm/resume the audio context (browser autoplay
-  policy).
+  policy). `prepare()` creates the context on the first ready render with audio on, without a
+  gesture and without calling `resume()` (that would only log an autoplay warning per refresh), so
+  `isLocked()` tells a locked host (Service) from an unlocked one (Desktop); it is false with no
+  context at all. The context's `statechange` drives the visual's unlock prompt
+  (`syncAudioPrompt` in `visual.ts`): prepended to the root so it is first in Tab order,
+  re-attached after a full re-render, given its own 30 px strip above the fleet by the
+  `bucket-health-root--audio-prompt` class, themed from the host palette in high contrast, and
+  removed on edge states, audio off or interactions disallowed, handing focus to the first component
+  if it had it. A pill unlocked within its 0.6 s CSS fade-in delay goes silently.
 - Square-wave two-tone pattern: 880 Hz then 660 Hz, ~0.24 s each, repeating every 1.5 s.
 - Auto-stops after 60 s; stops on click anywhere inside the visual. Each alarm's tones run through
   one master gain node; stopping disconnects it, which silences the alarm at once and frees its
