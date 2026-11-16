@@ -81,7 +81,7 @@ Movement `rgb(196, 43, 74)` / `#C42B4A`, data-error grey `rgb(154, 164, 177)`.
 
 | ID | Runs on | Steps | Expected |
 | --- | --- | --- | --- |
-| ES-01 | Both | Unbind every field (Page: untick all Fields). | Title "Add data to get started"; subtitle "Bind the required fields in the Fields pane to render machine bucket health."; field list Machine, Component, Category, Order, Component Status; tip starting "Tip: Also bind Comp. Alarm Time". |
+| ES-01 | Both | Unbind every field (Page: untick all Fields). | Title "Add data to get started"; subtitle "Bind the required fields in the Fields pane to render machine bucket health."; field list Machine, Component, Category, Order, Component Status, and nothing after it. |
 | ES-02 | Both | Bind everything except Category and Order. | Title "Configuration incomplete"; subtitle "Bind the following required data roles to render the visual:"; list "Category", "Order", each marked "not bound". |
 | ES-03 | Both | Filter the visual to a machine that does not exist (Page: Filter machines `NOPE`). | Title "No machines to show"; subtitle "No rows match the current filters or slicers. Adjust the page filters to see machines." |
 | ES-04 | Both | `UPDATE dbo.bucket_health SET machine_key = NULL WHERE is_active = 1;` Refresh. | Title "Couldn’t render the visual"; subtitle "An unexpected data error occurred. New audio alarms are suppressed until valid data returns."; detail "ERR · 134 rows have no machine and are not shown." |
@@ -147,16 +147,17 @@ Page: read `h.audio()` and `h.events()`. Desktop: listen.
 | AU-01 | Both | `EXEC dbo.bh_alarm 'EX-102','tooth',6;` then reload the page (Desktop: save, close, reopen the report). Click empty space. Wait two refreshes. | EX-102 flashes; no "audio: alarm started" (pre-existing alarms do not beep). |
 | AU-02 | Both | Click empty space. `EXEC dbo.bh_alarm 'EX-103','tooth',3;` Refresh. | "audio: alarm started"; `beeps` grows by one every ~1.5 s (two-tone 880 → 660 Hz). |
 | AU-03 | Both | While AU-02 sounds, click empty space. | "audio: alarm stopped after N s" at once; EX-103 keeps flashing; selection cleared. |
-| AU-04 | Both | Then `EXEC dbo.bh_touch;` Refresh twice. | No new start (same alarm id). Cards are not rebuilt. |
-| AU-05 | Both | Then `EXEC dbo.bh_set 'EX-103','tooth',3,'OK';` Refresh. `EXEC dbo.bh_alarm 'EX-103','tooth',3,'Proximity Alarm',0;` Refresh. | T03 alarms again with its old alarm time: no start. |
-| AU-06 | Both | Then `EXEC dbo.bh_set 'EX-103','tooth',3,'OK';` Refresh. `EXEC dbo.bh_alarm 'EX-103','tooth',3;` Refresh. | New alarm time: "audio: alarm started". Click to stop. |
+| AU-04 | Both | Then `EXEC dbo.bh_touch;` Refresh twice. | No new start (status unchanged). Cards are not rebuilt. |
+| AU-05 | Both | Then `EXEC dbo.bh_set 'EX-103','tooth',3,'OK';` Refresh. `EXEC dbo.bh_alarm 'EX-103','tooth',3,'Proximity Alarm',0;` Refresh. | T03 alarms again with its old alarm time (OK → Proximity): "audio: alarm started". Click to stop. |
+| AU-06 | Both | Then `EXEC dbo.bh_set 'EX-103','tooth',3,'OK';` Refresh. `EXEC dbo.bh_alarm 'EX-103','tooth',3;` Refresh. | T03 alarms again with a new alarm time (OK → Proximity): "audio: alarm started". Click to stop. |
 | AU-07 | Both | Start a new alarm (AU-02). After ~20 s: `EXEC dbo.bh_alarm 'SH-301','tooth',4,'Movement Alarm';` Refresh. Do not click. | `starts` does not grow for the second alarm; the sound stops by itself with "alarm stopped after 60.0 s" (±1 s), counted from the first alarm. |
 | AU-08 | Both | Start a new alarm. While it sounds: `EXEC dbo.bh_clear_alarms;` Refresh. | The sound continues (clearing does not stop it) until a click or 60 s. |
 | AU-09 | Both | Start a new alarm. While it sounds, untick Enable audio alarm. | Stops at once. Then `EXEC dbo.bh_alarm 'LD-201','tooth',6;` Refresh: no start. Tick Enable audio alarm again, Refresh: still no start. |
 | AU-10 | Both | Start a new alarm. While it sounds, filter the visual to `NOPE` (or unbind Category). | Stops at once (edge state). |
-| AU-11 | Both | Baseline, no alarms. Unbind Comp. Alarm Time. Refresh. `EXEC dbo.bh_alarm 'EX-103','tooth',3;` Refresh. | Starts (first alarm on that component). Click to stop. `EXEC dbo.bh_set 'EX-103','tooth',3,'OK';` Refresh; `EXEC dbo.bh_alarm 'EX-103','tooth',3;` Refresh: **no** start (without alarm time the id never changes). |
+| AU-11 | Both | Baseline, no alarms. Unbind Comp. Alarm Time. Refresh. `EXEC dbo.bh_alarm 'EX-103','tooth',3;` Refresh. | Starts (first alarm on that component). Click to stop. `EXEC dbo.bh_set 'EX-103','tooth',3,'OK';` Refresh; `EXEC dbo.bh_alarm 'EX-103','tooth',3;` Refresh: starts again (audio does not depend on Comp. Alarm Time). Click to stop. |
 | AU-12 | Page | Untick Allow interactions. Start a new alarm; click empty space. | The click does not stop it and logs no selection event. Tick it again; click stops it. |
 | AU-13 | Desktop | Open the report, do not click the visual, raise a new alarm. | Browsers may block sound until the first click in the visual; after one click, new alarms are audible. |
+| AU-14 | Both | Click empty space. `EXEC dbo.bh_alarm 'EX-103','tooth',3;` Refresh. Click to stop. Then five times: `EXEC dbo.bh_alarm 'EX-103','tooth',3;` Refresh (an ongoing alarm repeated with a new alarm time on each refresh). | One "audio: alarm started", for the first refresh only; `starts` does not grow on the five repeats. EX-103 keeps flashing. |
 
 ## 7. Tooltip
 

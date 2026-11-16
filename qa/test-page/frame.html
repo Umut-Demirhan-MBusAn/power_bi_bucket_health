@@ -240,8 +240,7 @@
           edge: text(state.querySelector(".bucket-health-state__title")),
           subtitle: text(state.querySelector(".bucket-health-state__subtitle")),
           detail: text(state.querySelector(".bucket-health-state__error-detail, .bucket-health-state__detail")),
-          fields: Array.from(state.querySelectorAll(".bucket-health-state__field-name")).map(text),
-          tip: text(state.querySelector(".bh-landing-tip"))
+          fields: Array.from(state.querySelectorAll(".bucket-health-state__field-name")).map(text)
         };
       }
       const grid = element.querySelector(".bucket-health__grid");

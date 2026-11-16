@@ -91,8 +91,8 @@ export function resyncFleetAnimations(section: HTMLElement): void {
     section.querySelectorAll<HTMLElement>("[data-machine-key]").forEach((card) => syncAnimationPhase(card, now));
 }
 
-// Everything a card's DOM depends on. Tooltip-only fields (last seen, tooltip fields, alarm time)
-// are excluded: tooltips read the current model, so those changes need no rebuild.
+// Everything a card's DOM depends on. Fields the card never draws (last seen, tooltip fields,
+// alarm time) are excluded: tooltips read the current model, so those changes need no rebuild.
 export function cardSignature(machine: MachineBucketModel, theme: VisualTheme, minCardWidth: number): string {
     const components = [
         ...machine.teeth,

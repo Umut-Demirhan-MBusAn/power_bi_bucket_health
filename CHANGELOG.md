@@ -15,9 +15,10 @@ First release.
   card by card, so focus, open tooltips and alarm flashing survive resizes and data refreshes.
 - A machine with bad rows or counts shows its own error card listing the issues by component name
   and the accepted values; the rest of the fleet renders normally. Row-limit and skipped-row warnings appear above the fleet.
-- Two-tone audio alarm (880/660 Hz, 60 s auto-stop) fired once per alarm identity (machine +
-  component + alarm time), armed by a click inside the visual. A click dismisses it; turning audio
-  off or losing valid data stops it.
+- Two-tone audio alarm (880/660 Hz, 60 s auto-stop) fired when a component's status changes into
+  an alarm or between alarm types; a repeated ongoing alarm stays silent whatever its alarm time.
+  Armed by a click inside the visual. A click dismisses it; turning audio off or losing valid data
+  stops it.
 - Custom themed component tooltips that close as soon as the pointer leaves the component, or
   after 8 s without movement on it; cross-filter selection, context menu, keyboard navigation,
   high-contrast support, and a tri-state Alarm motion accessibility setting.

@@ -90,7 +90,7 @@ suppressed:
 
 | State | Title | Trigger |
 | --- | --- | --- |
-| No fields | Add data to get started | No data view / no roles bound (landing page; lists the required fields and the Comp. Alarm Time tip) |
+| No fields | Add data to get started | No data view / no roles bound (landing page; lists the required fields) |
 | Loading | Loading machine data | Reserved: implemented in the renderer but not produced by the current synchronous parse path |
 | Invalid configuration | Configuration incomplete | One or more required roles not bound (lists each as "not bound") |
 | No data | No machines to show | Roles bound but zero rows after filters |
@@ -142,25 +142,31 @@ Each machine card frame and badge reflect the worst status across its components
 - DATA ERROR / INCOMPLETE (grey frame): the machine has issues and no alarm (see
   [Visual States](#visual-states)).
 
-### Alarm identity and audio
+### Alarm audio
 
-- Alarm id rule: each alarm has a stable id formed from machine + component + alarm time (the
-  `alarmTime` data role, **strongly recommended**). Audio fires once per distinct alarm id and
-  never re-fires for that same id, including after dismissal. The first render after the visual
-  loads seeds the known alarm ids without firing audio, so pre-existing alarms do not beep on
-  load. Without `alarmTime` bound, the id falls back to machine + component + "" — audio still
-  fires the first time a component alarms, but a clear-then-re-alarm in the same session stays
-  silent (see [DATA_SCHEMA.md › Alarm audio logic](DATA_SCHEMA.md#alarm-audio-logic)).
-- Dismissal rule: clicking anywhere on the visual dismisses current audio. Dismissing does not
-  re-arm the already-heard alarm id; only a genuinely new alarm id plays audio.
+- Transition rule: the visual remembers each component's last status, keyed by machine +
+  component. Audio fires when a component's status becomes an alarm status (proximity or
+  movement) that differs from its remembered status: non-alarm → alarm, proximity ↔ movement, or a
+  component first seen after the opening render that is already alarming. The same alarm status on
+  later records stays silent, whatever its alarm time; an ongoing alarm repeated by the source
+  every 30 s beeps once. An alarm that clears to a non-alarm status and comes back fires again.
+  The `alarmTime` data role plays no part (see
+  [DATA_SCHEMA.md › Alarm audio logic](DATA_SCHEMA.md#alarm-audio-logic)).
+- Seed rule: the first render after the visual loads records every status without firing audio,
+  so pre-existing alarms do not beep on load.
+- Missing-component rule: a component absent from a refresh (filtered out, partial load) keeps its
+  remembered status, so its ongoing alarm does not fire again when it returns. Edge states do not
+  reset the remembered statuses either.
+- Dismissal rule: clicking anywhere on the visual dismisses current audio. A dismissed alarm stays
+  silent while its status persists; only a new transition into an alarm status plays audio.
 - Stop rule: a sounding alarm stops at once when **Enable audio alarm** is turned off or the data
-  drops to an edge state (landing page, invalid configuration, no data, error). An alarm id first
+  drops to an edge state (landing page, invalid configuration, no data, error). An alarm first
   seen while audio is off never plays later.
 - Audio gesture rule: browser autoplay policies require a user gesture, so audio is armed/resumed
   by a user click inside the visual before it can play.
 - Audio pattern: WebAudio two-tone square-wave beep, 880 Hz then 660 Hz, ~0.24 seconds each,
   repeating every 1.5 seconds, with auto-stop after 60 seconds.
-- A new alarm id while the beep is sounding does not restart it or its 60 seconds. Clearing an
+- A new alarm transition while the beep is sounding does not restart it or its 60 seconds. Clearing an
   alarm does not stop a sounding beep; only a click, turning audio off, an edge state or the
   60-second limit does.
 
@@ -215,9 +221,10 @@ Each machine card frame and badge reflect the worst status across its components
   geometry expands/shrinks with component counts and stays polished at supported card sizes.
 - Component statuses map to the defined colors/animations; tooltips show required metadata and
   optional user-added fields.
-- A new alarm id triggers audio for up to one minute; clicking anywhere dismisses it; a dismissed
-  id never re-fires; a genuinely new id (new component alarm, or same component at a new alarm
-  time) plays audio.
+- A component's transition into an alarm status (from a non-alarm status, from the other alarm
+  type, or first seen alarming after the opening render) triggers audio for up to one minute;
+  clicking anywhere dismisses it; the same alarm status repeated on later records, with or without
+  a new alarm time, never re-fires; an alarm that clears and comes back fires again.
 - Alarming machine cards are highlighted (flashing frame, ALARM! chip, center icon, top-left
   banner) and sorted to the front; there are no alarm ring circles.
 - No data, invalid config, and error states never crash the visual and suppress audio.

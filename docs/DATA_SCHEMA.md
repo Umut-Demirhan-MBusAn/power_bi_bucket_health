@@ -29,8 +29,8 @@ the visual only reads the one value bound to the role.
 | **Component** | ✓ | Text | `component_key` | The component's name, unique within its machine. Identifies a single tooth, lip shroud, or wing shroud on that machine. Used for status rendering, the component tooltip, cross-filter selection, and alarm transition detection. Must be stable across refreshes — changing this value resets alarm history for that component. |
 | **Category** | ✓ | Text | `component_category` | The component type. Determines where on the bucket schematic the component is drawn. Matched leniently — see [Category matching](#category-matching) — against `tooth`, `lipShroud`, `wingShroud`. |
 | **Order** | ✓ | Integer | `component_order` | Position of this component within its category, starting at 1 (accepted as a number or a digit-only string — see [Validation rules](#validation-rules)). For teeth and lip shrouds, 1 is the leftmost position under the default **Teeth & lip order** setting (choose *Right to left* to flip it). For wing shrouds, left/right side is inferred from this value by the **Wing side assignment** Formatting pane setting — there is no left/right column in the data. Use unique values within each machine and category: duplicates are not rejected, but they tie-break by source row order, which makes the layout depend on row order. |
-| **Component Status** | ✓ | Text | `status` | The current health status of this component. Matched case-insensitively against the accepted status strings (see [Status values](#status-values) below). Non-alarm rows should have a blank Comp. Alarm Time. |
-| **Comp. Alarm Time** | Recommended | Datetime | `alarm_time` | Timestamp when this component entered its current alarm state. The visual constructs an alarm identity from machine + component + alarm time; audio fires exactly once per unique identity. **Strongly recommended: if you leave this unbound, a component that clears its alarm and then re-alarms in the same session will not play audio the second time** — the alarm identity is permanently cached for the lifetime of that session (see [Alarm audio logic](#alarm-audio-logic)). The visual still renders normally without it. Leave the cell blank (null) for non-alarm rows. |
+| **Component Status** | ✓ | Text | `status` | The current health status of this component. Matched case-insensitively against the accepted status strings (see [Status values](#status-values) below). Audio follows changes in this value (see [Alarm audio logic](#alarm-audio-logic)). |
+| **Comp. Alarm Time** | — | Datetime | `alarm_time` | Informational timestamp of the component's alarm. Optional: it is not displayed (not in the tooltip) and does not affect audio, which follows Component Status alone (see [Alarm audio logic](#alarm-audio-logic)). Any value, including blank, is accepted. |
 | **Last Seen** | — | Datetime | `last_seen_utc` | Timestamp of the last data receipt for this component. Shown in the component tooltip as a local date and time, to the minute. |
 | **Tooltip Fields** | — | Any, multiple | `tag_id` (example) | Additional columns to include in the component tooltip after the standard fields. You can bind multiple columns here. |
 
@@ -99,33 +99,28 @@ system numbers wing shrouds.
 
 ## Alarm audio logic
 
-Understanding this logic explains why **Comp. Alarm Time is strongly recommended**:
+Audio follows each component's **Component Status** transitions. Comp. Alarm Time plays no part.
 
-1. On the **first data update** after the visual loads, all currently-alarming components are
-   recorded silently — no audio fires. This prevents the report from beeping every time it opens.
-2. On each **subsequent update**, the visual checks whether any alarm identity (machine + component +
-   alarm time) is new since the last update. If it finds a new identity, audio fires.
-3. An alarm identity, once heard, is **permanently cached** for the lifetime of that visual session.
-   It will never fire again in that session regardless of dismiss or data changes.
-4. When the report is **closed and reopened**, the session resets and the cache is empty, so the
-   seeding step runs again on the first update.
+1. The visual remembers each component's last status, keyed by **Machine** + **Component**.
+2. On the **first data update** after the visual loads, every status is recorded silently — no
+   audio fires, so the report does not beep every time it opens.
+3. On each **later update**, audio fires when a component's status is an alarm status (Proximity or
+   Movement Alarm) that differs from its remembered status:
+   - a non-alarm status becomes an alarm;
+   - Proximity Alarm becomes Movement Alarm, or the reverse;
+   - a component first seen after the first update is already alarming.
+4. The **same alarm status on later rows stays silent**, whatever its alarm time. A source that
+   repeats an ongoing alarm every 30 s with a fresh alarm time beeps once, not on every repeat.
+5. An alarm that **clears** to a non-alarm status and later **comes back** fires again.
+6. A component **missing** from an update (filtered out, partial load) keeps its remembered status,
+   so its ongoing alarm does not fire again when it returns. Edge states (no fields, invalid
+   configuration, no data, error) do not reset the remembered statuses either.
+7. A click dismisses the sound; the dismissed alarm stays silent while its status persists. An
+   alarm that first appears while **Enable audio alarm** is off never plays later.
+8. When the report is **closed and reopened**, the remembered statuses are empty and step 2 runs
+   again.
 
-**Why binding Comp. Alarm Time matters:**
-
-Without an alarm time, the identity for component `T1` on machine `EX-204` is always
-`["EX-204","T1",""]` (empty timestamp; the visual JSON-encodes the machine/component/time triple as
-its internal identity). The first time it alarms, the identity is new and audio fires. But the
-identity is then cached. If the operator fixes the component (status returns to OK) and it later
-re-alarms, the identity is still `["EX-204","T1",""]` — already cached — and no audio plays.
-
-With an alarm time, the second alarm produces a different identity
-(`["EX-204","T1","2026-06-24T10:30:00Z"]`) that was never cached, so audio fires correctly.
-
-**Consequence if left empty:** the visual still renders and the *first* alarm on each component still
-plays audio. You only lose the audio cue for a **repeat** alarm on the **same** component within one
-uninterrupted session (closing and reopening the report resets the cache). The flashing/solid visual
-alarm is unaffected either way. Bind Comp. Alarm Time for reliable repeat-alarm audio in long-running
-live dashboards.
+The flashing/solid visual alarm follows the current status and is independent of audio.
 
 ## Validation rules
 

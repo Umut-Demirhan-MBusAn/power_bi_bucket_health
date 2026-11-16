@@ -1,4 +1,4 @@
-import { BucketHealthDataModel, MachineBucketModel } from "../data/types";
+import { BucketHealthDataModel, BucketStatusKey, MachineBucketModel } from "../data/types";
 import { isAlarmStatus } from "../data/normalizeStatus";
 import { buildCompositeKey } from "../data/keys";
 import { AlarmAudio } from "./alarmAudio";
@@ -11,28 +11,26 @@ export interface AlarmSink {
     destroy(): void;
 }
 
-export function buildAlarmId(machine: string, component: string, time: string | undefined): string {
-    return buildCompositeKey(machine, component, time ?? "");
+export function buildComponentId(machine: string, component: string): string {
+    return buildCompositeKey(machine, component);
 }
 
-export function collectAlarmIds(machines: MachineBucketModel[]): Set<string> {
-    const ids = new Set<string>();
+export function collectComponentStatuses(machines: MachineBucketModel[]): Map<string, BucketStatusKey> {
+    const statuses = new Map<string, BucketStatusKey>();
     machines.forEach((machine) => {
         const all = [...machine.teeth, ...machine.lipShrouds, ...machine.wingShroudsLeft, ...machine.wingShroudsRight];
         all.forEach((component) => {
-            if (isAlarmStatus(component.status)) {
-                const alarmTime = component.alarmTime === null || component.alarmTime === undefined
-                    ? undefined
-                    : String(component.alarmTime);
-                ids.add(buildAlarmId(machine.key, component.componentKey, alarmTime));
-            }
+            statuses.set(buildComponentId(machine.key, component.componentKey), component.status);
         });
     });
-    return ids;
+    return statuses;
 }
 
 export class AlarmController {
-    private readonly fired = new Set<string>();
+    // Source rows repeat an ongoing alarm with a fresh alarm time on every refresh, so audio keys on
+    // a component's status transition, never on alarmTime. Components absent from a refresh keep
+    // their last status: a filtered or partial load must not make an ongoing alarm sound again.
+    private readonly lastStatus = new Map<string, BucketStatusKey>();
     private seeded = false;
 
     constructor(private readonly audio: AlarmSink = new AlarmAudio()) {}
@@ -47,22 +45,17 @@ export class AlarmController {
             return;
         }
 
-        const current = collectAlarmIds(model.machines);
+        const current = collectComponentStatuses(model.machines);
 
-        // First render seeds the cache so pre-existing alarms do not blast audio on open.
-        if (!this.seeded) {
-            current.forEach((id) => this.fired.add(id));
-            this.seeded = true;
-            return;
-        }
-
+        // First render seeds the statuses so pre-existing alarms do not blast audio on open.
         let hasNew = false;
-        current.forEach((id) => {
-            if (!this.fired.has(id)) {
+        current.forEach((status, id) => {
+            if (this.seeded && isAlarmStatus(status) && this.lastStatus.get(id) !== status) {
                 hasNew = true;
-                this.fired.add(id);
             }
+            this.lastStatus.set(id, status);
         });
+        this.seeded = true;
 
         if (hasNew && audioEnabled) {
             this.audio.start();

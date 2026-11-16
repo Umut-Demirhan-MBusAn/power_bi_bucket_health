@@ -5,9 +5,10 @@
 
    Helpers (all act on dbo.bucket_health; Power BI and the test page read dbo.v_bucket_health):
      EXEC dbo.bh_reset;                                  -- the 6-machine baseline fleet, all OK; extras hidden
-     EXEC dbo.bh_alarm 'EX-101', 'tooth', 3;             -- NEW proximity alarm (alarm time = now)
+     EXEC dbo.bh_alarm 'EX-101', 'tooth', 3;             -- proximity alarm, alarm time = now
      EXEC dbo.bh_alarm 'EX-101', 'tooth', 3, 'Movement Alarm';
-     EXEC dbo.bh_alarm 'EX-101', 'tooth', 3, 'Proximity Alarm', 0;   -- SAME alarm: keeps the previous alarm time
+     EXEC dbo.bh_alarm 'EX-101', 'tooth', 3, 'Proximity Alarm', 0;   -- keeps the previous alarm time
+     -- Audio beeps when a status changes into an alarm (or between alarm types); alarm time plays no part.
      EXEC dbo.bh_set 'EX-101', 'tooth', 3, 'Lockout';    -- any status string; keeps the alarm time
      EXEC dbo.bh_clear_alarms;                           -- every alarm back to OK
      EXEC dbo.bh_touch;                                  -- a refresh where only Last Seen moves
@@ -111,8 +112,9 @@ BEGIN
     VALUES (NULL, NULL, N'ORPHAN-T01', N'Tooth 1', N'tooth', 1, N'OK', SYSUTCDATETIME(), NULL, N'TAG-ORPHAN-T01', 50, 0);
 END;
 GO
--- New alarm (@new_alarm = 1, default): alarm time = now, so it is a new alarm id and beeps.
--- Same alarm (@new_alarm = 0): keeps the component's previous alarm time, so it stays silent.
+-- @new_alarm = 1 (default): alarm time = now, as a source that re-sends an ongoing alarm with a fresh time.
+-- @new_alarm = 0: keeps the component's previous alarm time. Audio ignores the alarm time either way:
+-- it beeps only when the status changes into an alarm or between alarm types.
 CREATE OR ALTER PROCEDURE dbo.bh_alarm
     @machine nvarchar(50), @category nvarchar(20), @order int,
     @status nvarchar(40) = N'Proximity Alarm', @new_alarm bit = 1
@@ -128,6 +130,7 @@ BEGIN
 END;
 GO
 -- Any status string. The alarm time is kept on purpose (bh_alarm ... 0 re-uses it).
+-- Audio does not read it.
 CREATE OR ALTER PROCEDURE dbo.bh_set
     @machine nvarchar(50), @category nvarchar(20), @order int, @status nvarchar(40)
 AS

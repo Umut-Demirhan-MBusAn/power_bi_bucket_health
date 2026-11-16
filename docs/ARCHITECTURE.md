@@ -37,7 +37,7 @@ Domain model (src/data/types.ts, src/domain/)
   |
   v
 State services (src/audio/)
-  - AlarmController: alarm-identity dedup (machine + component + alarmTime)
+  - AlarmController: per-component status transitions (machine + component)
   - AlarmAudio: WebAudio two-tone beep, gesture arming, 60 s auto-stop
   |
   v
@@ -57,7 +57,7 @@ src/
                             # context menu, custom HTML tooltip
   settings.ts               # Formatting model (layout, ordering, alarm)
   audio/
-    alarmController.ts      # Alarm-identity dedup (machine + component + alarmTime)
+    alarmController.ts      # Per-component status transitions (machine + component)
     alarmAudio.ts           # WebAudio two-tone beep, gesture arming, 60 s auto-stop
   data/
     keys.ts                 # Composite key builder (JSON-encodes the parts array)
@@ -109,8 +109,9 @@ element, its positioning, and its content builder are all owned by the entry poi
    the renderer draws uniform fixed-height, flex-wrapped cards whose width tracks the bucket aspect
    ratio (more teeth = wider). Wrapped cards scroll on overflow; there is no fixed column-count
    rule.
-6. `AlarmController` compares previous and current alarms by stable alarm identity
-   (machine + component + alarmTime) so each identity fires audio at most once per session.
+6. `AlarmController` compares each component's status (keyed by machine + component) with its
+   last recorded status and fires audio when a component newly enters an alarm status or switches
+   alarm type.
 7. The first ready render builds the fleet; later ones reconcile it card by card (`updateFleet`).
    Each card is keyed by machine and stores a signature of everything it draws (theme, minimum
    width, name, type, issues, and each component's key, order, status and wing side). A card with
@@ -147,14 +148,18 @@ element, its positioning, and its content builder are all owned by the entry poi
 
 ## Alarm And Audio Architecture
 
-**AlarmController (alarm-identity dedup):**
+**AlarmController (status transitions):**
 
-- Builds a stable alarm identity per alarm from machine key + component key + alarmTime, JSON-encoded
-  by `buildCompositeKey`.
-- Caches every identity that has been seen; the same identity never fires audio twice, including
-  after dismissal.
-- Seeds the cache on the first render so pre-existing alarms do not beep when the report opens.
-- A new alarmTime produces a new identity, which fires again while audio is armed.
+- Keeps each component's last status, keyed by machine key + component key (JSON-encoded by
+  `buildCompositeKey`).
+- Fires audio when a component's status is an alarm status that differs from its last status:
+  non-alarm → alarm, proximity ↔ movement, or a component first seen alarming after the first
+  render. The same alarm status on later records stays silent, including after dismissal.
+- `alarmTime` is never read: the source repeats an ongoing alarm with a fresh alarm time on every
+  refresh, so a time-based key would beep on each repeat.
+- Seeds the statuses on the first render so pre-existing alarms do not beep when the report opens.
+- Components absent from a refresh, and edge states, leave the recorded statuses untouched, so a
+  filtered or partial load does not re-fire an ongoing alarm.
 
 **AlarmAudio (WebAudio beep):**
 
