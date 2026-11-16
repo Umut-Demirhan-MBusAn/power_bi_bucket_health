@@ -33,5 +33,10 @@
     "eslint-plugin-powerbi-visuals": "^1.1.1",
     "jsdom": "^29.1.1",
     "typescript": "~5.9.3"
+  },
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.8"
+    }
   }
 }
