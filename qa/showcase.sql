@@ -12,8 +12,9 @@
      docs/QA_TEST_CASES.md.
 
    HOW THE ALARM SOUND DECIDES (so the video steps make sense)
-   - Every alarm has an id = machine + component + alarm time. Each id beeps ONCE, ever
-     (per report session). The same id coming back never beeps again, even after it was cleared.
+   - A component beeps when its status CHANGES into an alarm: OK (or any non-alarm) -> alarm, or
+     proximity <-> movement. The same alarm sent again stays silent, even with a new alarm time.
+     An alarm that is cleared and comes back beeps again. The alarm time plays no part.
    - Alarms that already exist when the report opens do not beep.
    - One click anywhere inside the visual stops the sound. The first click also unlocks sound
      in the browser, so ALWAYS click the visual once after opening the report.
@@ -147,8 +148,8 @@ EXEC dbo.bh_reset;   -- back to the healthy fleet
    Before recording: EXEC dbo.bh_reset; wait one refresh; click EMPTY space inside the visual
    once (unlocks sound). Keep the Format pane closed except in B10/B11.
    Pause ~6-8 s after every step so the viewer sees the refresh.
-   To retake the video: EXEC dbo.bh_reset; and start again - every new alarm gets a new time,
-   so the steps beep again without reopening the report.
+   To retake the video: EXEC dbo.bh_reset; wait one refresh and start again - the reset turns
+   every component OK, so the steps beep again without reopening the report.
    ============================================================================================= */
 
 -- B1. All good. Show the green fleet for a few seconds.
@@ -176,10 +177,10 @@ EXEC dbo.bh_alarm 'SH-301', 'tooth', 4, 'Movement Alarm';
 
 -- B7. Click to acknowledge. Then a new alarm on the same machine after the acknowledgement.
 EXEC dbo.bh_alarm 'EX-103', 'tooth', 5;
---     EXPECT: BEEP again (a new alarm id); EX-103 banner "Proximity Alarm - Tooth 3, Tooth 5".
+--     EXPECT: BEEP again (tooth 5 goes OK -> alarm); EX-103 banner "Proximity Alarm - Tooth 3, Tooth 5".
 --     Click to acknowledge.
 
--- B8. Escalation: the proximity alarm on EX-103 tooth 3 becomes movement (new alarm time).
+-- B8. Escalation: the proximity alarm on EX-103 tooth 3 becomes movement.
 EXEC dbo.bh_alarm 'EX-103', 'tooth', 3, 'Movement Alarm';
 --     EXPECT: BEEP; EX-103 banner now "Movement Alarm - Tooth 3" and "Proximity Alarm - Tooth 5".
 --     Both alarm cards stay at the front (both movement, 2 alarms each). Click to acknowledge.
@@ -188,13 +189,14 @@ EXEC dbo.bh_alarm 'EX-103', 'tooth', 3, 'Movement Alarm';
 EXEC dbo.bh_set 'EX-103', 'tooth', 5, 'OK';
 --     EXPECT: tooth 5 turns green, banner drops it. Wait one refresh, then:
 EXEC dbo.bh_alarm 'EX-103', 'tooth', 5, 'Proximity Alarm', 0;
---     EXPECT: tooth 5 red again, NO beep (that alarm was already heard).
+--     EXPECT: tooth 5 red again, BEEP (OK -> alarm; the old alarm time does not matter).
+--     Click to acknowledge.
 
--- B10. Clear it, then a genuinely NEW alarm on the same tooth.
+-- B10. Clear it, then the same tooth alarms again with a new alarm time.
 EXEC dbo.bh_set 'EX-103', 'tooth', 5, 'OK';
 --     wait one refresh, then:
 EXEC dbo.bh_alarm 'EX-103', 'tooth', 5;
---     EXPECT: BEEP (new alarm time = new alarm).
+--     EXPECT: BEEP (OK -> alarm).
 --     While it beeps: Format -> Alarm -> Enable audio alarm OFF.  EXPECT: silence at once.
 
 -- B11. An alarm that arrives while audio is off never beeps later.

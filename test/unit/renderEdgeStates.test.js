@@ -23,11 +23,10 @@ test("noFields: renders all five required field definitions", () => {
     assert.equal(items[4].querySelector(".bucket-health-state__field-name").textContent, "Component Status");
 });
 
-test("noFields: renders alarm time tip", () => {
+test("noFields: ends with the field list and does not mention Comp. Alarm Time", () => {
     const el = renderEdgeState("noFields");
-    const tip = el.querySelector(".bh-landing-tip");
-    assert.ok(tip, "alarm time tip present");
-    assert.match(tip.textContent, /Comp\. Alarm Time/);
+    assert.equal(el.lastElementChild.className, "bucket-health-state__field-list");
+    assert.doesNotMatch(el.textContent, /Alarm Time/);
 });
 
 test("loading: title and loading icon class", () => {

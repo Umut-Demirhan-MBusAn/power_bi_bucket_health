@@ -20,7 +20,7 @@ Method:
    - **domain** — `src/domain/` (statusMeta reduction, settingsGuards defaults, wingSideAssignment);
    - **geometry** — `src/geometry/bucketGeometry.ts` (pure; assert on the numbers);
    - **rendering** — `src/rendering/` under jsdom (classes, attributes, high-contrast colours);
-   - **audio** — `src/audio/` (alarm-identity dedup, gesture arming, auto-stop) with
+   - **audio** — `src/audio/` (status-transition alarm detection, gesture arming, auto-stop) with
      `installFakeAudioContext`;
    - **host** — update types, selection ids, rendering events, formatting-pane round trips. Only the
      real host shows these: `pbiviz start` (https://localhost:8080) loaded by the Developer Visual in

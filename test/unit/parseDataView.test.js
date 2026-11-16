@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const { parseDataView } = require("../../.tmp/test-build/src/data/parseDataView");
-const { collectAlarmIds, buildAlarmId } = require("../../.tmp/test-build/src/audio/alarmController");
+const { collectComponentStatuses, buildComponentId } = require("../../.tmp/test-build/src/audio/alarmController");
 const { fixtureDataView: csvFixtureDataView, ROLE_BY_HEADER: roleByHeader } = require("../helpers/mockHost");
 
 function componentRow(machine, component, category, order, status) {
@@ -203,8 +203,8 @@ test("an invalid machine's alarm components still set hasAlarm and are collected
     assert.ok(machine.issues.length > 0, "machine has a lip-count issue (2 lip shrouds; expected 3)");
     assert.equal(machine.hasAlarm, true);
 
-    const ids = collectAlarmIds(model.machines);
-    assert.ok(ids.has(buildAlarmId("EX-9", "T3", undefined)));
+    const statuses = collectComponentStatuses(model.machines);
+    assert.equal(statuses.get(buildComponentId("EX-9", "T3")), "prox");
 });
 
 test("a machine with one invalid row and a Movement Alarm elsewhere still alarms and is collected for audio", () => {
@@ -226,8 +226,8 @@ test("a machine with one invalid row and a Movement Alarm elsewhere still alarms
     assert.equal(machine.dominantAlarm, "move");
     assert.deepEqual(machine.issues, ["Tooth 5 (T5): status 'Offline' is not recognised. Use OK, No Data, Lockout, Lockout + No Data, Proximity Alarm or Movement Alarm."]);
 
-    const ids = collectAlarmIds(model.machines);
-    assert.ok(ids.has(buildAlarmId("EX-MIX", "T4", undefined)));
+    const statuses = collectComponentStatuses(model.machines);
+    assert.equal(statuses.get(buildComponentId("EX-MIX", "T4")), "move");
 });
 
 test("wing side over-assignment: odd orders 1,3,5,7,9 overflow the left side; 1-8 do not", () => {
