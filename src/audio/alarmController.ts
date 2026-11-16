@@ -20,7 +20,12 @@ export function collectComponentStatuses(machines: MachineBucketModel[]): Map<st
     machines.forEach((machine) => {
         const all = [...machine.teeth, ...machine.lipShrouds, ...machine.wingShroudsLeft, ...machine.wingShroudsRight];
         all.forEach((component) => {
-            statuses.set(buildComponentId(machine.key, component.componentKey), component.status);
+            const id = buildComponentId(machine.key, component.componentKey);
+            // Duplicate rows for one component: an alarm row wins, so the result never depends on row order.
+            const seen = statuses.get(id);
+            if (seen === undefined || (!isAlarmStatus(seen) && isAlarmStatus(component.status))) {
+                statuses.set(id, component.status);
+            }
         });
     });
     return statuses;

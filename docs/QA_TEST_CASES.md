@@ -142,6 +142,8 @@ Positions come from `snapshot().cards[i].components[j].x` / `.y` (SVG units; x g
 
 Page: read `h.audio()` and `h.events()`. Desktop: listen.
 
+Audio fires only when a component changes into an alarm status, so re-running `bh_alarm` on a component that is already alarming stays silent. **Start a new alarm** means: `EXEC dbo.bh_reset;` Refresh, click empty space, then AU-02's `EXEC dbo.bh_alarm 'EX-103','tooth',3;` Refresh.
+
 | ID | Runs on | Steps | Expected |
 | --- | --- | --- | --- |
 | AU-01 | Both | `EXEC dbo.bh_alarm 'EX-102','tooth',6;` then reload the page (Desktop: save, close, reopen the report). Click empty space. Wait two refreshes. | EX-102 flashes; no "audio: alarm started" (pre-existing alarms do not beep). |
@@ -157,7 +159,7 @@ Page: read `h.audio()` and `h.events()`. Desktop: listen.
 | AU-11 | Both | Baseline, no alarms. Unbind Comp. Alarm Time. Refresh. `EXEC dbo.bh_alarm 'EX-103','tooth',3;` Refresh. | Starts (first alarm on that component). Click to stop. `EXEC dbo.bh_set 'EX-103','tooth',3,'OK';` Refresh; `EXEC dbo.bh_alarm 'EX-103','tooth',3;` Refresh: starts again (audio does not depend on Comp. Alarm Time). Click to stop. |
 | AU-12 | Page | Untick Allow interactions. Start a new alarm; click empty space. | The click does not stop it and logs no selection event. Tick it again; click stops it. |
 | AU-13 | Desktop | Open the report, do not click the visual, raise a new alarm. | Browsers may block sound until the first click in the visual; after one click, new alarms are audible. |
-| AU-14 | Both | Click empty space. `EXEC dbo.bh_alarm 'EX-103','tooth',3;` Refresh. Click to stop. Then five times: `EXEC dbo.bh_alarm 'EX-103','tooth',3;` Refresh (an ongoing alarm repeated with a new alarm time on each refresh). | One "audio: alarm started", for the first refresh only; `starts` does not grow on the five repeats. EX-103 keeps flashing. |
+| AU-14 | Both | `EXEC dbo.bh_reset;` Refresh. Click empty space. `EXEC dbo.bh_alarm 'EX-103','tooth',3;` Refresh. Click to stop. Then five times: `EXEC dbo.bh_alarm 'EX-103','tooth',3;` Refresh (an ongoing alarm repeated with a new alarm time on each refresh). | One "audio: alarm started", for the first refresh only; `starts` does not grow on the five repeats. EX-103 keeps flashing. |
 
 ## 7. Tooltip
 

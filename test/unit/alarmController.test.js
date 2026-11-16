@@ -140,6 +140,49 @@ test("an edge state between records does not reset the last statuses", () => {
     assert.equal(audio.starts, 1);
 });
 
+test("duplicate rows for one component resolve to the alarm status whatever their order", () => {
+    const alarmLast = collectComponentStatuses([machine("M", [comp("T1", "ok", undefined), comp("T1", "prox", "t1")])]);
+    const alarmFirst = collectComponentStatuses([machine("M", [comp("T1", "prox", "t1"), comp("T1", "ok", undefined)])]);
+    assert.equal(alarmLast.get(buildComponentId("M", "T1")), "prox");
+    assert.equal(alarmFirst.get(buildComponentId("M", "T1")), "prox");
+});
+
+test("an edge state before the first ready render does not seed, so the first ready render stays silent", () => {
+    const audio = fakeAudio();
+    const c = new AlarmController(audio);
+    c.update(model([], "noFields"), true);
+    c.update(model([machine("M", [comp("T1", "move", "t1")])]), true);
+    assert.equal(audio.starts, 0);
+});
+
+test("an error update with audio off does not reset the last statuses", () => {
+    const audio = fakeAudio();
+    const c = new AlarmController(audio);
+    c.update(model([machine("M", [comp("T1", "ok", undefined)])]), true);
+    c.update(model([machine("M", [comp("T1", "prox", "t1")])]), true);
+    c.update(model([], "error"), false);
+    c.update(model([machine("M", [comp("T1", "prox", "t2")])]), true);
+    assert.equal(audio.starts, 1);
+});
+
+test("a component that drops out and returns with the other alarm type fires", () => {
+    const audio = fakeAudio();
+    const c = new AlarmController(audio);
+    c.update(model([machine("M", [comp("T1", "ok", undefined), comp("T2", "ok", undefined)])]), true);
+    c.update(model([machine("M", [comp("T1", "prox", "t1"), comp("T2", "ok", undefined)])]), true);
+    c.update(model([machine("M", [comp("T2", "ok", undefined)])]), true);
+    c.update(model([machine("M", [comp("T1", "move", "t2"), comp("T2", "ok", undefined)])]), true);
+    assert.equal(audio.starts, 2);
+});
+
+test("several transitions in one update start the sound once", () => {
+    const audio = fakeAudio();
+    const c = new AlarmController(audio);
+    c.update(model([machine("M", [comp("T1", "ok", undefined), comp("T2", "ok", undefined)])]), true);
+    c.update(model([machine("M", [comp("T1", "prox", "t1"), comp("T2", "move", "t1")])]), true);
+    assert.equal(audio.starts, 1);
+});
+
 test("dismissed alarm does not re-fire while it persists", () => {
     const audio = fakeAudio();
     const c = new AlarmController(audio);
