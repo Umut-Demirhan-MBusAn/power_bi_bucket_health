@@ -41,7 +41,6 @@ export class AlarmController {
     constructor(private readonly audio: AlarmSink = new AlarmAudio()) {}
 
     update(model: BucketHealthDataModel, audioEnabled: boolean): void {
-        // Only a sounding alarm is stopped: dismiss() also closes the gesture-unlocked context.
         if ((!audioEnabled || model.state !== "ready") && this.audio.isPlaying()) {
             this.audio.dismiss();
         }

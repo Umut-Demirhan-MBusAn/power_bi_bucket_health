@@ -166,8 +166,12 @@ element, its positioning, and its content builder are all owned by the entry poi
 - Requires an explicit user-gesture click to arm/resume the audio context (browser autoplay
   policy).
 - Square-wave two-tone pattern: 880 Hz then 660 Hz, ~0.24 s each, repeating every 1.5 s.
-- Auto-stops after 60 s; stops on click anywhere inside the visual. Stopping closes the audio
-  context, so the next alarm creates a new one. `start()` while sounding does nothing, so a second
+- Auto-stops after 60 s; stops on click anywhere inside the visual. Each alarm's tones run through
+  one master gain node; stopping disconnects it, which silences the alarm at once and frees its
+  tone nodes, but keeps the click-unlocked audio context, so the next alarm plays on it: in the
+  Service's sandboxed cross-origin iframe a context created without a click stays suspended. Only
+  `destroy()` closes it. No tones are scheduled while the context is not running (resumed on
+  `suspended` or Safari's `interrupted`), so none pile up for a later resume. `start()` while sounding does nothing, so a second
   new alarm neither restarts the beep nor extends its 60 s.
 - Suppressed in edge states and when the **Enable audio alarm** setting is off; a sounding alarm
   stops on the first update that turns the setting off or leaves the `ready` state, including an

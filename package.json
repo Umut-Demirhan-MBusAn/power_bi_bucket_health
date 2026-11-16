@@ -1,7 +1,7 @@
 {
   "name": "power-bi-bucket-health",
   "description": "Power BI custom visual for mining bucket GET component health.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "repository": {
     "type": "git",

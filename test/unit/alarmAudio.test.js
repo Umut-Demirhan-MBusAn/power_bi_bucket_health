@@ -3,31 +3,49 @@ const assert = require("node:assert/strict");
 
 const { AlarmAudio } = require("../../.tmp/test-build/src/audio/alarmAudio");
 
-// Build a fake AudioContext factory. Returns { createContext, ctx } so a test
-// can both inject the factory and inspect the resulting context's counters.
+// Fake AudioContext factory. Returns { createContext, ctx } so a test can inject the factory and
+// inspect the context: how often it was created, resumed and closed, and the alarm's master gain.
 function fakeContextFactory(initialState) {
+    let created = 0;
     const ctx = {
         currentTime: 0,
         state: initialState || "suspended",
-        destination: {},
+        destination: { name: "destination" },
         oscillators: 0,
-        gains: 0,
+        masters: [],
         resumes: 0,
         closes: 0,
-        contexts: 1,
+        get contexts() {
+            return created;
+        },
         createOscillator() {
             this.oscillators++;
             return {
                 type: "",
                 frequency: { value: 0 },
-                connect() {},
+                target: null,
+                connect(target) {
+                    this.target = target;
+                },
                 start() {},
                 stop() {},
             };
         },
         createGain() {
-            this.gains++;
-            return { gain: { value: 0 }, connect() {} };
+            const gain = {
+                gain: { value: 0 },
+                target: null,
+                disconnects: 0,
+                connect(target) {
+                    this.target = target;
+                },
+                disconnect() {
+                    this.disconnects++;
+                    this.target = null;
+                },
+            };
+            this.masters.push(gain);
+            return gain;
         },
         resume() {
             this.resumes++;
@@ -39,7 +57,13 @@ function fakeContextFactory(initialState) {
             return Promise.resolve();
         },
     };
-    return { createContext: () => ctx, ctx };
+    return {
+        createContext: () => {
+            created++;
+            return ctx;
+        },
+        ctx,
+    };
 }
 
 test("arm() creates a context and calls resume()", () => {
@@ -62,18 +86,27 @@ test("arm() does not call resume() when already running", () => {
     assert.equal(ctx.resumes, 0, "no resume when context already running");
 });
 
-test("start() schedules tones by creating oscillators", () => {
+test("arm() resumes a context Safari left interrupted", () => {
+    const { createContext, ctx } = fakeContextFactory("interrupted");
+    const audio = new AlarmAudio(createContext);
+
+    audio.arm();
+
+    assert.equal(ctx.resumes, 1);
+});
+
+test("start() routes each beep's two tones through one master gain on the destination", () => {
     const { createContext, ctx } = fakeContextFactory("running");
     const audio = new AlarmAudio(createContext);
 
     audio.start();
-    // Assert only on what happened synchronously; then clean up timers.
     const oscAfterStart = ctx.oscillators;
-    const gainAfterStart = ctx.gains;
+    const master = ctx.masters[0];
     audio.dismiss();
 
-    assert.ok(oscAfterStart >= 2, `createOscillator called at least twice (got ${oscAfterStart})`);
-    assert.ok(gainAfterStart >= 2, `createGain called at least twice (got ${gainAfterStart})`);
+    assert.equal(oscAfterStart, 2, "the first beep is two tones");
+    assert.equal(ctx.masters.length, 1, "one master gain per alarm");
+    assert.equal(master.gain.value, 0.12);
 });
 
 test("start() resumes a suspended context", () => {
@@ -87,23 +120,119 @@ test("start() resumes a suspended context", () => {
     assert.ok(resumesAfterStart >= 1, "suspended context is resumed on start");
 });
 
-test("dismiss() closes the context", () => {
+test("no tones are scheduled while the context is not running, so none pile up for a resume", (t) => {
+    t.mock.timers.enable({ apis: ["setInterval", "setTimeout"] });
+    const { createContext, ctx } = fakeContextFactory("suspended");
+    ctx.resume = function () {
+        this.resumes++;
+        return Promise.resolve();
+    };
+    const audio = new AlarmAudio(createContext);
+
+    audio.start();
+    t.mock.timers.tick(4500);
+    assert.equal(ctx.oscillators, 0, "a stalled context gets no tones");
+
+    ctx.state = "running";
+    t.mock.timers.tick(1500);
+    assert.equal(ctx.oscillators, 2, "the next tick after a resume plays one beep");
+    audio.dismiss();
+});
+
+test("when start() has to resume the context, the first beep plays once the resume lands", async () => {
+    const { createContext, ctx } = fakeContextFactory("suspended");
+    let land;
+    ctx.resume = function () {
+        this.resumes++;
+        return new Promise((resolve) => {
+            land = () => {
+                this.state = "running";
+                resolve();
+            };
+        });
+    };
+    const audio = new AlarmAudio(createContext);
+
+    audio.start();
+    assert.equal(ctx.oscillators, 0, "nothing is scheduled on a suspended context");
+    land();
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(ctx.oscillators, 2, "the skipped beep plays when resume() settles");
+    audio.dismiss();
+});
+
+test("a resume that lands after a dismiss plays nothing", async () => {
+    const { createContext, ctx } = fakeContextFactory("suspended");
+    let land;
+    ctx.resume = function () {
+        return new Promise((resolve) => {
+            land = () => {
+                this.state = "running";
+                resolve();
+            };
+        });
+    };
+    const audio = new AlarmAudio(createContext);
+
+    audio.start();
+    audio.dismiss();
+    land();
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(ctx.oscillators, 0);
+});
+
+test("dismiss() disconnects the master gain and keeps the context open", () => {
+    const { createContext, ctx } = fakeContextFactory("running");
+    const audio = new AlarmAudio(createContext);
+
+    audio.start();
+    const master = ctx.masters[0];
+    assert.equal(master.target, ctx.destination);
+    audio.dismiss();
+
+    assert.equal(master.disconnects, 1, "the alarm is silenced at once");
+    assert.equal(ctx.closes, 0, "the gesture-unlocked context stays open");
+});
+
+test("a click (arm then dismiss) keeps the unlocked context for a later alarm", () => {
+    const { createContext, ctx } = fakeContextFactory("suspended");
+    const audio = new AlarmAudio(createContext);
+
+    audio.arm();
+    audio.dismiss();
+    audio.start();
+    const oscillators = ctx.oscillators;
+    audio.dismiss();
+
+    assert.equal(ctx.contexts, 1, "start() reuses the context the click unlocked");
+    assert.equal(ctx.resumes, 1, "resumed once, inside the click");
+    assert.equal(ctx.closes, 0);
+    assert.equal(oscillators, 2, "the later alarm beeps");
+});
+
+test("a second alarm after a dismiss gets a fresh master gain", () => {
     const { createContext, ctx } = fakeContextFactory("running");
     const audio = new AlarmAudio(createContext);
 
     audio.start();
     audio.dismiss();
+    audio.start();
 
-    assert.equal(ctx.closes, 1, "close() called once on dismiss");
+    assert.equal(ctx.masters.length, 2);
+    assert.equal(ctx.masters[1].target, ctx.destination);
+    audio.dismiss();
 });
 
-test("destroy() closes the context", () => {
+test("destroy() disconnects the master gain and closes the context", () => {
     const { createContext, ctx } = fakeContextFactory("running");
     const audio = new AlarmAudio(createContext);
 
     audio.start();
     audio.destroy();
 
+    assert.equal(ctx.masters[0].disconnects, 1);
     assert.equal(ctx.closes, 1, "close() called once on destroy");
 });
 
@@ -118,6 +247,7 @@ test("start() is idempotent while already playing", () => {
     audio.dismiss();
 
     assert.equal(oscAfterSecond, oscAfterFirst, "second start() does not re-schedule tones");
+    assert.equal(ctx.masters.length, 1);
 });
 
 test("start() schedules 3 beeps by 3000ms: the initial beep plus two 1500ms interval ticks", (t) => {
@@ -137,7 +267,7 @@ test("start() schedules 3 beeps by 3000ms: the initial beep plus two 1500ms inte
     audio.dismiss();
 });
 
-test("start() auto-stops at 60000ms (interval cleared); a later start() schedules again", (t) => {
+test("start() auto-stops at 60000ms: master disconnected, context kept; a later start() plays again", (t) => {
     t.mock.timers.enable({ apis: ["setInterval", "setTimeout"] });
     const { createContext, ctx } = fakeContextFactory("running");
     const audio = new AlarmAudio(createContext);
@@ -145,17 +275,14 @@ test("start() auto-stops at 60000ms (interval cleared); a later start() schedule
     audio.start();
     t.mock.timers.tick(60000);
 
-    assert.equal(ctx.closes, 1, "the 60000ms stopTimeout closes the context, clearing the interval");
+    assert.equal(ctx.masters[0].disconnects, 1, "the 60000ms stopTimeout silences the alarm");
+    assert.equal(ctx.closes, 0, "auto-stop keeps the unlocked context");
+    const oscillatorsAtStop = ctx.oscillators;
+    t.mock.timers.tick(3000);
+    assert.equal(ctx.oscillators, oscillatorsAtStop, "the interval is cleared");
 
-    const oscillatorsBeforeRestart = ctx.oscillators;
-    // If the auto-stop had not reset the internal `playing` flag, this start() would be a no-op
-    // (see the idempotent-start test above) and no new oscillator would be created.
     audio.start();
-    assert.equal(
-        ctx.oscillators,
-        oscillatorsBeforeRestart + 2,
-        "playing was reset to false, so start() schedules a new beep"
-    );
+    assert.equal(ctx.oscillators, oscillatorsAtStop + 2, "playing was reset, so start() beeps again");
 
     audio.dismiss();
 });

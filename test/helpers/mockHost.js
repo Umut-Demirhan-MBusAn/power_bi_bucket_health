@@ -103,7 +103,7 @@ function installFakeAudioContext() {
         }
 
         createGain() {
-            return { gain: { value: 0 }, connect() {} };
+            return { gain: { value: 0 }, connect() {}, disconnect() {} };
         }
 
         resume() {

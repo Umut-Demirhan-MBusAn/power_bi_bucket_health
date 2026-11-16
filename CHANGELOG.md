@@ -3,6 +3,12 @@
 Four-part `MAJOR.MINOR.PATCH.0` versions — bump rules and release process:
 [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md).
 
+## 1.0.1.0 — 2026-11-16
+
+- Alarm audio plays in the Power BI Service. A click used to close the audio context it had just
+  unlocked, so a later alarm started a new, suspended one and played silently. A click now keeps
+  that context; dismissing an alarm only stops the beep.
+
 ## 1.0.0.0 — 2026-09-26
 
 First release.

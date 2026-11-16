@@ -38,13 +38,32 @@
         };
         return osc;
       }
-      close() {
+      // An alarm's tones run through one master gain on the destination; the visual silences the
+      // alarm by disconnecting it and keeps the context, so that disconnect is the stop signal.
+      createGain() {
+        const gain = super.createGain();
+        const connect = gain.connect.bind(gain);
+        const disconnect = gain.disconnect.bind(gain);
+        gain.connect = (target, ...rest) => {
+          if (target === this.destination) gain.__bhMaster = true;
+          return connect(target, ...rest);
+        };
+        gain.disconnect = (...args) => {
+          if (gain.__bhMaster) this.__bhStopped();
+          return disconnect(...args);
+        };
+        return gain;
+      }
+      __bhStopped() {
         if (this.__bhSounding) {
           this.__bhSounding = false;
           state.stops += 1;
           state.playing = false;
           window.__bhEvent?.(`audio: alarm stopped after ${((Date.now() - state.startedAt) / 1000).toFixed(1)} s`);
         }
+      }
+      close() {
+        this.__bhStopped();
         return super.close();
       }
     }
