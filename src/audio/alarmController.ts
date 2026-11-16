@@ -9,6 +9,8 @@ export interface AlarmSink {
     dismiss(): void;
     isPlaying(): boolean;
     destroy(): void;
+    prepare(onLockChange: () => void): void;
+    isLocked(): boolean;
 }
 
 export function buildComponentId(machine: string, component: string): string {
@@ -68,6 +70,14 @@ export class AlarmController {
 
     arm(): void {
         this.audio.arm();
+    }
+
+    prepare(onLockChange: () => void): void {
+        this.audio.prepare(onLockChange);
+    }
+
+    isLocked(): boolean {
+        return this.audio.isLocked();
     }
 
     dismiss(): void {

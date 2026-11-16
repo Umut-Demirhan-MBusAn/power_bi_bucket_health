@@ -3,6 +3,12 @@
 Four-part `MAJOR.MINOR.PATCH.0` versions — bump rules and release process:
 [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md).
 
+## 1.1.0.0 — 2026-11-16
+
+- Audio unlock prompt: on the web, where the browser keeps sound locked until a click, a small pill
+  at the top of the visual, in its own strip above the fleet, reads "Click to turn on alarm sound". A click (or Tab and Enter) turns
+  sound on; the pill confirms "Alarm sound on" and fades. It never shows in Power BI Desktop.
+
 ## 1.0.1.0 — 2026-11-16
 
 - Alarm audio plays in the Power BI Service. A click used to close the audio context it had just

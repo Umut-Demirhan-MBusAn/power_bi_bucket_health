@@ -150,7 +150,8 @@ is fully adaptive (not author-configurable), and status strings/colours are fixe
 
 - Selection / cross-filter: clicking a component selects it via the host `ISelectionManager`
   (`select(id, ctrlKey)`, so Ctrl+click is multi-select) and cross-filters other visuals on the
-  page; clicking elsewhere in the visual calls `clear()`. Selection ids come from
+  page; clicking elsewhere in the visual calls `clear()`, except on the audio unlock prompt, which
+  leaves the selection alone. Selection ids come from
   `withTable(table, rowIndex)`. Unselected components dim, re-applied on every render and on
   `registerOnSelectCallback`.
 - Highlight: `supportsHighlight` is not declared, so another visual's selection filters this one's
@@ -169,7 +170,8 @@ is fully adaptive (not author-configurable), and status strings/colours are fixe
   `ISelectionManager.showContextMenu`, with the component's selection id or, off a component, an
   empty one.
 - Keyboard: components are focusable (`supportsKeyboardFocus`); Right/Down and Left/Up move focus
-  through every component in document order, wrapping; Enter/Space selects (Ctrl adds).
+  through every component in document order, wrapping; Enter/Space selects (Ctrl adds). While audio
+  is locked, the audio unlock prompt is a native button placed first in Tab order.
 - Fetch more data: not needed under the 20-machine / 2000-row cap.
 - Persist properties: formatting-pane settings persist via the formatting model.
 
@@ -181,9 +183,11 @@ is fully adaptive (not author-configurable), and status strings/colours are fixe
 | LocalStorage | No | Alarm dismissal is session-only. |
 | ExportContent | No | No export behavior planned. |
 
-Audio uses the in-browser WebAudio API, so no host privilege is declared. Because browser autoplay
-policies block sound without a user gesture, the audio context is armed/resumed on a user click
-inside the visual before any alarm can play.
+Audio uses the in-browser WebAudio API, so no host privilege is declared. The audio context is
+created, without a gesture and without resuming it, on the first ready render with audio on, so the
+visual can tell whether the browser keeps audio locked. Because browser autoplay policies block
+sound without a user gesture, a click inside the visual resumes it before any alarm can play; while
+it is locked the visual shows an unlock prompt.
 
 `privileges` is empty (`[]`) so the visual makes no external calls — good security posture for a
 visual distributed outside AppSource, regardless of certification status.
